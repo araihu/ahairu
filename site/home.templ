@@ -11,48 +11,71 @@ templ Page(content Content) {
 			<meta name="description" content={ content.Intro }/>
 			<meta name="theme-color" content="#07111f"/>
 			<title>{ content.Name } — { content.Tagline }</title>
-			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-favicon.svg?rev=archive-v4"/>
+			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-favicon.svg?rev=archive-v5"/>
 			<link rel="stylesheet" href="/assets/styles.css"/>
-			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=archive-v6"/>
-			<link rel="stylesheet" href="/assets/ahairu.css?rev=archive-v6"/>
+			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=archive-v7"/>
+			<link rel="stylesheet" href="/assets/ahairu.css?rev=archive-v7"/>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
-			<main class="ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10">
-				<nav class="ahairu-nav flex items-center justify-between pb-5" aria-label="Primary navigation">
+			<a class="skip-link" href="#main-content">{ content.SkipLabel }</a>
+			<header class="ahairu-header">
+				<nav class="ahairu-shell ahairu-nav mx-auto flex items-center justify-between px-6 py-5 md:px-10 md:py-7" aria-label={ content.PrimaryNavigationLabel }>
 					<a class="ahairu-brand" href={ content.Path }>
 						<img src={ araihuMarkURL } alt="" width="42" height="42"/>
 						<span>{ content.Name }</span>
 					</a>
-					<div class="ahairu-locale flex gap-3 text-sm font-semibold"><a href="/pt-br/">PT</a><a href="/en/">EN</a><a href="/es/">ES</a></div>
+					<div class="ahairu-locale flex gap-3 text-sm font-semibold">
+						if content.Path == "/pt-br/" {
+							<a href="/pt-br/" aria-current="page">PT</a>
+						} else {
+							<a href="/pt-br/">PT</a>
+						}
+						if content.Path == "/en/" {
+							<a href="/en/" aria-current="page">EN</a>
+						} else {
+							<a href="/en/">EN</a>
+						}
+						if content.Path == "/es/" {
+							<a href="/es/" aria-current="page">ES</a>
+						} else {
+							<a href="/es/">ES</a>
+						}
+					</div>
 				</nav>
+			</header>
+			<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">
 				<section class="storm-hero" aria-labelledby="hero-title">
-					<p class="storm-label">{ content.Meaning }</p>
-					<h1 id="hero-title" class="storm-title mt-6">{ content.Tagline }</h1>
+					<h1 id="hero-title" class="storm-title">{ content.Tagline }</h1>
 					<p class="storm-intro mt-8">{ content.Intro }</p>
 				</section>
 				<section class="project-ledger" aria-labelledby="projects-title">
 					<h2 id="projects-title">{ content.ProjectsLabel }</h2>
-					<div class="mt-8">
+					<ol class="project-list mt-8">
 						for index, project := range content.Projects {
-							<a class="project-row" href={ project.URL } target="_blank" rel="noopener noreferrer">
-								<span class="project-index">{ fmt.Sprintf("%02d", index + 1) }</span>
-								if project.MarkURL != "" {
-									<img class="project-mark" src={ project.MarkURL } alt="" width="48" height="48" decoding="async"/>
-								} else {
-									<span class="project-mark project-mark--word" aria-hidden="true">{ project.MarkText }</span>
-								}
-								<h3 class="project-name">{ project.Name }</h3>
-								<p class="project-description">{ project.Description }</p>
-								<span class="project-arrow" aria-hidden="true">↗</span>
-							</a>
+							<li>
+								<a class="project-row" href={ project.URL }>
+									<span class="project-index">{ fmt.Sprintf("%02d", index + 1) }</span>
+									if project.MarkURL != "" {
+										<img class="project-mark" src={ project.MarkURL } alt="" width="48" height="48" decoding="async"/>
+									} else {
+										<span class="project-mark project-mark--word" aria-hidden="true">{ project.MarkText }</span>
+									}
+									<h3 class="project-name">{ project.Name }</h3>
+									<p class="project-description">{ project.Description }</p>
+									<span class="project-arrow" aria-hidden="true">↗</span>
+								</a>
+							</li>
 						}
-					</div>
+					</ol>
 				</section>
-				<footer class="ahairu-footer flex flex-col gap-3 border-t border-outline pt-6 text-sm md:flex-row md:items-center md:justify-between">
-					<p>© 2026 { content.Name }. Built with Go and Goshtoso.</p>
-					<p>{ content.Meaning }</p>
-				</footer>
 			</main>
+			<footer class="ahairu-shell ahairu-footer mx-auto flex flex-col gap-3 px-6 py-6 text-sm md:flex-row md:items-center md:justify-between md:px-10 md:py-8">
+				<div>
+					<p>© 2026 { content.Name }.</p>
+					<p>{ content.FooterBuild }</p>
+				</div>
+					<p>{ content.Meaning }</p>
+			</footer>
 		</body>
 	</html>
 }

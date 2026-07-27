@@ -1,10 +1,16 @@
 {
   "private": true,
   "devDependencies": {
-    "wrangler": "4.32.0"
+    "puppeteer": "^25.4.0",
+    "wrangler": "^4.114.0"
   },
   "scripts": {
     "build": "templ generate && go run ./cmd/ahairu build",
     "check": "npm run build && go test ./... -count=1 && wrangler deploy --dry-run"
+  },
+  "allowScripts": {
+    "puppeteer@25.4.0": true,
+    "esbuild@0.28.1": true,
+    "workerd@1.20260722.1": true
   }
 }

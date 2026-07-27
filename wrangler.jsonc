@@ -3,6 +3,12 @@
   "name": "ahairu",
   "main": "src/worker.js",
   "compatibility_date": "2026-07-27",
+  "routes": [
+    {
+      "pattern": "araihu.com",
+      "custom_domain": true
+    }
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",

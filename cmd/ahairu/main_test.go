@@ -31,13 +31,24 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if !strings.Contains(page, "Independent software") || !strings.Contains(page, "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
 	}
+	for _, landmark := range []string{
+		`class="skip-link" href="#main-content"`,
+		`<header class="ahairu-header">`,
+		`<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">`,
+		`href="/en/" aria-current="page"`,
+		`aria-label="Primary navigation"`,
+	} {
+		if !strings.Contains(page, landmark) {
+			t.Errorf("generated HTML misses accessibility landmark %q", landmark)
+		}
+	}
 	for _, asset := range []string{
 		"logos/araihu-favicon.svg",
 		"logos/araihu-mark.svg",
 		"logos/goshtoso-mark.svg",
 		"logos/manja-mark.svg",
 		"logos/paje-mark.svg",
-		">X-9</span>",
+		"logos/xisnove-mark.svg",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
@@ -57,9 +68,13 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 			t.Errorf("brand asset %s missing or empty: %v", name, err)
 		}
 	}
-	for _, locale := range []string{"pt-br", "es"} {
-		if _, err := os.Stat(filepath.Join("public", locale, "index.html")); err != nil {
+	for locale, skipLabel := range map[string]string{"pt-br": "Pular para o conteúdo", "es": "Saltar al contenido"} {
+		localizedHTML, err := os.ReadFile(filepath.Join("public", locale, "index.html"))
+		if err != nil {
 			t.Fatalf("localized page missing for %s: %v", locale, err)
+		}
+		if !strings.Contains(string(localizedHTML), skipLabel) || !strings.Contains(string(localizedHTML), `aria-current="page"`) {
+			t.Errorf("localized page %s misses skip link or locale state", locale)
 		}
 	}
 }
