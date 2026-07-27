@@ -83,7 +83,7 @@ func Page(content Content) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\"><main class=\"ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10\"><nav class=\"ahairu-nav flex items-center justify-between pb-5\" aria-label=\"Primary navigation\"><a class=\"text-lg font-black tracking-tight text-on-surface-strong no-underline\" href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css?rev=archive-v1\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\"><main class=\"ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10\"><nav class=\"ahairu-nav flex items-center justify-between pb-5\" aria-label=\"Primary navigation\"><a class=\"text-lg font-black tracking-tight text-on-surface-strong no-underline\" href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

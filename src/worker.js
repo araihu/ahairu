@@ -1,4 +1,9 @@
 const locales = new Set(["en", "pt-br", "es"]);
+const assetRevision = "archive-v1";
+
+function localizedPage(locale, requestURL) {
+  return new URL(`/${locale}/index.html?rev=${assetRevision}`, requestURL);
+}
 
 export default {
   async fetch(request, env) {
@@ -6,13 +11,13 @@ export default {
     const first = url.pathname.split("/")[1].toLowerCase();
 
     if (url.pathname === "/" || url.pathname === "/en" || url.pathname === "/en/") {
-      return env.ASSETS.fetch(new URL("/en/index.html", request.url));
+      return env.ASSETS.fetch(localizedPage("en", request.url));
     }
     if (locales.has(first) && (url.pathname === `/${first}` || url.pathname === `/${first}/`)) {
-      return env.ASSETS.fetch(new URL(`/${first}/index.html`, request.url));
+      return env.ASSETS.fetch(localizedPage(first, request.url));
     }
     if (!url.pathname.includes(".")) {
-      return env.ASSETS.fetch(new URL("/en/index.html", request.url));
+      return env.ASSETS.fetch(localizedPage("en", request.url));
     }
     return env.ASSETS.fetch(request);
   },
