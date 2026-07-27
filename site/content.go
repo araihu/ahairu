@@ -1,7 +1,7 @@
 package site
 
 const brandAssetBase = "/assets/logos/"
-const brandAssetRevision = "?rev=archive-v4"
+const brandAssetRevision = "?rev=archive-v5"
 
 const araihuMarkURL = brandAssetBase + "araihu-mark.svg" + brandAssetRevision
 
