@@ -1,6 +1,6 @@
 package site
 
-import "github.com/araihu/goshtoso/components/badge"
+import "fmt"
 
 templ Page(content Content) {
 	<!doctype html>
@@ -11,25 +11,28 @@ templ Page(content Content) {
 			<meta name="description" content={ content.Intro }/>
 			<title>{ content.Name } — { content.Tagline }</title>
 			<link rel="stylesheet" href="/assets/styles.css"/>
+			<link rel="stylesheet" href="/assets/ahairu.css"/>
 		</head>
-		<body class="min-h-screen bg-surface text-on-surface selection:bg-primary selection:text-on-primary">
-			<main class="mx-auto flex min-h-screen max-w-6xl flex-col px-6 py-6 md:px-10 md:py-10">
-				<nav class="flex items-center justify-between" aria-label="Primary navigation">
+		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
+			<main class="ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10">
+				<nav class="ahairu-nav flex items-center justify-between pb-5" aria-label="Primary navigation">
 					<a class="text-lg font-black tracking-tight text-on-surface-strong no-underline" href={ content.Path }>{ content.Name }</a>
-					<div class="flex gap-3 text-sm font-semibold"><a href="/pt-br/">PT</a><a href="/en/">EN</a><a href="/es/">ES</a></div>
+					<div class="ahairu-locale flex gap-3 text-sm font-semibold"><a href="/pt-br/">PT</a><a href="/en/">EN</a><a href="/es/">ES</a></div>
 				</nav>
-				<section class="max-w-3xl py-20 md:py-28" aria-labelledby="hero-title">
-					@badge.Badge(badge.Config{Label: content.Meaning, Tone: badge.TonePrimary, Appearance: badge.AppearanceSoft, Indicator: true})
-					<h1 id="hero-title" class="mt-6 text-balance text-5xl font-black leading-[.95] tracking-[-.055em] text-on-surface-strong md:text-7xl">{ content.Tagline }</h1>
-					<p class="mt-7 max-w-2xl text-pretty text-lg leading-8 text-on-surface md:text-xl">{ content.Intro }</p>
+				<section class="storm-hero" aria-labelledby="hero-title">
+					<p class="storm-label">{ content.Meaning }</p>
+					<h1 id="hero-title" class="storm-title mt-6">{ content.Tagline }</h1>
+					<p class="storm-intro mt-8">{ content.Intro }</p>
 				</section>
-				<section class="pb-20" aria-labelledby="projects-title">
-					<h2 id="projects-title" class="text-2xl font-black tracking-tight text-on-surface-strong">{ content.ProjectsLabel }</h2>
-					<div class="mt-6 grid gap-4 md:grid-cols-2">
-						for _, project := range content.Projects {
-							<a class="group rounded-radius border border-outline bg-surface-alt p-6 no-underline transition hover:border-primary hover:shadow-lg" href={ project.URL } target="_blank" rel="noopener noreferrer">
-								<h3 class="text-xl font-bold text-on-surface-strong group-hover:text-primary">{ project.Name }</h3>
-								<p class="mt-2 text-sm leading-6 text-on-surface">{ project.Description }</p>
+				<section class="project-ledger" aria-labelledby="projects-title">
+					<h2 id="projects-title">{ content.ProjectsLabel }</h2>
+					<div class="mt-8">
+						for index, project := range content.Projects {
+							<a class="project-row" href={ project.URL } target="_blank" rel="noopener noreferrer">
+								<span class="project-index">{ fmt.Sprintf("%02d", index + 1) }</span>
+								<h3 class="project-name">{ project.Name }</h3>
+								<p class="project-description">{ project.Description }</p>
+								<span class="project-arrow" aria-hidden="true">↗</span>
 							</a>
 						}
 					</div>

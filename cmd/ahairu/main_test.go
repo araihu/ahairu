@@ -31,6 +31,9 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if info, err := os.Stat(filepath.Join("public", "assets", "styles.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("generated stylesheet missing or empty: %v", err)
 	}
+	if info, err := os.Stat(filepath.Join("public", "assets", "ahairu.css")); err != nil || info.Size() == 0 {
+		t.Fatalf("brand stylesheet missing or empty: %v", err)
+	}
 	for _, locale := range []string{"pt-br", "es"} {
 		if _, err := os.Stat(filepath.Join("public", locale, "index.html")); err != nil {
 			t.Fatalf("localized page missing for %s: %v", locale, err)

@@ -33,6 +33,9 @@ func build() error {
 	if err := os.WriteFile(filepath.Join("public", "assets", "styles.css"), css, 0o644); err != nil {
 		return err
 	}
+	if err := os.WriteFile(filepath.Join("public", "assets", "ahairu.css"), site.BrandCSS(), 0o644); err != nil {
+		return err
+	}
 	for _, locale := range site.Locales() {
 		if err := render(locale); err != nil {
 			return err
