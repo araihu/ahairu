@@ -21,14 +21,19 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if err := build(); err != nil {
 		t.Fatal(err)
 	}
-	html, err := os.ReadFile(filepath.Join("public", "index.html"))
+	html, err := os.ReadFile(filepath.Join("public", "en", "index.html"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(html), "Durable software,") || !strings.Contains(string(html), "/assets/styles.css") {
+	if !strings.Contains(string(html), "Independent software") || !strings.Contains(string(html), "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
 	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "styles.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("generated stylesheet missing or empty: %v", err)
+	}
+	for _, locale := range []string{"pt-br", "es"} {
+		if _, err := os.Stat(filepath.Join("public", locale, "index.html")); err != nil {
+			t.Fatalf("localized page missing for %s: %v", locale, err)
+		}
 	}
 }

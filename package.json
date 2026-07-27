@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "devDependencies": {
+    "wrangler": "4.32.0"
+  },
+  "scripts": {
+    "build": "templ generate && go run ./cmd/ahairu build",
+    "check": "npm run build && go test ./... -count=1 && wrangler deploy --dry-run"
+  }
+}
