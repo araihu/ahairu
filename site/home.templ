@@ -13,8 +13,8 @@ templ Page(content Content) {
 			<title>{ content.Name } — { content.Tagline }</title>
 			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-favicon.svg?rev=archive-v4"/>
 			<link rel="stylesheet" href="/assets/styles.css"/>
-			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=archive-v4"/>
-			<link rel="stylesheet" href="/assets/ahairu.css?rev=archive-v4"/>
+			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=archive-v6"/>
+			<link rel="stylesheet" href="/assets/ahairu.css?rev=archive-v6"/>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
 			<main class="ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10">
@@ -48,7 +48,7 @@ templ Page(content Content) {
 						}
 					</div>
 				</section>
-				<footer class="flex flex-col gap-3 border-t border-outline pt-6 text-sm text-on-surface md:flex-row md:items-center md:justify-between">
+				<footer class="ahairu-footer flex flex-col gap-3 border-t border-outline pt-6 text-sm md:flex-row md:items-center md:justify-between">
 					<p>© 2026 { content.Name }. Built with Go and Goshtoso.</p>
 					<p>{ content.Meaning }</p>
 				</footer>

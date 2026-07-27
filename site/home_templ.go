@@ -83,7 +83,7 @@ func Page(content Content) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/logos/araihu-favicon.svg?rev=archive-v4\"><link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/araihu-theme.css?rev=archive-v4\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css?rev=archive-v4\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\"><main class=\"ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10\"><nav class=\"ahairu-nav flex items-center justify-between pb-5\" aria-label=\"Primary navigation\"><a class=\"ahairu-brand\" href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/logos/araihu-favicon.svg?rev=archive-v4\"><link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/araihu-theme.css?rev=archive-v6\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css?rev=archive-v6\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\"><main class=\"ahairu-shell mx-auto flex min-h-screen flex-col px-6 py-6 md:px-10 md:py-10\"><nav class=\"ahairu-nav flex items-center justify-between pb-5\" aria-label=\"Primary navigation\"><a class=\"ahairu-brand\" href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -277,7 +277,7 @@ func Page(content Content) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div></section><footer class=\"flex flex-col gap-3 border-t border-outline pt-6 text-sm text-on-surface md:flex-row md:items-center md:justify-between\"><p>© 2026 ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 23, "</div></section><footer class=\"ahairu-footer flex flex-col gap-3 border-t border-outline pt-6 text-sm md:flex-row md:items-center md:justify-between\"><p>© 2026 ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
