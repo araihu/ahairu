@@ -1,5 +1,5 @@
 const locales = new Set(["en", "pt-br", "es"]);
-const assetRevision = "archive-v1";
+const assetRevision = "archive-v2";
 
 function localizedPage(locale, requestURL) {
   return new URL(`/${locale}/index.html?rev=${assetRevision}`, requestURL);

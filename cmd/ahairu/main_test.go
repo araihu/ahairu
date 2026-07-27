@@ -25,8 +25,21 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(html), "Independent software") || !strings.Contains(string(html), "/assets/styles.css") {
+	page := string(html)
+	if !strings.Contains(page, "Independent software") || !strings.Contains(page, "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
+	}
+	for _, asset := range []string{
+		"logos/araihu-favicon.svg",
+		"logos/araihu-mark.svg",
+		"logos/goshtoso-mark.svg",
+		"logos/manja-mark.svg",
+		"logos/paje-mark.svg",
+		">X-9</span>",
+	} {
+		if !strings.Contains(page, asset) {
+			t.Errorf("generated HTML misses brand asset %q", asset)
+		}
 	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "styles.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("generated stylesheet missing or empty: %v", err)
