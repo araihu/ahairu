@@ -37,7 +37,7 @@ templ Page(content Content) {
 							<a class="project-row" href={ project.URL } target="_blank" rel="noopener noreferrer">
 								<span class="project-index">{ fmt.Sprintf("%02d", index + 1) }</span>
 								if project.MarkURL != "" {
-									<img class="project-mark" src={ project.MarkURL } alt="" width="48" height="48" loading="lazy" decoding="async"/>
+									<img class="project-mark" src={ project.MarkURL } alt="" width="48" height="48" decoding="async"/>
 								} else {
 									<span class="project-mark project-mark--word" aria-hidden="true">{ project.MarkText }</span>
 								}
