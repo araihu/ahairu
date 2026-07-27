@@ -1,8 +1,9 @@
 package site
 
 const brandAssetBase = "/assets/logos/"
+const brandAssetRevision = "?rev=archive-v4"
 
-const araihuMarkURL = brandAssetBase + "araihu-mark.svg"
+const araihuMarkURL = brandAssetBase + "araihu-mark.svg" + brandAssetRevision
 
 // Content is one localized version of the organization site.
 type Content struct {
@@ -48,9 +49,9 @@ var contents = map[string]Content{
 
 func projects(goshtoso, manja, paje, xisnove string) []Project {
 	return []Project{
-		{Name: "Goshtoso", Description: goshtoso, URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-mark.svg"},
-		{Name: "Manja", Description: manja, URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-mark.svg"},
-		{Name: "Pajé", Description: paje, URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-mark.svg"},
+		{Name: "Goshtoso", Description: goshtoso, URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-mark.svg" + brandAssetRevision},
+		{Name: "Manja", Description: manja, URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-mark.svg" + brandAssetRevision},
+		{Name: "Pajé", Description: paje, URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-mark.svg" + brandAssetRevision},
 		{Name: "Xisnove", Description: xisnove, URL: "https://xisnove.dev", MarkText: "X-9"},
 	}
 }
