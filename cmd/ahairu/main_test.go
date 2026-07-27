@@ -43,12 +43,12 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		}
 	}
 	for _, asset := range []string{
-		"logos/araihu-favicon.svg",
-		"logos/araihu-mark.svg",
-		"logos/goshtoso-mark.svg",
-		"logos/manja-mark.svg",
-		"logos/paje-mark.svg",
-		"logos/xisnove-mark.svg",
+		"logos/araihu-favicon.svg?rev=ab01f1a0",
+		"logos/araihu-mark-reverse.svg?rev=ab01f1a0",
+		"logos/goshtoso-mark-reverse.svg?rev=ab01f1a0",
+		"logos/manja-mark-reverse.svg?rev=ab01f1a0",
+		"logos/paje-mark-reverse.svg?rev=ab01f1a0",
+		"logos/xisnove-mark-reverse.svg?rev=ab01f1a0",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
