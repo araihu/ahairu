@@ -1,6 +1,6 @@
 package site
 
-const brandAssetBase = "https://cdn.jsdelivr.net/gh/araihu/assets@e4806a6be335c875988181eaf748a97f8c3134d8/logos/"
+const brandAssetBase = "/assets/logos/"
 
 const araihuMarkURL = brandAssetBase + "araihu-mark.svg"
 

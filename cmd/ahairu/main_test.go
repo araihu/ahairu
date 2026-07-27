@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/araihu/ahairu/site"
 )
 
 func TestBuildWritesStandaloneSite(t *testing.T) {
@@ -46,6 +48,14 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "ahairu.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("brand stylesheet missing or empty: %v", err)
+	}
+	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
+		t.Fatalf("brand theme missing or empty: %v", err)
+	}
+	for _, name := range site.BrandAssetNames() {
+		if info, err := os.Stat(filepath.Join("public", "assets", "logos", name)); err != nil || info.Size() == 0 {
+			t.Errorf("brand asset %s missing or empty: %v", name, err)
+		}
 	}
 	for _, locale := range []string{"pt-br", "es"} {
 		if _, err := os.Stat(filepath.Join("public", locale, "index.html")); err != nil {
