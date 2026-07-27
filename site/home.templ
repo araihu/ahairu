@@ -4,13 +4,14 @@ import "fmt"
 
 templ Page(content Content) {
 	<!doctype html>
-	<html lang={ content.Language } data-theme="goshtoso">
+	<html lang={ content.Language } data-theme="araihu">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<meta name="description" content={ content.Intro }/>
 			<title>{ content.Name } — { content.Tagline }</title>
 			<link rel="stylesheet" href="/assets/styles.css"/>
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/araihu/assets@f841fe90b967b16ab2ad9efaee5aa636468e1afd/themes/araihu.css"/>
 			<link rel="stylesheet" href="/assets/ahairu.css?rev=archive-v1"/>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
