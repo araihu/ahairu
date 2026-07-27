@@ -83,7 +83,7 @@ func Page(content Content) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/logos/araihu-favicon.svg?rev=archive-v5\"><link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/araihu-theme.css?rev=archive-v7\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css?rev=archive-v7\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\"><a class=\"skip-link\" href=\"#main-content\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</title><link rel=\"icon\" type=\"image/svg+xml\" href=\"/assets/logos/araihu-favicon.svg?rev=archive-v6\"><link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/araihu-theme.css?rev=archive-v7\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css?rev=archive-v7\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\"><a class=\"skip-link\" href=\"#main-content\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
