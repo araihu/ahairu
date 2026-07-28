@@ -35,6 +35,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		`class="skip-link" href="#main-content"`,
 		`<header class="ahairu-header">`,
 		`<meta name="theme-color" content="#07111f">`,
+		`width="64" height="64"> <span>Arai Hû</span>`,
 		`<span>Arai Hû</span>`,
 		`<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">`,
 		`href="/en/" aria-current="page"`,
