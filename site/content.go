@@ -1,9 +1,9 @@
 package site
 
 const brandAssetBase = "/assets/logos/"
-const brandAssetRevision = "?rev=ab01f1a0"
+const brandAssetRevision = "?rev=a8a9647a"
 
-const araihuMarkURL = brandAssetBase + "araihu-mark-reverse.svg" + brandAssetRevision
+const araihuLogoURL = brandAssetBase + "araihu-logo-transparent.svg" + brandAssetRevision
 
 // Content is one localized version of the organization site.
 type Content struct {

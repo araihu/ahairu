@@ -26,5 +26,5 @@ func BrandAsset(name string) ([]byte, error) {
 
 // BrandAssetNames returns every asset emitted by the static builder.
 func BrandAssetNames() []string {
-	return []string{"araihu-favicon.svg", "araihu-mark-reverse.svg", "goshtoso-mark-reverse.svg", "manja-mark-reverse.svg", "paje-mark-reverse.svg", "xisnove-mark-reverse.svg"}
+	return []string{"araihu-icon-background.svg", "araihu-logo-transparent.svg", "goshtoso-mark-reverse.svg", "manja-mark-reverse.svg", "paje-mark-reverse.svg", "xisnove-mark-reverse.svg"}
 }
