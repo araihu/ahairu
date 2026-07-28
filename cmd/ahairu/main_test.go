@@ -58,6 +58,12 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
 		}
 	}
+	if !strings.Contains(page, `href="https://x9.araihu.com"`) {
+		t.Error("generated HTML misses the X-9 product URL")
+	}
+	if strings.Contains(page, "xisnove.dev") {
+		t.Error("generated HTML still links to the retired Xisnove domain")
+	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "styles.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("generated stylesheet missing or empty: %v", err)
 	}
