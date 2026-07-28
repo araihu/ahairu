@@ -6,8 +6,8 @@
 .ahairu-nav a { color: inherit; }
 .skip-link { background: #c7ff4a; color: #07111f; font-weight: 800; left: 1rem; padding: .7rem 1rem; position: fixed; top: 1rem; transform: translateY(calc(-100% - 2rem)); z-index: 10; }
 .skip-link:focus-visible { outline: 3px solid #f3f2e9; outline-offset: 3px; transform: translateY(0); }
-.ahairu-brand { align-items: center; display: inline-flex; font-size: 1.08rem; font-weight: 900; gap: .75rem; letter-spacing: -.025em; text-decoration: none; }
-.ahairu-brand img { color-scheme: dark; display: block; height: 2.625rem; width: 2.625rem; }
+.ahairu-brand { align-items: center; display: inline-flex; font-size: clamp(1.18rem, 1.6vw, 1.35rem); font-weight: 900; gap: 1rem; letter-spacing: -.025em; text-decoration: none; }
+.ahairu-brand img { color-scheme: dark; display: block; height: clamp(3.25rem, 4.5vw, 4rem); width: clamp(3.25rem, 4.5vw, 4rem); }
 .ahairu-locale { font-family: var(--font-mono); }
 .ahairu-locale a { color: #aab7c8; text-decoration: none; }
 .ahairu-locale a:hover, .ahairu-locale a:focus-visible, .ahairu-locale a[aria-current="page"] { color: #c7ff4a; }
