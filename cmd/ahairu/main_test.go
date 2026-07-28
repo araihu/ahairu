@@ -34,9 +34,12 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	for _, landmark := range []string{
 		`class="skip-link" href="#main-content"`,
 		`<header class="ahairu-header">`,
+		`<meta name="theme-color" content="#07111f">`,
+		`<span>Arai Hû</span>`,
 		`<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">`,
 		`href="/en/" aria-current="page"`,
 		`aria-label="Primary navigation"`,
+		`<h3 class="project-name">X-9</h3>`,
 	} {
 		if !strings.Contains(page, landmark) {
 			t.Errorf("generated HTML misses accessibility landmark %q", landmark)
@@ -44,11 +47,11 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	}
 	for _, asset := range []string{
 		"logos/araihu-icon-background.svg?rev=a8a9647a",
-		"logos/araihu-logo-transparent.svg?rev=a8a9647a",
-		"logos/goshtoso-mark-reverse.svg?rev=a8a9647a",
-		"logos/manja-mark-reverse.svg?rev=a8a9647a",
-		"logos/paje-mark-reverse.svg?rev=a8a9647a",
-		"logos/xisnove-mark-reverse.svg?rev=a8a9647a",
+		"logos/araihu-icon-transparent.svg?rev=a8a9647a",
+		"logos/goshtoso-icon-transparent.svg?rev=a8a9647a",
+		"logos/manja-icon-transparent.svg?rev=a8a9647a",
+		"logos/paje-icon-transparent.svg?rev=a8a9647a",
+		"logos/x9-icon-transparent.svg?rev=a8a9647a",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)

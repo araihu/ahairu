@@ -9,7 +9,7 @@ templ Page(content Content) {
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
 			<meta name="description" content={ content.Intro }/>
-			<meta name="theme-color" content="#f3f2e9"/>
+			<meta name="theme-color" content="#07111f"/>
 			<title>{ content.Name } — { content.Tagline }</title>
 			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-icon-background.svg?rev=a8a9647a"/>
 			<link rel="stylesheet" href="/assets/styles.css"/>
@@ -21,7 +21,8 @@ templ Page(content Content) {
 			<header class="ahairu-header">
 				<nav class="ahairu-shell ahairu-nav mx-auto flex items-center justify-between px-6 py-5 md:px-10 md:py-7" aria-label={ content.PrimaryNavigationLabel }>
 					<a class="ahairu-brand" href={ content.Path }>
-						<img class="ahairu-brand-logo" src={ araihuLogoURL } alt={ content.Name } width="242" height="60"/>
+						<img src={ araihuIconURL } alt="" width="42" height="42"/>
+						<span>{ content.Name }</span>
 					</a>
 					<div class="ahairu-locale flex gap-3 text-sm font-semibold">
 						if content.Path == "/pt-br/" {
