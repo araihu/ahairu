@@ -63,7 +63,7 @@ func Layout(page Page, content templ.Component) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/araihu-theme.css?rev=a8a9647a\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css?rev=a8a9647a\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<link rel=\"stylesheet\" href=\"/assets/styles.css\"><link rel=\"stylesheet\" href=\"/assets/araihu-theme.css\"><link rel=\"stylesheet\" href=\"/assets/ahairu.css\"></head><body class=\"ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -1,9 +1,8 @@
 package site
 
-const brandAssetBase = "/assets/logos/"
-const brandAssetRevision = "?rev=a8a9647a"
+const brandIconBase = BrandAssetsPublicPrefix + "icons/brand/"
 
-const araihuIconURL = brandAssetBase + "araihu-icon-transparent.svg" + brandAssetRevision
+const araihuIconURL = brandIconBase + "araihu-icon-light-transparent-optical.svg"
 
 // HomeContent is one localized home page.
 type HomeContent struct {
@@ -61,10 +60,10 @@ var homes = map[string]HomeContent{
 
 func projects(goshtoso, manja, paje, x9 string) []Project {
 	return []Project{
-		{Name: "Goshtoso", Description: goshtoso, URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-transparent.svg" + brandAssetRevision},
-		{Name: "Manja", Description: manja, URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-transparent.svg" + brandAssetRevision},
-		{Name: "Pajé", Description: paje, URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-transparent.svg" + brandAssetRevision},
-		{Name: "X-9", Description: x9, URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-transparent.svg" + brandAssetRevision},
+		{Name: "Goshtoso", Description: goshtoso, URL: "https://goshtoso.araihu.com", MarkURL: brandIconBase + "goshtoso-icon-light-transparent-optical.svg"},
+		{Name: "Manja", Description: manja, URL: "https://manja.araihu.com", MarkURL: brandIconBase + "manja-icon-light-transparent-optical.svg"},
+		{Name: "Pajé", Description: paje, URL: "https://paje.araihu.com", MarkURL: brandIconBase + "paje-icon-light-transparent-optical.svg"},
+		{Name: "X-9", Description: x9, URL: "https://x9.araihu.com", MarkURL: brandIconBase + "x9-icon-light-transparent-optical.svg"},
 	}
 }
 

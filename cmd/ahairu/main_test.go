@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/araihu/ahairu/site"
 )
 
 func TestBuildWritesStandaloneSite(t *testing.T) {
@@ -64,16 +62,18 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		}
 	}
 	for _, asset := range []string{
-		"logos/araihu-icon-background.svg?rev=a8a9647a",
-		"logos/araihu-icon-transparent.svg?rev=a8a9647a",
-		"logos/goshtoso-icon-transparent.svg?rev=a8a9647a",
-		"logos/manja-icon-transparent.svg?rev=a8a9647a",
-		"logos/paje-icon-transparent.svg?rev=a8a9647a",
-		"logos/x9-icon-transparent.svg?rev=a8a9647a",
+		"/assets/araihu/v0.1.0/icons/brand/araihu-icon-light-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/goshtoso-icon-light-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/manja-icon-light-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/paje-icon-light-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/x9-icon-light-transparent-optical.svg",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
 		}
+	}
+	if strings.Contains(page, "?rev=a8a9647a") {
+		t.Error("generated HTML contains stale V10 revision query")
 	}
 	if !strings.Contains(page, `href="https://x9.araihu.com"`) {
 		t.Error("generated HTML misses the X-9 product URL")
@@ -88,11 +88,11 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		t.Fatalf("brand stylesheet missing or empty: %v", err)
 	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
-		t.Fatalf("brand theme missing or empty: %v", err)
+		t.Fatalf("Arai Hû theme missing or empty: %v", err)
 	}
-	for _, name := range site.BrandAssetNames() {
-		if info, err := os.Stat(filepath.Join("public", "assets", "logos", name)); err != nil || info.Size() == 0 {
-			t.Errorf("brand asset %s missing or empty: %v", name, err)
+	for _, name := range []string{"catalog.json", "checksums.txt", "NOTICE", "icons/brand/sprite.svg", "platform/web/araihu/favicon.svg"} {
+		if info, err := os.Stat(filepath.Join("public", "assets", "araihu", "v0.1.0", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
+			t.Errorf("brand release asset %s missing or empty: %v", name, err)
 		}
 	}
 	for locale, skipLabel := range map[string]string{"pt-br": "Pular para o conteúdo", "es": "Saltar al contenido"} {

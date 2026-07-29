@@ -247,7 +247,7 @@ func TestCheckRejectsAdversarialDiscoveryDocuments(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				writeFile(t, path, []byte(strings.Replace(string(data), `"sizes":"any"`, `"sizes":"42x42"`, 1)))
+				writeFile(t, path, []byte(strings.Replace(string(data), `"sizes":"192x192"`, `"sizes":"42x42"`, 1)))
 			},
 			want: "manifest",
 		},
@@ -305,8 +305,11 @@ func writeValidPublic(t *testing.T) string {
 	}
 	writeFile(t, filepath.Join(root, "sitemap.xml"), sitemap)
 	writeFile(t, filepath.Join(root, "site.webmanifest"), site.SiteManifest())
-	for _, name := range []string{"styles.css", "ahairu.css", "araihu-theme.css", "logos/araihu-icon-background.svg"} {
+	for _, name := range []string{"styles.css", "ahairu.css", "araihu-theme.css"} {
 		writeFile(t, filepath.Join(root, "assets", name), []byte("fixture"))
+	}
+	if err := site.CopyBundledBrandAssets(filepath.Join(root, "assets", "araihu", "v0.1.0")); err != nil {
+		t.Fatal(err)
 	}
 	writePNG(t, filepath.Join(root, "social", "brand.png"), 1200, 630)
 	writePNG(t, filepath.Join(root, "social", "license.png"), 1200, 630)

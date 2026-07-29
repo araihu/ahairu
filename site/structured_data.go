@@ -10,7 +10,7 @@ func StructuredData(page Page) any {
 		"@id":   CanonicalSiteURL + "/#organization",
 		"name":  "Arai Hû",
 		"url":   CanonicalSiteURL + "/en/",
-		"logo":  CanonicalSiteURL + "/assets/logos/araihu-icon-background.svg?rev=a8a9647a",
+		"logo":  CanonicalSiteURL + BrandAssetsPublicPrefix + "platform/web/araihu/favicon.svg",
 	}
 	if page.Meta.Kind == PageBrand {
 		return map[string]any{

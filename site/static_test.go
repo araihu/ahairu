@@ -56,7 +56,7 @@ func TestStaticDiscoveryFilesAreAbsoluteAndUsePublishedIcons(t *testing.T) {
 	}
 	for _, raw := range icons {
 		icon, ok := raw.(map[string]any)
-		if !ok || !strings.HasPrefix(icon["src"].(string), "/assets/logos/") {
+		if !ok || !strings.HasPrefix(icon["src"].(string), BrandAssetsPublicPrefix+"platform/web/araihu/") {
 			t.Errorf("manifest icon is not published local asset: %#v", raw)
 		}
 	}

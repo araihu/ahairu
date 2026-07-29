@@ -8,8 +8,8 @@ templ Metadata(page Page) {
 	for _, alternate := range page.Meta.Alternates {
 		<link rel="alternate" hreflang={ alternate.Language } href={ alternate.URL }/>
 	}
-	<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-icon-background.svg?rev=a8a9647a"/>
-	<link rel="apple-touch-icon" href="/assets/logos/araihu-icon-background.svg?rev=a8a9647a"/>
+	<link rel="icon" type="image/svg+xml" href={ BrandAssetsPublicPrefix + "platform/web/araihu/favicon.svg" }/>
+	<link rel="apple-touch-icon" href={ BrandAssetsPublicPrefix + "platform/web/araihu/apple-touch-icon-180.png" }/>
 	<link rel="manifest" href="/site.webmanifest"/>
 	<meta property="og:type" content="website"/>
 	<meta property="og:title" content={ page.Meta.Title }/>

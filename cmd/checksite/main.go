@@ -22,9 +22,10 @@ const canonicalOrigin = "https://araihu.com"
 const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 const (
-	faviconURL  = "/assets/logos/araihu-icon-background.svg?rev=a8a9647a"
-	manifestURL = "/site.webmanifest"
-	themeColor  = "#07111f"
+	faviconURL        = "/assets/araihu/v0.1.0/platform/web/araihu/favicon.svg"
+	appleTouchIconURL = "/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png"
+	manifestURL       = "/site.webmanifest"
+	themeColor        = "#07111f"
 )
 
 func main() {
@@ -83,9 +84,10 @@ func checkManifest(root string) error {
 		BackgroundColor string `json:"background_color"`
 		ThemeColor      string `json:"theme_color"`
 		Icons           []struct {
-			Source string `json:"src"`
-			Type   string `json:"type"`
-			Sizes  string `json:"sizes"`
+			Source  string `json:"src"`
+			Type    string `json:"type"`
+			Sizes   string `json:"sizes"`
+			Purpose string `json:"purpose"`
 		} `json:"icons"`
 	}
 	if err := json.Unmarshal(data, &manifest); err != nil {
@@ -94,15 +96,27 @@ func checkManifest(root string) error {
 	if manifest.Name != "Arai Hû" || manifest.ShortName != "Arai Hû" || manifest.StartURL != "/en/" || manifest.Display != "browser" || manifest.BackgroundColor != themeColor || manifest.ThemeColor != themeColor {
 		return fmt.Errorf("manifest semantics are invalid")
 	}
-	if len(manifest.Icons) != 1 {
-		return fmt.Errorf("manifest has %d icons, want 1", len(manifest.Icons))
+	if len(manifest.Icons) != 4 {
+		return fmt.Errorf("manifest has %d icons, want 4", len(manifest.Icons))
 	}
-	icon := manifest.Icons[0]
-	if icon.Source != faviconURL || icon.Type != "image/svg+xml" || icon.Sizes != "any" {
-		return fmt.Errorf("manifest icon metadata is invalid")
+	expectedIcons := map[string]struct{ sizes, purpose string }{
+		"/assets/araihu/v0.1.0/platform/web/araihu/icon-192.png":          {sizes: "192x192"},
+		"/assets/araihu/v0.1.0/platform/web/araihu/icon-512.png":          {sizes: "512x512"},
+		"/assets/araihu/v0.1.0/platform/web/araihu/icon-maskable-192.png": {sizes: "192x192", purpose: "maskable"},
+		"/assets/araihu/v0.1.0/platform/web/araihu/icon-maskable-512.png": {sizes: "512x512", purpose: "maskable"},
 	}
-	if err := requireLocalURL(root, icon.Source); err != nil {
-		return fmt.Errorf("manifest icon: %w", err)
+	for _, icon := range manifest.Icons {
+		expected, ok := expectedIcons[icon.Source]
+		if !ok || icon.Type != "image/png" || icon.Sizes != expected.sizes || icon.Purpose != expected.purpose {
+			return fmt.Errorf("manifest icon metadata is invalid")
+		}
+		delete(expectedIcons, icon.Source)
+		if err := requireLocalURL(root, icon.Source); err != nil {
+			return fmt.Errorf("manifest icon: %w", err)
+		}
+	}
+	if len(expectedIcons) != 0 {
+		return fmt.Errorf("manifest icon set is incomplete")
 	}
 	return nil
 }
@@ -202,7 +216,7 @@ func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 	if err := requireLink(document, "icon", faviconURL, map[string]string{"type": "image/svg+xml"}); err != nil {
 		return pageError(page, err)
 	}
-	if err := requireLink(document, "apple-touch-icon", faviconURL, nil); err != nil {
+	if err := requireLink(document, "apple-touch-icon", appleTouchIconURL, nil); err != nil {
 		return pageError(page, err)
 	}
 	if err := requireLink(document, "manifest", manifestURL, nil); err != nil {

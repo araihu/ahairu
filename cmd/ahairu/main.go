@@ -39,18 +39,9 @@ func build() error {
 	if err := os.WriteFile(filepath.Join("public", "assets", "araihu-theme.css"), site.BrandThemeCSS(), 0o644); err != nil {
 		return err
 	}
-	logosDir := filepath.Join("public", "assets", "logos")
-	if err := os.MkdirAll(logosDir, 0o755); err != nil {
-		return err
-	}
-	for _, name := range site.BrandAssetNames() {
-		asset, err := site.BrandAsset(name)
-		if err != nil {
-			return err
-		}
-		if err := os.WriteFile(filepath.Join(logosDir, name), asset, 0o644); err != nil {
-			return err
-		}
+	releaseDir := filepath.Join("public", "assets", "araihu", "v0.1.0")
+	if err := site.CopyBundledBrandAssets(releaseDir); err != nil {
+		return fmt.Errorf("copy Arai Hû assets v0.1.0: %w", err)
 	}
 	homePages, err := site.HomePages()
 	if err != nil {

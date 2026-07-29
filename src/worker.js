@@ -1,8 +1,6 @@
 const locales = new Set(["en", "pt-br", "es"]);
-const assetRevision = "a8a9647a";
-
 function localizedPage(locale, requestURL) {
-  return new URL(`/${locale}/index.html?rev=${assetRevision}`, requestURL);
+  return new URL(`/${locale}/index.html`, requestURL);
 }
 
 export function preferredLocale(acceptLanguage) {

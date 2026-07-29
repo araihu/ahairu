@@ -16,18 +16,25 @@ func SiteManifest() []byte {
 		BackgroundColor string `json:"background_color"`
 		ThemeColor      string `json:"theme_color"`
 		Icons           []struct {
-			Source string `json:"src"`
-			Type   string `json:"type"`
-			Sizes  string `json:"sizes"`
+			Source  string `json:"src"`
+			Type    string `json:"type"`
+			Sizes   string `json:"sizes"`
+			Purpose string `json:"purpose,omitempty"`
 		} `json:"icons"`
 	}{
 		Name: "Arai Hû", ShortName: "Arai Hû", StartURL: "/en/", Display: "browser",
 		BackgroundColor: "#07111f", ThemeColor: "#07111f",
 		Icons: []struct {
-			Source string `json:"src"`
-			Type   string `json:"type"`
-			Sizes  string `json:"sizes"`
-		}{{Source: "/assets/logos/araihu-icon-background.svg?rev=a8a9647a", Type: "image/svg+xml", Sizes: "any"}},
+			Source  string `json:"src"`
+			Type    string `json:"type"`
+			Sizes   string `json:"sizes"`
+			Purpose string `json:"purpose,omitempty"`
+		}{
+			{Source: BrandAssetsPublicPrefix + "platform/web/araihu/icon-192.png", Type: "image/png", Sizes: "192x192"},
+			{Source: BrandAssetsPublicPrefix + "platform/web/araihu/icon-512.png", Type: "image/png", Sizes: "512x512"},
+			{Source: BrandAssetsPublicPrefix + "platform/web/araihu/icon-maskable-192.png", Type: "image/png", Sizes: "192x192", Purpose: "maskable"},
+			{Source: BrandAssetsPublicPrefix + "platform/web/araihu/icon-maskable-512.png", Type: "image/png", Sizes: "512x512", Purpose: "maskable"},
+		},
 	})
 	if err != nil {
 		panic(fmt.Sprintf("marshal site manifest: %v", err))
