@@ -1,5 +1,7 @@
 package site
 
+import "fmt"
+
 var siteLocales = []Locale{
 	{Key: "en", Language: "en", OGLocale: "en_US", Label: "EN"},
 	{Key: "pt-br", Language: "pt-BR", OGLocale: "pt_BR", Label: "PT"},
@@ -15,6 +17,65 @@ func Pages() []Page {
 		}
 	}
 	return pages
+}
+
+// HomePages returns the only pages the current builder can render. Brand and
+// license pages remain modeled, but their renderers are introduced in Task 4.
+func HomePages() ([]Page, error) { return PagesByKind(PageHome) }
+
+// PagesByKind returns the complete, validated localized set for one page kind.
+func PagesByKind(kind PageKind) ([]Page, error) {
+	if kind != PageHome && kind != PageBrand && kind != PageLicense {
+		return nil, fmt.Errorf("unknown page kind %q", kind)
+	}
+
+	pages := Pages()
+	selected := make([]Page, 0, len(siteLocales))
+	for _, page := range pages {
+		if err := validatePage(page); err != nil {
+			return nil, err
+		}
+		if page.Meta.Kind == kind {
+			selected = append(selected, page)
+		}
+	}
+	if len(selected) != len(siteLocales) {
+		return nil, fmt.Errorf("page kind %q has %d locales, want %d", kind, len(selected), len(siteLocales))
+	}
+	return selected, nil
+}
+
+func validatePage(page Page) error {
+	present := 0
+	if page.Home != nil {
+		present++
+	}
+	if page.Brand != nil {
+		present++
+	}
+	if page.License != nil {
+		present++
+	}
+	if present != 1 {
+		return fmt.Errorf("page %q has %d content models, want 1", page.Meta.Path, present)
+	}
+	switch page.Meta.Kind {
+	case PageHome:
+		if page.Home == nil {
+			return fmt.Errorf("home page %q lacks home content", page.Meta.Path)
+		}
+	case PageBrand:
+		if page.Brand == nil {
+			return fmt.Errorf("brand page %q lacks brand content", page.Meta.Path)
+		}
+	case PageLicense:
+		if page.License == nil {
+			return fmt.Errorf("license page %q lacks license content", page.Meta.Path)
+		}
+	default:
+		return fmt.Errorf("page %q has unknown kind %q", page.Meta.Path, page.Meta.Kind)
+	}
+	return nil
 }
 
 func newPage(kind PageKind, locale Locale) Page {

@@ -52,15 +52,25 @@ func build() error {
 			return err
 		}
 	}
-	for _, page := range site.Pages() {
-		if page.Home == nil {
-			continue
-		}
-		if err := render(*page.Home); err != nil {
+	homePages, err := site.HomePages()
+	if err != nil {
+		return fmt.Errorf("select home pages: %w", err)
+	}
+	for _, page := range homePages {
+		if err := renderHome(page); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// renderHome is intentionally the only page renderer until Task 4 adds brand
+// and license templates.
+func renderHome(page site.Page) error {
+	if page.Meta.Kind != site.PageHome || page.Home == nil {
+		return fmt.Errorf("page %q is not renderable home content", page.Meta.Path)
+	}
+	return render(*page.Home)
 }
 
 func render(content site.HomeContent) error {

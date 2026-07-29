@@ -87,4 +87,9 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 			t.Errorf("localized page %s misses skip link or locale state", locale)
 		}
 	}
+	for _, path := range []string{"brand", "license", "pt-br/brand", "pt-br/license", "es/brand", "es/license"} {
+		if _, err := os.Stat(filepath.Join("public", path, "index.html")); !os.IsNotExist(err) {
+			t.Errorf("%s rendered before its Task 4 template exists: %v", path, err)
+		}
+	}
 }

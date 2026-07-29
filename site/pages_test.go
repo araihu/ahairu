@@ -1,6 +1,9 @@
 package site
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestPagesContainNineCanonicalLocalizedPages(t *testing.T) {
 	pages := Pages()
@@ -31,7 +34,31 @@ func TestLocaleNavigationPreservesPageKind(t *testing.T) {
 	requireLocaleLink(t, page.Navigation, "es", "/es/brand/")
 }
 
-func TestPagesUseCanonicalURLsAndReciprocalAlternates(t *testing.T) {
+func TestHomePagesSelectExactlyValidatedRenderableHomes(t *testing.T) {
+	homePages, err := HomePages()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(homePages) != 3 {
+		t.Fatalf("HomePages() returned %d pages, want 3", len(homePages))
+	}
+	for _, page := range homePages {
+		if page.Meta.Kind != PageHome || page.Home == nil || page.Brand != nil || page.License != nil {
+			t.Errorf("HomePages() returned non-renderable home page: %#v", page)
+		}
+	}
+
+	for _, page := range Pages() {
+		if page.Meta.Kind == PageBrand && page.Brand == nil {
+			t.Errorf("brand page %s is not modeled", page.Meta.Path)
+		}
+		if page.Meta.Kind == PageLicense && page.License == nil {
+			t.Errorf("license page %s is not modeled", page.Meta.Path)
+		}
+	}
+}
+
+func TestPagesUseCanonicalURLsAlternatesAndNavigation(t *testing.T) {
 	wantPaths := map[PageKind]map[string]string{
 		PageHome: {
 			"en": "/en/", "pt-BR": "/pt-br/", "es": "/es/", "x-default": "/en/",
@@ -43,13 +70,78 @@ func TestPagesUseCanonicalURLsAndReciprocalAlternates(t *testing.T) {
 			"en": "/license/", "pt-BR": "/pt-br/license/", "es": "/es/license/", "x-default": "/license/",
 		},
 	}
-	for _, page := range Pages() {
+	pages := Pages()
+	byPath := make(map[string]Page, len(pages))
+	canonicals := make(map[string]struct{}, len(pages))
+	titles := make(map[string]struct{}, len(pages))
+	for _, page := range pages {
+		if _, duplicate := byPath[page.Meta.Path]; duplicate {
+			t.Errorf("duplicate path %q", page.Meta.Path)
+		}
+		byPath[page.Meta.Path] = page
+		if _, duplicate := canonicals[page.Meta.CanonicalURL]; duplicate {
+			t.Errorf("duplicate canonical URL %q", page.Meta.CanonicalURL)
+		}
+		canonicals[page.Meta.CanonicalURL] = struct{}{}
+		if _, duplicate := titles[page.Meta.Title]; duplicate {
+			t.Errorf("duplicate title %q", page.Meta.Title)
+		}
+		titles[page.Meta.Title] = struct{}{}
+	}
+	for _, page := range pages {
 		if page.Meta.CanonicalURL != "https://araihu.com"+page.Meta.Path {
 			t.Errorf("%s canonical URL = %q, want %q", page.Meta.Path, page.Meta.CanonicalURL, "https://araihu.com"+page.Meta.Path)
 		}
+		if len(page.Meta.Alternates) != 4 {
+			t.Errorf("%s has %d alternates, want 4", page.Meta.Path, len(page.Meta.Alternates))
+		}
+		seenAlternates := make(map[string]struct{}, len(page.Meta.Alternates))
 		for language, path := range wantPaths[page.Meta.Kind] {
 			requireAlternate(t, page.Meta.Alternates, language, "https://araihu.com"+path)
 		}
+		for _, alternate := range page.Meta.Alternates {
+			if _, duplicate := seenAlternates[alternate.Language]; duplicate {
+				t.Errorf("%s repeats alternate language %q", page.Meta.Path, alternate.Language)
+			}
+			seenAlternates[alternate.Language] = struct{}{}
+			alternatePath := strings.TrimPrefix(alternate.URL, "https://araihu.com")
+			target, ok := byPath[alternatePath]
+			if !ok {
+				t.Errorf("%s alternate %q targets unknown path %q", page.Meta.Path, alternate.Language, alternatePath)
+				continue
+			}
+			if target.Meta.CanonicalURL != alternate.URL {
+				t.Errorf("%s alternate %q does not target canonical URL", page.Meta.Path, alternate.Language)
+			}
+			if alternate.Language != "x-default" {
+				requireAlternate(t, target.Meta.Alternates, page.Meta.Locale.Language, page.Meta.CanonicalURL)
+			}
+		}
+		if len(page.Navigation.Locales) != 3 {
+			t.Errorf("%s has %d locale links, want 3", page.Meta.Path, len(page.Navigation.Locales))
+		}
+		for _, language := range []string{"en", "pt-BR", "es"} {
+			requireLocaleLink(t, page.Navigation, language, wantPaths[page.Meta.Kind][language])
+		}
+		seenLocaleLinks := make(map[string]struct{}, len(page.Navigation.Locales))
+		for _, link := range page.Navigation.Locales {
+			if _, duplicate := seenLocaleLinks[link.Locale.Language]; duplicate {
+				t.Errorf("%s repeats navigation locale %q", page.Meta.Path, link.Locale.Language)
+			}
+			seenLocaleLinks[link.Locale.Language] = struct{}{}
+			target, ok := byPath[link.URL]
+			if !ok {
+				t.Errorf("%s navigation targets unknown path %q", page.Meta.Path, link.URL)
+				continue
+			}
+			if target.Meta.Kind != page.Meta.Kind {
+				t.Errorf("%s navigation changes kind from %q to %q", page.Meta.Path, page.Meta.Kind, target.Meta.Kind)
+			}
+			if target.Meta.Locale.Language != link.Locale.Language {
+				t.Errorf("%s navigation locale %q targets %q", page.Meta.Path, link.Locale.Language, target.Meta.Locale.Language)
+			}
+		}
+		requireOnlyMatchingContent(t, page)
 	}
 }
 
@@ -82,4 +174,35 @@ func requireAlternate(t *testing.T, alternates []Alternate, language, url string
 		}
 	}
 	t.Fatalf("alternate %s to %s missing", language, url)
+}
+
+func requireOnlyMatchingContent(t *testing.T, page Page) {
+	t.Helper()
+	present := 0
+	if page.Home != nil {
+		present++
+	}
+	if page.Brand != nil {
+		present++
+	}
+	if page.License != nil {
+		present++
+	}
+	if present != 1 {
+		t.Errorf("%s has %d content models, want 1", page.Meta.Path, present)
+	}
+	switch page.Meta.Kind {
+	case PageHome:
+		if page.Home == nil {
+			t.Errorf("%s home page lacks home content", page.Meta.Path)
+		}
+	case PageBrand:
+		if page.Brand == nil {
+			t.Errorf("%s brand page lacks brand content", page.Meta.Path)
+		}
+	case PageLicense:
+		if page.License == nil {
+			t.Errorf("%s license page lacks license content", page.Meta.Path)
+		}
+	}
 }
