@@ -45,6 +45,22 @@ func TestEveryPageHasCompleteAbsoluteMetadata(t *testing.T) {
 	}
 }
 
+func TestSocialImagesAreAbsoluteAndIntentionallySharedByPageKind(t *testing.T) {
+	want := map[PageKind]string{
+		PageHome:    CanonicalSiteURL + "/social/brand.png",
+		PageBrand:   CanonicalSiteURL + "/social/brand.png",
+		PageLicense: CanonicalSiteURL + "/social/license.png",
+	}
+	for _, page := range Pages() {
+		if page.Meta.SocialImageURL != want[page.Meta.Kind] {
+			t.Errorf("%s social image = %q, want deliberate %s asset %q", page.Meta.Path, page.Meta.SocialImageURL, page.Meta.Kind, want[page.Meta.Kind])
+		}
+		if !strings.HasPrefix(page.Meta.SocialImageURL, CanonicalSiteURL+"/") {
+			t.Errorf("%s social image is not absolute: %q", page.Meta.Path, page.Meta.SocialImageURL)
+		}
+	}
+}
+
 func TestLayoutUsesMetadataForDocumentShell(t *testing.T) {
 	page := requirePage(t, Pages(), "/en/", "en", PageHome)
 	var output bytes.Buffer

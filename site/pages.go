@@ -109,6 +109,9 @@ func newPage(kind PageKind, locale Locale) Page {
 }
 
 func socialImagePath(kind PageKind) string {
+	// Home intentionally reuses the brand card. Locale variants share the
+	// PageKind card; their page-specific title, description, URL, and locale
+	// remain in metadata.
 	if kind == PageLicense {
 		return "/social/license.png"
 	}
