@@ -131,6 +131,7 @@
 @media (prefers-reduced-motion: reduce) { .storm-hero::before { animation: none; } .project-row { transition: none; } .project-row:hover, .project-row:focus-visible { transform: none; } }
 @media (prefers-color-scheme: light) {
   .ahairu-archive { background: #f3f2e9; color: #07111f; }
+  .ahairu-brand img, .project-mark { color-scheme: light; }
   .ahairu-header, .ahairu-footer, .guidance-section, .guidance-page-header, .license-terms { border-color: rgba(7,17,31,.22); }
   .ahairu-primary-links a { color: #243348; }
   .ahairu-locale a { color: #526981; }
