@@ -7,7 +7,7 @@ templ generate
 go run ./cmd/ahairu build
 ```
 
-The build writes localized standalone files, Goshtoso CSS, the Arai Hû theme, favicon, and project marks to `public/`. `src/worker.js` serves `en`, `pt-br`, and `es`, falling back to English for unsupported paths.
+The build writes localized standalone files, Goshtoso CSS, the Arai Hû theme, favicon, and project marks to `public/`. `src/worker.js` serves `en`, `pt-br`, and `es`. The root route selects the closest supported locale from `Accept-Language`; explicit locale routes stay fixed, and unsupported preferences fall back to English.
 
 Brand assets live in the `site/brand-assets` git subtree, sourced from `araihu/assets`. Update it with authenticated GitHub access:
 

@@ -59,12 +59,12 @@ var contents = map[string]Content{
 	},
 }
 
-func projects(goshtoso, manja, paje, xisnove string) []Project {
+func projects(goshtoso, manja, paje, x9 string) []Project {
 	return []Project{
 		{Name: "Goshtoso", Description: goshtoso, URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-transparent.svg" + brandAssetRevision},
 		{Name: "Manja", Description: manja, URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-transparent.svg" + brandAssetRevision},
 		{Name: "Pajé", Description: paje, URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-transparent.svg" + brandAssetRevision},
-		{Name: "X-9", Description: xisnove, URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-transparent.svg" + brandAssetRevision},
+		{Name: "X-9", Description: x9, URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-transparent.svg" + brandAssetRevision},
 	}
 }
 

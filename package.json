@@ -1,12 +1,14 @@
 {
   "private": true,
+  "type": "module",
   "devDependencies": {
     "puppeteer": "^25.4.0",
     "wrangler": "^4.114.0"
   },
   "scripts": {
     "build": "templ generate && go run ./cmd/ahairu build",
-    "check": "npm run build && go test ./... -count=1 && wrangler deploy --dry-run"
+    "test:worker": "node --test src/worker.test.js",
+    "check": "npm run build && go test ./... -count=1 && npm run test:worker && wrangler deploy --dry-run"
   },
   "allowScripts": {
     "puppeteer@25.4.0": true,

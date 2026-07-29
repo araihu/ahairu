@@ -28,7 +28,7 @@ The name Arai Hû is Guarani for “black cloud” or “dark cloud.” The site
 
 ## Evidence on Hand
 
-Goshtoso, Manja, Pajé, and Xisnove are maintained projects with existing public sites. No customer testimonials, benchmarks, or commercial claims are available.
+Goshtoso, Manja, Pajé, and X-9 are maintained projects with existing public sites. No customer testimonials, benchmarks, or commercial claims are available.
 
 ## Product Principles
 
