@@ -115,7 +115,11 @@ func checkSitemap(root string, pages []site.Page) error {
 	var document struct {
 		XMLName xml.Name `xml:"urlset"`
 		URLs    []struct {
-			Location string `xml:"loc"`
+			XMLName  xml.Name `xml:"url"`
+			Location struct {
+				XMLName xml.Name `xml:"loc"`
+				Value   string   `xml:",chardata"`
+			} `xml:"loc"`
 		} `xml:"url"`
 	}
 	if err := xml.Unmarshal(data, &document); err != nil {
@@ -133,12 +137,19 @@ func checkSitemap(root string, pages []site.Page) error {
 	}
 	seen := make(map[string]struct{}, len(document.URLs))
 	for _, entry := range document.URLs {
-		if _, duplicate := seen[entry.Location]; duplicate {
-			return fmt.Errorf("sitemap contains duplicate URL %q", entry.Location)
+		if entry.XMLName.Space != sitemapNamespace || entry.XMLName.Local != "url" {
+			return fmt.Errorf("sitemap url namespace = {%s}%s, want {%s}url", entry.XMLName.Space, entry.XMLName.Local, sitemapNamespace)
 		}
-		seen[entry.Location] = struct{}{}
-		if _, expected := want[entry.Location]; !expected {
-			return fmt.Errorf("sitemap contains unexpected URL %q", entry.Location)
+		if entry.Location.XMLName.Space != sitemapNamespace || entry.Location.XMLName.Local != "loc" {
+			return fmt.Errorf("sitemap loc namespace = {%s}%s, want {%s}loc", entry.Location.XMLName.Space, entry.Location.XMLName.Local, sitemapNamespace)
+		}
+		location := entry.Location.Value
+		if _, duplicate := seen[location]; duplicate {
+			return fmt.Errorf("sitemap contains duplicate URL %q", location)
+		}
+		seen[location] = struct{}{}
+		if _, expected := want[location]; !expected {
+			return fmt.Errorf("sitemap contains unexpected URL %q", location)
 		}
 	}
 	for expected := range want {
@@ -472,12 +483,8 @@ func localFile(root, resource string) (string, error) {
 	if parsed.Host == "" && !strings.HasPrefix(parsed.Path, "/") {
 		return "", fmt.Errorf("relative local path")
 	}
-	for _, segment := range strings.Split(parsed.EscapedPath(), "/") {
-		decoded, err := url.PathUnescape(segment)
-		if err != nil {
-			return "", fmt.Errorf("invalid escaped path: %w", err)
-		}
-		if decoded == ".." {
+	for _, segment := range strings.Split(parsed.Path, "/") {
+		if segment == ".." {
 			return "", fmt.Errorf("path traversal")
 		}
 	}

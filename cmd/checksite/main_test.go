@@ -103,12 +103,20 @@ func TestCheckRejectsMissingLocalScriptDownloadAndPage(t *testing.T) {
 }
 
 func TestCheckRejectsTraversalInLocalResource(t *testing.T) {
-	root := writeValidPublic(t)
-	mutatePage(t, root, "/en/", func(document string) string {
-		return strings.Replace(document, "</body>", `<script src="/assets/%2e%2e/assets/styles.css"></script>`+"</body>", 1)
-	})
-	if err := Check(root); err == nil || !strings.Contains(err.Error(), "traversal") {
-		t.Fatalf("Check() error = %v, want traversal failure", err)
+	for _, resource := range []string{
+		"/assets/%2e%2e/assets/styles.css",
+		"/assets%2f..%2fsocial/license.png",
+		"/assets%2F.%2e%2Fsocial/license.png",
+	} {
+		t.Run(resource, func(t *testing.T) {
+			root := writeValidPublic(t)
+			mutatePage(t, root, "/en/", func(document string) string {
+				return strings.Replace(document, "</body>", `<script src="`+resource+`"></script>`+"</body>", 1)
+			})
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), "traversal") {
+				t.Fatalf("Check() error = %v, want traversal failure", err)
+			}
+		})
 	}
 }
 
@@ -141,6 +149,27 @@ func TestCheckRejectsSitemapWithoutNamespaceOrWithDuplicateURL(t *testing.T) {
 			t.Fatalf("Check() error = %v, want duplicate failure", err)
 		}
 	})
+	for _, mutation := range []struct {
+		name string
+		from string
+		to   string
+	}{
+		{name: "url child reset", from: "<url>", to: `<url xmlns="">`},
+		{name: "loc child reset", from: "<loc>", to: `<loc xmlns="">`},
+	} {
+		t.Run(mutation.name, func(t *testing.T) {
+			root := writeValidPublic(t)
+			path := filepath.Join(root, "sitemap.xml")
+			data, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writeFile(t, path, []byte(strings.Replace(string(data), mutation.from, mutation.to, 1)))
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), "namespace") {
+				t.Fatalf("Check() error = %v, want child namespace failure", err)
+			}
+		})
+	}
 }
 
 func TestCheckRejectsAdversarialDiscoveryDocuments(t *testing.T) {
