@@ -24,12 +24,26 @@ function redirect(requestURL, pathname) {
 
 function withVary(response, value) {
   const headers = new Headers(response.headers);
-  const vary = (headers.get("Vary") || "")
+  const tokens = (headers.get("Vary") || "")
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
+  const vary = [];
+  const seen = new Set();
 
-  if (!vary.some((entry) => entry.toLowerCase() === value.toLowerCase())) {
+  if (tokens.includes("*")) {
+    vary.push("*");
+  } else {
+    for (const token of tokens) {
+      const normalized = token.toLowerCase();
+      if (!seen.has(normalized)) {
+        seen.add(normalized);
+        vary.push(token);
+      }
+    }
+  }
+
+  if (vary[0] !== "*" && !seen.has(value.toLowerCase())) {
     vary.push(value);
   }
   headers.set("Vary", vary.join(", "));

@@ -50,6 +50,28 @@ test("root serves detected locale while explicit routes remain fixed", async () 
   assert.equal(negotiated.headers.get("Vary"), "Accept-Encoding, Accept-Language");
 });
 
+test("locale negotiation normalizes existing Vary tokens", async () => {
+  const cases = [
+    ["accept-language", "accept-language"],
+    ["Accept-Encoding, accept-language, ACCEPT-LANGUAGE", "Accept-Encoding, accept-language"],
+    ["*", "*"],
+    ["Accept-Encoding, *, accept-language", "*"],
+  ];
+
+  for (const [existing, expected] of cases) {
+    const env = {
+      ASSETS: {
+        fetch() {
+          return new Response("ok", { headers: { Vary: existing } });
+        },
+      },
+    };
+    const response = await worker.fetch(new Request("https://araihu.com/"), env);
+
+    assert.equal(response.headers.get("Vary"), expected, existing);
+  }
+});
+
 const canonicalPages = [
   ["/brand/", "/brand/index.html"],
   ["/license/", "/license/index.html"],
