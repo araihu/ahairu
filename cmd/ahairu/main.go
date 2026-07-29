@@ -43,12 +43,8 @@ func build() error {
 	if err := site.CopyBundledBrandAssets(releaseDir); err != nil {
 		return fmt.Errorf("copy Arai Hû assets v0.1.0: %w", err)
 	}
-	homePages, err := site.HomePages()
-	if err != nil {
-		return fmt.Errorf("select home pages: %w", err)
-	}
-	for _, page := range homePages {
-		if err := renderHome(page); err != nil {
+	for _, page := range site.Pages() {
+		if err := render(page); err != nil {
 			return err
 		}
 	}
@@ -56,15 +52,6 @@ func build() error {
 		return err
 	}
 	return nil
-}
-
-// renderHome is intentionally the only page renderer until Task 4 adds brand
-// and license templates.
-func renderHome(page site.Page) error {
-	if page.Meta.Kind != site.PageHome || page.Home == nil {
-		return fmt.Errorf("page %q is not renderable home content", page.Meta.Path)
-	}
-	return render(page)
 }
 
 func render(page site.Page) error {
@@ -77,7 +64,11 @@ func render(page site.Page) error {
 		return err
 	}
 	defer file.Close()
-	return site.HomePage(page).Render(context.Background(), file)
+	component, err := site.PageComponent(page)
+	if err != nil {
+		return fmt.Errorf("select renderer for %q: %w", page.Meta.Path, err)
+	}
+	return component.Render(context.Background(), file)
 }
 
 func writeStaticPages(pages []site.Page) error {

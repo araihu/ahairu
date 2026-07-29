@@ -13,7 +13,59 @@ templ Layout(page Page, content templ.Component) {
 			<link rel="stylesheet" href="/assets/ahairu.css"/>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
+			@SiteHeader(page)
 			@content
+			@SiteFooter(page)
 		</body>
 	</html>
+}
+
+templ SiteHeader(page Page) {
+	<a class="skip-link" href="#main-content">{ sharedContent(page.Meta.Locale.Key).SkipLabel }</a>
+	<header class="ahairu-header">
+		<nav class="ahairu-shell ahairu-nav mx-auto flex items-center justify-between gap-5 px-6 py-5 md:px-10 md:py-7" aria-label={ sharedContent(page.Meta.Locale.Key).PrimaryNavigationLabel }>
+			<a class="ahairu-brand" href={ templ.SafeURL(pathFor(PageHome, page.Meta.Locale.Language)) }>
+				<img src={ araihuIconURL } alt="" width="64" height="64"/>
+				<span>Arai Hû</span>
+			</a>
+			<div class="ahairu-nav-groups">
+				<div class="ahairu-primary-links">
+					if page.Meta.Kind == PageHome {
+						<a href={ templ.SafeURL(pathFor(PageHome, page.Meta.Locale.Language)) } aria-current="page">{ sharedContent(page.Meta.Locale.Key).HomeLabel }</a>
+					} else {
+						<a href={ templ.SafeURL(pathFor(PageHome, page.Meta.Locale.Language)) }>{ sharedContent(page.Meta.Locale.Key).HomeLabel }</a>
+					}
+					if page.Meta.Kind == PageBrand {
+						<a href={ templ.SafeURL(pathFor(PageBrand, page.Meta.Locale.Language)) } aria-current="page">{ sharedContent(page.Meta.Locale.Key).BrandLabel }</a>
+					} else {
+						<a href={ templ.SafeURL(pathFor(PageBrand, page.Meta.Locale.Language)) }>{ sharedContent(page.Meta.Locale.Key).BrandLabel }</a>
+					}
+					if page.Meta.Kind == PageLicense {
+						<a href={ templ.SafeURL(pathFor(PageLicense, page.Meta.Locale.Language)) } aria-current="page">{ sharedContent(page.Meta.Locale.Key).LicenseLabel }</a>
+					} else {
+						<a href={ templ.SafeURL(pathFor(PageLicense, page.Meta.Locale.Language)) }>{ sharedContent(page.Meta.Locale.Key).LicenseLabel }</a>
+					}
+				</div>
+				<div class="ahairu-locale flex gap-3 text-sm font-semibold" aria-label={ sharedContent(page.Meta.Locale.Key).LanguageLabel }>
+					for _, link := range page.Navigation.Locales {
+						if link.Locale.Key == page.Meta.Locale.Key {
+							<a href={ templ.SafeURL(link.URL) } hreflang={ link.Locale.Language } lang={ link.Locale.Language } aria-current="page">{ link.Locale.Label }</a>
+						} else {
+							<a href={ templ.SafeURL(link.URL) } hreflang={ link.Locale.Language } lang={ link.Locale.Language }>{ link.Locale.Label }</a>
+						}
+					}
+				</div>
+			</div>
+		</nav>
+	</header>
+}
+
+templ SiteFooter(page Page) {
+	<footer class="ahairu-shell ahairu-footer mx-auto flex flex-col gap-3 px-6 py-6 text-sm md:flex-row md:items-center md:justify-between md:px-10 md:py-8">
+		<div>
+			<p>© 2026 Arai Hû.</p>
+			<p>{ sharedContent(page.Meta.Locale.Key).FooterBuild }</p>
+		</div>
+		<p>{ sharedContent(page.Meta.Locale.Key).Meaning }</p>
+	</footer>
 }

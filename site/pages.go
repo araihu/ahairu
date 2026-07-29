@@ -100,9 +100,11 @@ func newPage(kind PageKind, locale Locale) Page {
 		content := homeContent(locale.Key)
 		page.Home = &content
 	case PageBrand:
-		page.Brand = &BrandContent{Heading: localizedHeading(kind, locale.Key)}
+		content := brandContent(locale.Key)
+		page.Brand = &content
 	case PageLicense:
-		page.License = &LicenseContent{Heading: localizedHeading(kind, locale.Key), Version: licenseVersion, EffectiveDate: licenseEffectiveDate}
+		content := licenseContent(locale.Key)
+		page.License = &content
 	}
 	page.Meta.StructuredData = StructuredData(page)
 	return page
@@ -169,9 +171,9 @@ func pageDescription(kind PageKind, locale Locale) string {
 	case PageHome:
 		return homeContent(locale.Key).Intro
 	case PageBrand:
-		return localizedHeading(kind, locale.Key) + " for Arai Hû."
+		return brandContent(locale.Key).Lead
 	case PageLicense:
-		return localizedHeading(kind, locale.Key) + " for Arai Hû."
+		return licenseContent(locale.Key).Lead
 	default:
 		return ""
 	}

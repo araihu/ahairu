@@ -7,33 +7,7 @@ templ HomePage(page Page) {
 }
 
 templ HomeContentBody(content *HomeContent) {
-			<a class="skip-link" href="#main-content">{ content.SkipLabel }</a>
-			<header class="ahairu-header">
-				<nav class="ahairu-shell ahairu-nav mx-auto flex items-center justify-between px-6 py-5 md:px-10 md:py-7" aria-label={ content.PrimaryNavigationLabel }>
-					<a class="ahairu-brand" href={ content.Path }>
-						<img src={ araihuIconURL } alt="" width="64" height="64"/>
-						<span>{ content.Name }</span>
-					</a>
-					<div class="ahairu-locale flex gap-3 text-sm font-semibold">
-						if content.Path == "/pt-br/" {
-							<a href="/pt-br/" aria-current="page">PT</a>
-						} else {
-							<a href="/pt-br/">PT</a>
-						}
-						if content.Path == "/en/" {
-							<a href="/en/" aria-current="page">EN</a>
-						} else {
-							<a href="/en/">EN</a>
-						}
-						if content.Path == "/es/" {
-							<a href="/es/" aria-current="page">ES</a>
-						} else {
-							<a href="/es/">ES</a>
-						}
-					</div>
-				</nav>
-			</header>
-			<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">
+	<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">
 				<section class="storm-hero" aria-labelledby="hero-title">
 					<h1 id="hero-title" class="storm-title">{ content.Tagline }</h1>
 					<p class="storm-intro mt-8">{ content.Intro }</p>
@@ -58,12 +32,5 @@ templ HomeContentBody(content *HomeContent) {
 						}
 					</ol>
 				</section>
-			</main>
-			<footer class="ahairu-shell ahairu-footer mx-auto flex flex-col gap-3 px-6 py-6 text-sm md:flex-row md:items-center md:justify-between md:px-10 md:py-8">
-				<div>
-					<p>© 2026 { content.Name }.</p>
-					<p>{ content.FooterBuild }</p>
-				</div>
-					<p>{ content.Meaning }</p>
-			</footer>
+	</main>
 }

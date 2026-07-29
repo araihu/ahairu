@@ -53,10 +53,51 @@ type Page struct {
 
 // BrandContent is localized copy for a brand guidance page.
 type BrandContent struct {
-	Heading string
+	Heading, Lead                         string
+	IdentityTitle, IdentityBody           string
+	VariantsTitle, VariantsLead           string
+	MinimumSizeTitle, MinimumSizeBody     string
+	ClearSpaceTitle, ClearSpaceBody       string
+	IncorrectUseTitle                     string
+	IncorrectUses                         []string
+	ContextsTitle, WebTitle, WebBody      string
+	MobileTitle, MobileBody               string
+	DownloadsTitle, DownloadsLead         string
+	Downloads                             []BrandDownload
+	IntegrationTitle, IntegrationBody     string
+	IntegrationCode                       string
+	AttributionTitle, AttributionBody     string
+	LicenseTitle, LicenseBody, LicenseCTA string
+	Variants                              []BrandVariant
 }
 
 // LicenseContent is localized copy for a license page.
 type LicenseContent struct {
-	Heading, Version, EffectiveDate string
+	Heading, Lead                                       string
+	VersionLabel, Version                               string
+	EffectiveLabel, EffectiveDate, EffectiveDateDisplay string
+	AuthorityNotice, AuthorityLinkLabel                 string
+	BrandTermsTitle, HeroiconsTitle, HeroiconsBody      string
+	AllowedTitle, PermissionTitle                       string
+	Allowed, PermissionRequired                         []string
+	NoEndorsementTitle, NoEndorsementBody               string
+	NoticesTitle, NoticesBody                           string
+	ContactTitle, ContactBody                           string
+}
+
+// BrandVariant is one representative approved identity treatment.
+type BrandVariant struct {
+	Name, Description, AssetURL, SurfaceClass string
+}
+
+// BrandDownload is one release-pinned downloadable artifact.
+type BrandDownload struct {
+	Label, Detail, URL string
+}
+
+// ChromeContent localizes shared site navigation and footer copy.
+type ChromeContent struct {
+	SkipLabel, PrimaryNavigationLabel, LanguageLabel string
+	HomeLabel, BrandLabel, LicenseLabel              string
+	FooterBuild, Meaning                             string
 }

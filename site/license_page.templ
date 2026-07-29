@@ -1,0 +1,85 @@
+package site
+
+import (
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/panel"
+)
+
+templ LicensePage(page Page) {
+	@Layout(page, LicensePageBody(page))
+}
+
+templ LicensePageBody(page Page) {
+	<main id="main-content" class="ahairu-shell guidance-main license-main mx-auto px-6 md:px-10" tabindex="-1">
+		@pageheader.PageHeader(pageheader.Config{
+			Title: page.License.Heading,
+			Description: page.License.Lead,
+			RootClass: "guidance-page-header",
+			TitleClass: "guidance-title",
+			Actions: LicenseVersion(page.License),
+		})
+		if page.License.AuthorityNotice != "" {
+			<aside class="authority-notice">
+				<strong>{ page.License.AuthorityNotice }</strong>
+				<a href="/license/" hreflang="en" lang="en">{ page.License.AuthorityLinkLabel } ↗</a>
+			</aside>
+		}
+
+		<section class="license-terms" data-license-terms aria-labelledby="brand-terms-title">
+			<div class="license-intro">
+				<p class="bench-label">01 · Arai Hû</p>
+				<h2 id="brand-terms-title">{ page.License.BrandTermsTitle }</h2>
+			</div>
+			<div class="terms-grid">
+				@panel.Panel(panel.Config{
+					Appearance: panel.AppearanceSubtle,
+					Density: panel.DensityRelaxed,
+					Header: LicensePanelHeading("allowed-title", page.License.AllowedTitle, "✓"),
+					RootClass: "terms-panel terms-panel-allowed",
+					RootAttrs: templ.Attributes{"role": "region", "aria-labelledby": "allowed-title"},
+				}) {
+					<ul>
+						for _, item := range page.License.Allowed {
+							<li>{ item }</li>
+						}
+					</ul>
+				}
+				@panel.Panel(panel.Config{
+					Appearance: panel.AppearanceOutlined,
+					Density: panel.DensityRelaxed,
+					Header: LicensePanelHeading("permission-title", page.License.PermissionTitle, "!"),
+					RootClass: "terms-panel terms-panel-permission",
+					RootAttrs: templ.Attributes{"role": "region", "aria-labelledby": "permission-title"},
+				}) {
+					<ul>
+						for _, item := range page.License.PermissionRequired {
+							<li>{ item }</li>
+						}
+					</ul>
+				}
+			</div>
+		</section>
+
+		<div class="guidance-section license-rules">
+			<article aria-labelledby="endorsement-title"><p class="bench-label">02A</p><h2 id="endorsement-title">{ page.License.NoEndorsementTitle }</h2><p>{ page.License.NoEndorsementBody }</p></article>
+			<article aria-labelledby="notices-title"><p class="bench-label">02B</p><h2 id="notices-title">{ page.License.NoticesTitle }</h2><p>{ page.License.NoticesBody }</p><p class="artifact-links"><a href={ BrandAssetsPublicPrefix + "NOTICE" }>NOTICE</a> · <a href={ BrandAssetsPublicPrefix + "checksums.txt" }>checksums.txt</a></p></article>
+		</div>
+
+		<section class="guidance-section third-party-license" aria-labelledby="heroicons-title">
+			<div><p class="bench-label">03 · MIT</p><h2 id="heroicons-title">{ page.License.HeroiconsTitle }</h2><p>{ page.License.HeroiconsBody }</p></div>
+			<a class="license-file" href={ BrandAssetsPublicPrefix + "licenses/heroicons-MIT.txt" }><span>heroicons-MIT.txt</span><strong>MIT ↗</strong></a>
+		</section>
+
+		<section class="guidance-section permission-contact" aria-labelledby="contact-title">
+			<p class="bench-label">04 · Permission</p><h2 id="contact-title">{ page.License.ContactTitle }</h2><p>{ page.License.ContactBody }</p>
+		</section>
+	</main>
+}
+
+templ LicenseVersion(content *LicenseContent) {
+	<dl class="license-version"><div><dt>{ content.VersionLabel }</dt><dd>{ content.Version }</dd></div><div><dt>{ content.EffectiveLabel }</dt><dd><time datetime={ content.EffectiveDate }>{ content.EffectiveDateDisplay }</time></dd></div></dl>
+}
+
+templ LicensePanelHeading(id, title, marker string) {
+	<div class="terms-heading"><span aria-hidden="true">{ marker }</span><h3 id={ id }>{ title }</h3></div>
+}

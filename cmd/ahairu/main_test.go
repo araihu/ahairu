@@ -105,8 +105,13 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		}
 	}
 	for _, path := range []string{"brand", "license", "pt-br/brand", "pt-br/license", "es/brand", "es/license"} {
-		if _, err := os.Stat(filepath.Join("public", path, "index.html")); !os.IsNotExist(err) {
-			t.Errorf("%s rendered before its Task 4 template exists: %v", path, err)
+		data, err := os.ReadFile(filepath.Join("public", path, "index.html"))
+		if err != nil {
+			t.Errorf("%s missing: %v", path, err)
+			continue
+		}
+		if !strings.Contains(string(data), `<main id="main-content"`) {
+			t.Errorf("%s misses shared main landmark", path)
 		}
 	}
 }
