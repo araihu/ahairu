@@ -37,7 +37,7 @@ before(async () => {
   wrangler.on("error", (error) => {
     wranglerFailure = error;
   });
-  wranglerExit = new Promise((resolve) => wrangler.once("exit", resolve));
+  wranglerExit = childExit(wrangler);
   await waitForWrangler();
 
   const localChromium = "/opt/homebrew/bin/chromium";
@@ -49,12 +49,54 @@ before(async () => {
 });
 
 after(async () => {
-  await browser?.close();
-  if (wrangler && wrangler.exitCode === null) {
-    wrangler.kill("SIGTERM");
-    await Promise.race([wranglerExit, new Promise((resolve) => setTimeout(resolve, 5000))]);
+  let browserError;
+  try {
+    await browser?.close();
+  } catch (error) {
+    browserError = error;
   }
+
+  let wranglerError;
+  try {
+    await stopChildProcess(wrangler, wranglerExit);
+  } catch (error) {
+    wranglerError = error;
+  }
+
+  if (browserError && wranglerError) {
+    throw new AggregateError([browserError, wranglerError], "browser and Wrangler teardown failed");
+  }
+  if (browserError) throw browserError;
+  if (wranglerError) throw wranglerError;
 });
+
+function childExit(child) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+    child.once("error", (error) => finish({ code: null, signal: null, error }));
+    child.once("exit", (code, signal) => finish({ code, signal }));
+  });
+}
+
+async function stopChildProcess(child, exitPromise, graceMS = 5000) {
+  if (!child || !exitPromise) return undefined;
+  if (child.exitCode !== null || child.signalCode !== null) return exitPromise;
+
+  child.kill("SIGTERM");
+  const result = await Promise.race([
+    exitPromise,
+    new Promise((resolve) => setTimeout(() => resolve(undefined), graceMS)),
+  ]);
+  if (result) return result;
+
+  if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+  return exitPromise;
+}
 
 async function availablePort() {
   const listener = net.createServer();
@@ -211,6 +253,50 @@ test("all canonical pages fit a 375px mobile viewport", async () => {
   }
 });
 
+test("representative pages satisfy the full responsive scheme matrix", async () => {
+  const representatives = [
+    { path: "/en/", selector: ".project-mark", count: 4 },
+    { path: "/brand/", selector: ".variant-card", count: 4 },
+    { path: "/license/", selector: ".terms-panel", count: 2 },
+  ];
+  for (const expected of representatives) {
+    for (const width of [375, 768, 1280, 1440]) {
+      for (const scheme of ["light", "dark"]) {
+        const label = `${expected.path} ${width}px ${scheme}`;
+        const page = await openCheckedPage(expected.path, { width, height: 900, scheme });
+        try {
+          const layout = await page.evaluate(({ selector }) => {
+            const main = document.querySelector("main");
+            const heading = main?.querySelector("h1");
+            const specimens = [...document.querySelectorAll(selector)];
+            return {
+              clientWidth: document.documentElement.clientWidth,
+              scrollWidth: document.documentElement.scrollWidth,
+              mainWidth: main?.getBoundingClientRect().width || 0,
+              headingHeight: heading?.getBoundingClientRect().height || 0,
+              specimenCount: specimens.length,
+              specimensVisible: specimens.every((element) => {
+                const box = element.getBoundingClientRect();
+                return box.width > 0 && box.height > 0;
+              }),
+              imagesDecoded: [...document.images].every((image) => image.complete && image.naturalWidth > 0),
+              background: getComputedStyle(document.body).backgroundColor,
+            };
+          }, expected);
+          assert.ok(layout.scrollWidth <= layout.clientWidth, `${label}: horizontal overflow`);
+          assert.ok(layout.mainWidth > 0 && layout.headingHeight > 0, `${label}: primary content is not painted`);
+          assert.equal(layout.specimenCount, expected.count, `${label}: representative count`);
+          assert.ok(layout.specimensVisible, `${label}: hidden representative`);
+          assert.ok(layout.imagesDecoded, `${label}: undecoded image`);
+          assert.notEqual(layout.background, "rgba(0, 0, 0, 0)", `${label}: transparent page surface`);
+        } finally {
+          await page.close();
+        }
+      }
+    }
+  }
+});
+
 test("brand specimens retain approved variants and stable geometry", async () => {
   const page = await openCheckedPage("/brand/");
   try {
@@ -244,31 +330,59 @@ test("brand specimens retain approved variants and stable geometry", async () =>
 test("light and dark schemes remain distinct", async () => {
   const schemes = [];
   for (const scheme of ["light", "dark"]) {
-    const page = await openCheckedPage("/license/", { scheme });
+    const page = await openCheckedPage("/en/", { scheme });
     schemes.push(
       await page.evaluate(() => {
-        const mark = document.querySelector(".ahairu-brand img");
-        const canvas = document.createElement("canvas");
-        canvas.width = 64;
-        canvas.height = 64;
-        const context = canvas.getContext("2d");
-        context.drawImage(mark, 0, 0, 64, 64);
-        const pixels = context.getImageData(0, 0, 64, 64).data;
-        let darkInk = 0;
-        let lightInk = 0;
-        for (let index = 0; index < pixels.length; index += 4) {
-          if (pixels[index + 3] === 0) continue;
-          if (pixels[index] < 60 && pixels[index + 1] < 60 && pixels[index + 2] < 60) darkInk++;
-          if (pixels[index] > 220 && pixels[index + 1] > 220 && pixels[index + 2] > 220) lightInk++;
+        function ink(mark) {
+          const canvas = document.createElement("canvas");
+          canvas.width = 64;
+          canvas.height = 64;
+          const context = canvas.getContext("2d");
+          context.drawImage(mark, 0, 0, 64, 64);
+          const pixels = context.getImageData(0, 0, 64, 64).data;
+          let dark = 0;
+          let light = 0;
+          for (let index = 0; index < pixels.length; index += 4) {
+            if (pixels[index + 3] === 0) continue;
+            if (pixels[index] < 60 && pixels[index + 1] < 60 && pixels[index + 2] < 60) dark++;
+            if (pixels[index] > 220 && pixels[index + 1] > 220 && pixels[index + 2] > 220) light++;
+          }
+          return { dark, light };
         }
-        return { background: getComputedStyle(document.body).backgroundColor, darkInk, lightInk };
+        return {
+          background: getComputedStyle(document.body).backgroundColor,
+          header: ink(document.querySelector(".ahairu-brand img")),
+          projects: [...document.querySelectorAll("img.project-mark")].map(ink),
+        };
       }),
     );
     await page.close();
   }
   assert.notEqual(schemes[0].background, schemes[1].background);
-  assert.ok(schemes[0].darkInk > 100, `light scheme mark has only ${schemes[0].darkInk} dark pixels`);
-  assert.ok(schemes[1].lightInk > 100, `dark scheme mark has only ${schemes[1].lightInk} light pixels`);
+  assert.equal(schemes[0].projects.length, 4);
+  assert.equal(schemes[1].projects.length, 4);
+  assert.ok(schemes[0].header.dark > 100, `light scheme header has only ${schemes[0].header.dark} dark pixels`);
+  assert.ok(schemes[1].header.light > 100, `dark scheme header has only ${schemes[1].header.light} light pixels`);
+  schemes[0].projects.forEach((mark, index) => {
+    assert.ok(mark.dark > 100, `light scheme project ${index + 1} has only ${mark.dark} dark pixels`);
+  });
+  schemes[1].projects.forEach((mark, index) => {
+    assert.ok(mark.light > 100, `dark scheme project ${index + 1} has only ${mark.light} light pixels`);
+  });
+});
+
+test("child teardown escalates and awaits stubborn processes", async () => {
+  const child = spawn(process.execPath, ["-e", "process.on('SIGTERM', () => {}); console.log('ready'); setInterval(() => {}, 1000)"], {
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  const exitPromise = childExit(child);
+  await new Promise((resolve, reject) => {
+    child.once("error", reject);
+    child.stdout.once("data", resolve);
+  });
+  const result = await stopChildProcess(child, exitPromise, 50);
+  assert.equal(result.signal, "SIGKILL");
+  assert.notEqual(child.signalCode, null);
 });
 
 test("dark scheme preserves paper specimen and terms-panel contrast", async () => {
