@@ -82,14 +82,15 @@ func newPage(kind PageKind, locale Locale) Page {
 	path := pathFor(kind, locale.Language)
 	page := Page{
 		Meta: PageMeta{
-			Kind:         kind,
-			Locale:       locale,
-			Path:         path,
-			CanonicalURL: CanonicalSiteURL + path,
-			Title:        pageTitle(kind, locale),
-			Description:  pageDescription(kind, locale),
-			Robots:       "index,follow",
-			Alternates:   alternatesFor(kind),
+			Kind:           kind,
+			Locale:         locale,
+			Path:           path,
+			CanonicalURL:   CanonicalSiteURL + path,
+			Title:          pageTitle(kind, locale),
+			Description:    pageDescription(kind, locale),
+			SocialImageURL: CanonicalSiteURL + socialImagePath(kind),
+			Robots:         "index,follow",
+			Alternates:     alternatesFor(kind),
 		},
 		Navigation: navigationFor(kind),
 	}
@@ -101,9 +102,17 @@ func newPage(kind PageKind, locale Locale) Page {
 	case PageBrand:
 		page.Brand = &BrandContent{Heading: localizedHeading(kind, locale.Key)}
 	case PageLicense:
-		page.License = &LicenseContent{Heading: localizedHeading(kind, locale.Key)}
+		page.License = &LicenseContent{Heading: localizedHeading(kind, locale.Key), Version: licenseVersion, EffectiveDate: licenseEffectiveDate}
 	}
+	page.Meta.StructuredData = StructuredData(page)
 	return page
+}
+
+func socialImagePath(kind PageKind) string {
+	if kind == PageLicense {
+		return "/social/license.png"
+	}
+	return "/social/brand.png"
 }
 
 func pathFor(kind PageKind, language string) string {

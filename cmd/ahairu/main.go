@@ -61,6 +61,9 @@ func build() error {
 			return err
 		}
 	}
+	if err := writeStaticPages(site.Pages()); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -70,11 +73,11 @@ func renderHome(page site.Page) error {
 	if page.Meta.Kind != site.PageHome || page.Home == nil {
 		return fmt.Errorf("page %q is not renderable home content", page.Meta.Path)
 	}
-	return render(*page.Home)
+	return render(page)
 }
 
-func render(content site.HomeContent) error {
-	destination := filepath.Join("public", content.Path, "index.html")
+func render(page site.Page) error {
+	destination := filepath.Join("public", page.Meta.Path, "index.html")
 	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
 		return err
 	}
@@ -83,5 +86,22 @@ func render(content site.HomeContent) error {
 		return err
 	}
 	defer file.Close()
-	return site.HomePage(content).Render(context.Background(), file)
+	return site.HomePage(page).Render(context.Background(), file)
+}
+
+func writeStaticPages(pages []site.Page) error {
+	sitemap, err := site.Sitemap(pages)
+	if err != nil {
+		return err
+	}
+	for name, contents := range map[string][]byte{
+		"robots.txt":       site.Robots(),
+		"sitemap.xml":      sitemap,
+		"site.webmanifest": site.SiteManifest(),
+	} {
+		if err := os.WriteFile(filepath.Join("public", name), contents, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }

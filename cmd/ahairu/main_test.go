@@ -41,9 +41,26 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		`href="/en/" aria-current="page"`,
 		`aria-label="Primary navigation"`,
 		`<h3 class="project-name">X-9</h3>`,
+		`<link rel="canonical" href="https://araihu.com/en/">`,
+		`<meta property="og:image" content="https://araihu.com/social/brand.png">`,
+		`<script id="structured-data" type="application/ld+json">`,
 	} {
 		if !strings.Contains(page, landmark) {
 			t.Errorf("generated HTML misses accessibility landmark %q", landmark)
+		}
+	}
+	for name, want := range map[string]string{
+		"robots.txt":       "Sitemap: https://araihu.com/sitemap.xml",
+		"sitemap.xml":      "https://araihu.com/license/",
+		"site.webmanifest": `"name":"Arai Hû"`,
+	} {
+		data, err := os.ReadFile(filepath.Join("public", name))
+		if err != nil {
+			t.Errorf("static discovery file %s missing: %v", name, err)
+			continue
+		}
+		if !strings.Contains(string(data), want) {
+			t.Errorf("static discovery file %s misses %q", name, want)
 		}
 	}
 	for _, asset := range []string{

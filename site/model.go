@@ -58,5 +58,5 @@ type BrandContent struct {
 
 // LicenseContent is localized copy for a license page.
 type LicenseContent struct {
-	Heading string
+	Heading, Version, EffectiveDate string
 }

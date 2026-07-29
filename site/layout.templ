@@ -1,0 +1,19 @@
+package site
+
+templ Layout(page Page, content templ.Component) {
+	<!doctype html>
+	<html lang={ page.Meta.Locale.Language } data-theme="araihu">
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ page.Meta.Title }</title>
+			@Metadata(page)
+			<link rel="stylesheet" href="/assets/styles.css"/>
+			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=a8a9647a"/>
+			<link rel="stylesheet" href="/assets/ahairu.css?rev=a8a9647a"/>
+		</head>
+		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
+			@content
+		</body>
+	</html>
+}
