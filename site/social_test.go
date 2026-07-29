@@ -3,7 +3,8 @@ package site
 import (
 	"bytes"
 	"image"
-	_ "image/png"
+	"image/color"
+	"image/png"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -23,6 +24,28 @@ func TestBundledSocialImagesAreExactOpenGraphPNGs(t *testing.T) {
 		if format != "png" || config.Width != 1200 || config.Height != 630 {
 			t.Errorf("%s = %s %dx%d, want png 1200x630", name, format, config.Width, config.Height)
 		}
+		if err := ValidateSocialPreviewPNG(data); err != nil {
+			t.Errorf("%s format: %v", name, err)
+		}
+	}
+}
+
+func TestValidateSocialPreviewPNGRejectsUnsupportedColorTypes(t *testing.T) {
+	images := map[string]image.Image{
+		"grayscale": image.NewGray(image.Rect(0, 0, 1200, 630)),
+		"indexed":   image.NewPaletted(image.Rect(0, 0, 1200, 630), color.Palette{color.Black, color.White}),
+		"rgba":      image.NewNRGBA(image.Rect(0, 0, 1200, 630)),
+	}
+	for name, preview := range images {
+		t.Run(name, func(t *testing.T) {
+			var encoded bytes.Buffer
+			if err := png.Encode(&encoded, preview); err != nil {
+				t.Fatal(err)
+			}
+			if err := ValidateSocialPreviewPNG(encoded.Bytes()); err == nil {
+				t.Fatal("ValidateSocialPreviewPNG accepted unsupported PNG color type")
+			}
+		})
 	}
 }
 

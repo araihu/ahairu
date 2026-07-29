@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -47,6 +49,23 @@ func TestCheckRejectsMissingOrWrongSizedSocialImages(t *testing.T) {
 	}
 }
 
+func TestCheckRejectsNonTruecolorSocialImages(t *testing.T) {
+	images := map[string]image.Image{
+		"grayscale": image.NewGray(image.Rect(0, 0, 1200, 630)),
+		"indexed":   image.NewPaletted(image.Rect(0, 0, 1200, 630), color.Palette{color.Black, color.White}),
+		"rgba":      image.NewNRGBA(image.Rect(0, 0, 1200, 630)),
+	}
+	for name, preview := range images {
+		t.Run(name, func(t *testing.T) {
+			root := writeValidPublic(t)
+			writeImagePNG(t, filepath.Join(root, "social", "brand.png"), preview)
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), "PNG") {
+				t.Fatalf("Check() error = %v, want exact PNG format failure", err)
+			}
+		})
+	}
+}
+
 func TestCheckRejectsRelativeMetadataAndInvalidJSONLD(t *testing.T) {
 	root := writeValidPublic(t)
 	page := filepath.Join(root, "en", "index.html")
@@ -86,6 +105,23 @@ func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
 	})
 	if err := Check(root); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestCheckRejectsExistingDotlessScriptAndImage(t *testing.T) {
+	for name, element := range map[string]string{
+		"script": `<script src="/assets/araihu/v0.1.0/NOTICE"></script>`,
+		"image":  `<img src="/assets/araihu/v0.1.0/NOTICE" alt="">`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			root := writeValidPublic(t)
+			mutatePage(t, root, "/en/", func(document string) string {
+				return strings.Replace(document, "</body>", element+"</body>", 1)
+			})
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), "must name a file") {
+				t.Fatalf("Check() error = %v, want must name a file", err)
+			}
+		})
 	}
 }
 
@@ -362,6 +398,13 @@ func writeFile(t *testing.T, path string, data []byte) {
 
 func writePNG(t *testing.T, path string, width, height int) {
 	t.Helper()
+	preview := image.NewNRGBA(image.Rect(0, 0, width, height))
+	draw.Draw(preview, preview.Bounds(), image.NewUniform(color.NRGBA{R: 7, G: 17, B: 31, A: 255}), image.Point{}, draw.Src)
+	writeImagePNG(t, path, preview)
+}
+
+func writeImagePNG(t *testing.T, path string, preview image.Image) {
+	t.Helper()
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -370,7 +413,7 @@ func writePNG(t *testing.T, path string, width, height int) {
 		t.Fatal(err)
 	}
 	defer file.Close()
-	if err := png.Encode(file, image.NewNRGBA(image.Rect(0, 0, width, height))); err != nil {
+	if err := png.Encode(file, preview); err != nil {
 		t.Fatal(err)
 	}
 }

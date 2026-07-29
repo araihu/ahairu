@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"image"
-	_ "image/png"
 	"net/url"
 	"os"
 	"path"
@@ -429,17 +427,12 @@ func checkSocialImage(root, imageURL string) error {
 	if err != nil {
 		return err
 	}
-	handle, err := os.Open(file)
+	data, err := os.ReadFile(file)
 	if err != nil {
 		return err
 	}
-	defer handle.Close()
-	config, _, err := image.DecodeConfig(handle)
-	if err != nil {
-		return fmt.Errorf("decode: %w", err)
-	}
-	if config.Width != 1200 || config.Height != 630 {
-		return fmt.Errorf("dimensions are %dx%d, want 1200x630", config.Width, config.Height)
+	if err := site.ValidateSocialPreviewPNG(data); err != nil {
+		return err
 	}
 	return nil
 }
@@ -476,15 +469,16 @@ func requireDocumentResource(root string, resource htmlResource, routes map[stri
 	if err != nil {
 		return fmt.Errorf("%q: %w", resource.URL, err)
 	}
+	extensionless := filepath.Ext(strings.TrimSuffix(parsed.Path, "/")) == ""
+	if extensionless && resource.Kind != "anchor" && resource.Kind != "link" {
+		return fmt.Errorf("%q: local %s must name a file", resource.URL, resource.Kind)
+	}
 	if info, statErr := os.Stat(exactFile); statErr == nil && info.Mode().IsRegular() {
 		return nil
 	} else if statErr != nil && !os.IsNotExist(statErr) {
 		return fmt.Errorf("%q: %w", resource.URL, statErr)
 	}
-	if filepath.Ext(strings.TrimSuffix(parsed.Path, "/")) == "" {
-		if resource.Kind != "anchor" && resource.Kind != "link" {
-			return fmt.Errorf("%q: local %s must name a file", resource.URL, resource.Kind)
-		}
+	if extensionless {
 		if _, known := routes[parsed.Path]; !known {
 			return fmt.Errorf("%q: unknown local page route", resource.URL)
 		}
