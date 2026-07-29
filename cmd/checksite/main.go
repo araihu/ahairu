@@ -472,6 +472,15 @@ func requireDocumentResource(root string, resource htmlResource, routes map[stri
 	if parsed.Host == "" && parsed.Scheme != "" {
 		return fmt.Errorf("%q: unsupported local URL scheme", resource.URL)
 	}
+	exactFile, err := exactLocalFile(root, resource.URL)
+	if err != nil {
+		return fmt.Errorf("%q: %w", resource.URL, err)
+	}
+	if info, statErr := os.Stat(exactFile); statErr == nil && info.Mode().IsRegular() {
+		return nil
+	} else if statErr != nil && !os.IsNotExist(statErr) {
+		return fmt.Errorf("%q: %w", resource.URL, statErr)
+	}
 	if filepath.Ext(strings.TrimSuffix(parsed.Path, "/")) == "" {
 		if resource.Kind != "anchor" && resource.Kind != "link" {
 			return fmt.Errorf("%q: local %s must name a file", resource.URL, resource.Kind)
@@ -487,6 +496,22 @@ func requireDocumentResource(root string, resource htmlResource, routes map[stri
 }
 
 func localFile(root, resource string) (string, error) {
+	file, err := exactLocalFile(root, resource)
+	if err != nil {
+		return "", err
+	}
+	parsed, err := url.Parse(resource)
+	if err != nil {
+		return "", err
+	}
+	cleanPath := path.Clean(parsed.Path)
+	if strings.HasSuffix(parsed.Path, "/") || filepath.Ext(cleanPath) == "" {
+		file = filepath.Join(file, "index.html")
+	}
+	return file, nil
+}
+
+func exactLocalFile(root, resource string) (string, error) {
 	parsed, err := url.Parse(resource)
 	if err != nil {
 		return "", err
@@ -505,9 +530,6 @@ func localFile(root, resource string) (string, error) {
 	cleanPath := path.Clean(parsed.Path)
 	if !strings.HasPrefix(cleanPath, "/") || strings.HasPrefix(cleanPath, "/../") {
 		return "", fmt.Errorf("invalid local path")
-	}
-	if strings.HasSuffix(parsed.Path, "/") || filepath.Ext(cleanPath) == "" {
-		cleanPath = strings.TrimSuffix(cleanPath, "/") + "/index.html"
 	}
 	file := filepath.Join(root, filepath.FromSlash(strings.TrimPrefix(cleanPath, "/")))
 	relative, err := filepath.Rel(root, file)

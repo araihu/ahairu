@@ -1,6 +1,8 @@
 package main
 
 import (
+	"image"
+	_ "image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -93,6 +95,18 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	for _, name := range []string{"catalog.json", "checksums.txt", "NOTICE", "icons/brand/sprite.svg", "platform/web/araihu/favicon.svg"} {
 		if info, err := os.Stat(filepath.Join("public", "assets", "araihu", "v0.1.0", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
 			t.Errorf("brand release asset %s missing or empty: %v", name, err)
+		}
+	}
+	for _, name := range []string{"brand.png", "license.png"} {
+		file, err := os.Open(filepath.Join("public", "social", name))
+		if err != nil {
+			t.Errorf("social preview %s missing: %v", name, err)
+			continue
+		}
+		config, format, decodeErr := image.DecodeConfig(file)
+		_ = file.Close()
+		if decodeErr != nil || format != "png" || config.Width != 1200 || config.Height != 630 {
+			t.Errorf("social preview %s = %s %dx%d, want png 1200x630: %v", name, format, config.Width, config.Height, decodeErr)
 		}
 	}
 	for locale, skipLabel := range map[string]string{"pt-br": "Pular para o conteúdo", "es": "Saltar al contenido"} {

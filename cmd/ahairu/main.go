@@ -43,6 +43,9 @@ func build() error {
 	if err := site.CopyBundledBrandAssets(releaseDir); err != nil {
 		return fmt.Errorf("copy Arai Hû assets v0.1.0: %w", err)
 	}
+	if err := site.CopyBundledSocialImages(filepath.Join("public", "social")); err != nil {
+		return fmt.Errorf("copy social previews: %w", err)
+	}
 	for _, page := range site.Pages() {
 		if err := render(page); err != nil {
 			return err

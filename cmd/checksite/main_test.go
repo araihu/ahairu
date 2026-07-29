@@ -79,6 +79,33 @@ func TestCheckRejectsMissingLocalDocumentResources(t *testing.T) {
 	}
 }
 
+func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
+	root := writeValidPublic(t)
+	mutatePage(t, root, "/en/", func(document string) string {
+		return strings.Replace(document, "</body>", `<a href="/assets/araihu/v0.1.0/NOTICE" download>NOTICE</a>`+"</body>", 1)
+	})
+	if err := Check(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCheckRejectsMissingDotlessAssetAndUnknownExtensionlessPage(t *testing.T) {
+	for _, resource := range []string{
+		"/assets/araihu/v0.1.0/MISSING",
+		"/unknown-extensionless-page",
+	} {
+		t.Run(resource, func(t *testing.T) {
+			root := writeValidPublic(t)
+			mutatePage(t, root, "/en/", func(document string) string {
+				return strings.Replace(document, "</body>", `<a href="`+resource+`">missing</a>`+"</body>", 1)
+			})
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), "unknown local page route") {
+				t.Fatalf("Check() error = %v, want unknown local page route", err)
+			}
+		})
+	}
+}
+
 func TestCheckRejectsMissingLocalScriptDownloadAndPage(t *testing.T) {
 	tests := []struct {
 		name     string
