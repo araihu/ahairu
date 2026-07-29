@@ -52,15 +52,18 @@ func build() error {
 			return err
 		}
 	}
-	for _, locale := range site.Locales() {
-		if err := render(locale); err != nil {
+	for _, page := range site.Pages() {
+		if page.Home == nil {
+			continue
+		}
+		if err := render(*page.Home); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func render(content site.Content) error {
+func render(content site.HomeContent) error {
 	destination := filepath.Join("public", content.Path, "index.html")
 	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
 		return err
@@ -70,5 +73,5 @@ func render(content site.Content) error {
 		return err
 	}
 	defer file.Close()
-	return site.Page(content).Render(context.Background(), file)
+	return site.HomePage(content).Render(context.Background(), file)
 }
