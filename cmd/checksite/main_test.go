@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"image"
 	"image/png"
 	"os"
@@ -15,6 +16,16 @@ import (
 
 func TestCheckAcceptsCompleteStaticSite(t *testing.T) {
 	root := writeValidPublic(t)
+	if err := Check(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCheckAcceptsNormalHTMLWithOptionalEndTags(t *testing.T) {
+	root := writeValidPublic(t)
+	mutatePage(t, root, "/en/", func(document string) string {
+		return strings.Replace(document, "</body>", `<ul><li>one<li>two</ul><p>first<p>second<table><tr><td>left<td>right</tr></table><a href="https://example.com">external</a><a href="#local">fragment</a><a href="mailto:hello@example.com">mail</a><a href="tel:+15551212">phone</a>`+"</body>", 1)
+	})
 	if err := Check(root); err != nil {
 		t.Fatal(err)
 	}
@@ -66,6 +77,70 @@ func TestCheckRejectsMissingLocalDocumentResources(t *testing.T) {
 	if err := Check(root); err == nil || !strings.Contains(err.Error(), "missing.svg") {
 		t.Fatalf("Check missing local resource error = %v", err)
 	}
+}
+
+func TestCheckRejectsMissingLocalScriptDownloadAndPage(t *testing.T) {
+	tests := []struct {
+		name     string
+		fragment string
+		want     string
+	}{
+		{name: "script", fragment: `<script src="/assets/missing.js"></script>`, want: "missing.js"},
+		{name: "download", fragment: `<a href="/downloads/missing.zip">download</a>`, want: "missing.zip"},
+		{name: "page", fragment: `<a href="/missing-page/">page</a>`, want: "missing-page"},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := writeValidPublic(t)
+			mutatePage(t, root, "/en/", func(document string) string {
+				return strings.Replace(document, "</body>", test.fragment+"</body>", 1)
+			})
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("Check() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
+func TestCheckRejectsTraversalInLocalResource(t *testing.T) {
+	root := writeValidPublic(t)
+	mutatePage(t, root, "/en/", func(document string) string {
+		return strings.Replace(document, "</body>", `<script src="/assets/%2e%2e/assets/styles.css"></script>`+"</body>", 1)
+	})
+	if err := Check(root); err == nil || !strings.Contains(err.Error(), "traversal") {
+		t.Fatalf("Check() error = %v, want traversal failure", err)
+	}
+}
+
+func TestCheckAcceptsReorderedSitemap(t *testing.T) {
+	root := writeValidPublic(t)
+	pages := site.Pages()
+	for left, right := 0, len(pages)-1; left < right; left, right = left+1, right-1 {
+		pages[left], pages[right] = pages[right], pages[left]
+	}
+	writeFile(t, filepath.Join(root, "sitemap.xml"), sitemapXML(pages, "http://www.sitemaps.org/schemas/sitemap/0.9"))
+	if err := Check(root); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCheckRejectsSitemapWithoutNamespaceOrWithDuplicateURL(t *testing.T) {
+	t.Run("namespace", func(t *testing.T) {
+		root := writeValidPublic(t)
+		writeFile(t, filepath.Join(root, "sitemap.xml"), sitemapXML(site.Pages(), ""))
+		if err := Check(root); err == nil || !strings.Contains(err.Error(), "namespace") {
+			t.Fatalf("Check() error = %v, want namespace failure", err)
+		}
+	})
+	t.Run("duplicate", func(t *testing.T) {
+		root := writeValidPublic(t)
+		pages := site.Pages()
+		pages[len(pages)-1] = pages[0]
+		writeFile(t, filepath.Join(root, "sitemap.xml"), sitemapXML(pages, "http://www.sitemaps.org/schemas/sitemap/0.9"))
+		if err := Check(root); err == nil || !strings.Contains(err.Error(), "duplicate") {
+			t.Fatalf("Check() error = %v, want duplicate failure", err)
+		}
+	})
 }
 
 func TestCheckRejectsAdversarialDiscoveryDocuments(t *testing.T) {
@@ -262,4 +337,18 @@ func removeTag(t *testing.T, html, prefix string) string {
 		t.Fatalf("tag %q is malformed", prefix)
 	}
 	return html[:start] + html[start+end+1:]
+}
+
+func sitemapXML(pages []site.Page, namespace string) []byte {
+	var document strings.Builder
+	if namespace == "" {
+		document.WriteString("<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset>")
+	} else {
+		fmt.Fprintf(&document, "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"%s\">", namespace)
+	}
+	for _, page := range pages {
+		fmt.Fprintf(&document, "<url><loc>%s</loc></url>", page.Meta.CanonicalURL)
+	}
+	document.WriteString("</urlset>")
+	return []byte(document.String())
 }

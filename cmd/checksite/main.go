@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image"
 	_ "image/png"
-	"io"
 	"net/url"
 	"os"
 	"path"
@@ -20,6 +19,7 @@ import (
 )
 
 const canonicalOrigin = "https://araihu.com"
+const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 const (
 	faviconURL  = "/assets/logos/araihu-icon-background.svg?rev=a8a9647a"
@@ -50,8 +50,9 @@ func Check(root string) error {
 	if err := checkSitemap(root, pages); err != nil {
 		return err
 	}
+	routes := pageRoutes(pages)
 	for _, page := range pages {
-		if err := checkPage(root, page); err != nil {
+		if err := checkPage(root, page, routes); err != nil {
 			return err
 		}
 	}
@@ -112,25 +113,51 @@ func checkSitemap(root string, pages []site.Page) error {
 		return fmt.Errorf("read sitemap.xml: %w", err)
 	}
 	var document struct {
-		URLs []struct {
+		XMLName xml.Name `xml:"urlset"`
+		URLs    []struct {
 			Location string `xml:"loc"`
 		} `xml:"url"`
 	}
 	if err := xml.Unmarshal(data, &document); err != nil {
 		return fmt.Errorf("parse sitemap.xml: %w", err)
 	}
+	if document.XMLName.Space != sitemapNamespace || document.XMLName.Local != "urlset" {
+		return fmt.Errorf("sitemap root namespace = {%s}%s, want {%s}urlset", document.XMLName.Space, document.XMLName.Local, sitemapNamespace)
+	}
 	if len(document.URLs) != len(pages) {
 		return fmt.Errorf("sitemap has %d URLs, want %d", len(document.URLs), len(pages))
 	}
-	for index, page := range pages {
-		if document.URLs[index].Location != page.Meta.CanonicalURL {
-			return fmt.Errorf("sitemap URL %d = %q, want canonical %q", index, document.URLs[index].Location, page.Meta.CanonicalURL)
+	want := make(map[string]struct{}, len(pages))
+	for _, page := range pages {
+		want[page.Meta.CanonicalURL] = struct{}{}
+	}
+	seen := make(map[string]struct{}, len(document.URLs))
+	for _, entry := range document.URLs {
+		if _, duplicate := seen[entry.Location]; duplicate {
+			return fmt.Errorf("sitemap contains duplicate URL %q", entry.Location)
+		}
+		seen[entry.Location] = struct{}{}
+		if _, expected := want[entry.Location]; !expected {
+			return fmt.Errorf("sitemap contains unexpected URL %q", entry.Location)
+		}
+	}
+	for expected := range want {
+		if _, found := seen[expected]; !found {
+			return fmt.Errorf("sitemap is missing canonical URL %q", expected)
 		}
 	}
 	return nil
 }
 
-func checkPage(root string, page site.Page) error {
+func pageRoutes(pages []site.Page) map[string]struct{} {
+	routes := make(map[string]struct{}, len(pages))
+	for _, page := range pages {
+		routes[page.Meta.Path] = struct{}{}
+	}
+	return routes
+}
+
+func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 	file, err := localFile(root, page.Meta.CanonicalURL)
 	if err != nil {
 		return fmt.Errorf("page %q: %w", page.Meta.Path, err)
@@ -205,7 +232,7 @@ func checkPage(root string, page site.Page) error {
 		return pageError(page, err)
 	}
 	for _, resource := range document.resources {
-		if err := requireLocalURL(root, resource); err != nil {
+		if err := requireDocumentResource(root, resource, routes); err != nil {
 			return fmt.Errorf("page %q local resource: %w", page.Meta.Path, err)
 		}
 	}
@@ -403,6 +430,37 @@ func requireLocalURL(root, resource string) error {
 	return nil
 }
 
+func requireDocumentResource(root string, resource htmlResource, routes map[string]struct{}) error {
+	if resource.URL == "" || strings.HasPrefix(resource.URL, "#") || strings.HasPrefix(resource.URL, "mailto:") || strings.HasPrefix(resource.URL, "tel:") {
+		return nil
+	}
+	parsed, err := url.Parse(resource.URL)
+	if err != nil {
+		return fmt.Errorf("%q: %w", resource.URL, err)
+	}
+	if parsed.Host != "" && parsed.Host != "araihu.com" {
+		return nil
+	}
+	if parsed.Host == "araihu.com" && parsed.Scheme != "https" {
+		return fmt.Errorf("%q: local URLs must use HTTPS", resource.URL)
+	}
+	if parsed.Host == "" && parsed.Scheme != "" {
+		return fmt.Errorf("%q: unsupported local URL scheme", resource.URL)
+	}
+	if filepath.Ext(strings.TrimSuffix(parsed.Path, "/")) == "" {
+		if resource.Kind != "anchor" && resource.Kind != "link" {
+			return fmt.Errorf("%q: local %s must name a file", resource.URL, resource.Kind)
+		}
+		if _, known := routes[parsed.Path]; !known {
+			return fmt.Errorf("%q: unknown local page route", resource.URL)
+		}
+	}
+	if err := requireLocalURL(root, resource.URL); err != nil {
+		return err
+	}
+	return nil
+}
+
 func localFile(root, resource string) (string, error) {
 	parsed, err := url.Parse(resource)
 	if err != nil {
@@ -413,6 +471,15 @@ func localFile(root, resource string) (string, error) {
 	}
 	if parsed.Host == "" && !strings.HasPrefix(parsed.Path, "/") {
 		return "", fmt.Errorf("relative local path")
+	}
+	for _, segment := range strings.Split(parsed.EscapedPath(), "/") {
+		decoded, err := url.PathUnescape(segment)
+		if err != nil {
+			return "", fmt.Errorf("invalid escaped path: %w", err)
+		}
+		if decoded == ".." {
+			return "", fmt.Errorf("path traversal")
+		}
 	}
 	cleanPath := path.Clean(parsed.Path)
 	if !strings.HasPrefix(cleanPath, "/") || strings.HasPrefix(cleanPath, "/../") {
@@ -435,10 +502,15 @@ type htmlDocument struct {
 	metas     []htmlElement
 	links     []htmlElement
 	jsonLD    []string
-	resources []string
+	resources []htmlResource
 }
 
 type htmlElement struct{ attributes map[string]string }
+
+type htmlResource struct {
+	URL  string
+	Kind string
+}
 
 func (document htmlDocument) metaValues(selector, name string) []string {
 	values := make([]string, 0, 1)
@@ -451,90 +523,81 @@ func (document htmlDocument) metaValues(selector, name string) []string {
 }
 
 func parseHTML(source []byte) (htmlDocument, error) {
+	root, err := html.Parse(bytes.NewReader(source))
+	if err != nil {
+		return htmlDocument{}, err
+	}
 	var document htmlDocument
-	tokenizer := html.NewTokenizer(bytes.NewReader(source))
-	stack := make([]string, 0, 8)
-	var textTarget string
-	var scriptIsJSONLD bool
-	var text strings.Builder
-	for {
-		tokenType := tokenizer.Next()
-		switch tokenType {
-		case html.ErrorToken:
-			if err := tokenizer.Err(); err != io.EOF {
-				return htmlDocument{}, err
-			}
-			if len(stack) != 0 {
-				return htmlDocument{}, fmt.Errorf("unclosed <%s>", stack[len(stack)-1])
-			}
-			return document, nil
-		case html.TextToken:
-			if textTarget != "" {
-				text.Write(tokenizer.Raw())
-			}
-		case html.StartTagToken, html.SelfClosingTagToken:
-			token := tokenizer.Token()
-			name := strings.ToLower(token.Data)
-			attributes, err := tokenAttributes(token.Attr)
-			if err != nil {
-				return htmlDocument{}, fmt.Errorf("<%s>: %w", name, err)
-			}
-			if name == "html" {
-				if document.language != "" {
-					return htmlDocument{}, fmt.Errorf("duplicate <html>")
-				}
-				document.language = attributes["lang"]
-			}
-			switch name {
-			case "meta":
-				document.metas = append(document.metas, htmlElement{attributes: attributes})
-			case "link":
-				document.links = append(document.links, htmlElement{attributes: attributes})
-				if href := attributes["href"]; href != "" {
-					document.resources = append(document.resources, href)
-				}
-			case "img":
-				if source := attributes["src"]; source != "" {
-					document.resources = append(document.resources, source)
-				}
-			case "title", "script":
-				if textTarget != "" {
-					return htmlDocument{}, fmt.Errorf("nested text element <%s>", name)
-				}
-				textTarget = name
-				text.Reset()
-				scriptIsJSONLD = name == "script" && attributes["type"] == "application/ld+json"
-			}
-			if tokenType != html.SelfClosingTagToken && !isVoidElement(name) {
-				stack = append(stack, name)
-			}
-			if name == "script" && attributes["type"] == "application/ld+json" && attributes["id"] != "structured-data" {
-				return htmlDocument{}, fmt.Errorf("JSON-LD script has unexpected id")
-			}
-		case html.EndTagToken:
-			token := tokenizer.Token()
-			name := strings.ToLower(token.Data)
-			if len(stack) == 0 || stack[len(stack)-1] != name {
-				return htmlDocument{}, fmt.Errorf("mismatched closing </%s>", name)
-			}
-			stack = stack[:len(stack)-1]
-			if textTarget == name {
-				switch name {
-				case "title":
-					document.titles = append(document.titles, text.String())
-				case "script":
-					if scriptIsJSONLD {
-						document.jsonLD = append(document.jsonLD, text.String())
-					}
-				}
-				textTarget = ""
-				scriptIsJSONLD = false
-			}
+	if err := collectHTML(root, &document); err != nil {
+		return htmlDocument{}, err
+	}
+	return document, nil
+}
+
+func collectHTML(node *html.Node, document *htmlDocument) error {
+	if node.Type == html.ElementNode {
+		name := strings.ToLower(node.Data)
+		attributes, err := nodeAttributes(node.Attr)
+		if err != nil {
+			return fmt.Errorf("<%s>: %w", name, err)
 		}
+		switch name {
+		case "html":
+			if document.language != "" {
+				return fmt.Errorf("duplicate <html>")
+			}
+			document.language = attributes["lang"]
+		case "title":
+			document.titles = append(document.titles, nodeText(node))
+		case "meta":
+			document.metas = append(document.metas, htmlElement{attributes: attributes})
+		case "link":
+			document.links = append(document.links, htmlElement{attributes: attributes})
+			appendResource(document, attributes["href"], "link")
+		case "img":
+			appendResource(document, attributes["src"], "image")
+		case "script":
+			appendResource(document, attributes["src"], "script")
+			if attributes["type"] == "application/ld+json" {
+				if attributes["id"] != "structured-data" {
+					return fmt.Errorf("JSON-LD script has unexpected id")
+				}
+				document.jsonLD = append(document.jsonLD, nodeText(node))
+			}
+		case "a":
+			appendResource(document, attributes["href"], "anchor")
+		}
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		if err := collectHTML(child, document); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func appendResource(document *htmlDocument, resource, kind string) {
+	if resource != "" {
+		document.resources = append(document.resources, htmlResource{URL: resource, Kind: kind})
 	}
 }
 
-func tokenAttributes(attributes []html.Attribute) (map[string]string, error) {
+func nodeText(node *html.Node) string {
+	var text strings.Builder
+	var walk func(*html.Node)
+	walk = func(current *html.Node) {
+		if current.Type == html.TextNode {
+			text.WriteString(current.Data)
+		}
+		for child := current.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(node)
+	return text.String()
+}
+
+func nodeAttributes(attributes []html.Attribute) (map[string]string, error) {
 	result := make(map[string]string, len(attributes))
 	for _, attribute := range attributes {
 		name := strings.ToLower(attribute.Key)
@@ -544,13 +607,4 @@ func tokenAttributes(attributes []html.Attribute) (map[string]string, error) {
 		result[name] = attribute.Val
 	}
 	return result, nil
-}
-
-func isVoidElement(name string) bool {
-	switch name {
-	case "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr":
-		return true
-	default:
-		return false
-	}
 }
