@@ -100,6 +100,42 @@ func TestBrandAndLicenseMetadataDescriptionsAreLocalized(t *testing.T) {
 	}
 }
 
+func TestSharedChromeProjectsAndMinimumSizeUseAdaptiveAssets(t *testing.T) {
+	if araihuIconURL != BrandAssetsPublicPrefix+"icons/brand/araihu-icon-adaptive-transparent-optical.svg" {
+		t.Fatalf("shared chrome icon = %q, want adaptive asset", araihuIconURL)
+	}
+	for _, home := range Locales() {
+		for _, project := range home.Projects {
+			if !strings.Contains(project.MarkURL, "-icon-adaptive-transparent-optical.svg") {
+				t.Errorf("%s project mark = %q, want adaptive asset", project.Name, project.MarkURL)
+			}
+			if strings.Contains(project.MarkURL, "-icon-light-transparent-optical.svg") {
+				t.Errorf("%s project mark remains hardcoded light asset", project.Name)
+			}
+		}
+	}
+
+	brandHTML := renderComponent(t, BrandPage(pageForTest(t, "/brand/")))
+	adaptiveIcon := BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg"
+	if got, want := strings.Count(brandHTML, adaptiveIcon), 4; got != want {
+		t.Errorf("brand page adaptive chrome/minimum specimens = %d, want %d", got, want)
+	}
+	if strings.Contains(brandHTML, "icons/brand/araihu-icon-light-transparent-optical.svg") {
+		t.Error("brand page retains hardcoded light icon outside explicit light specimen surface")
+	}
+	if got, want := strings.Count(brandHTML, "brand/araihu/logo/light-transparent-optical.svg"), 3; got != want {
+		t.Errorf("brand page explicit light logo specimen/download references = %d, want %d", got, want)
+	}
+
+	homeHTML := renderComponent(t, HomePage(pageForTest(t, "/en/")))
+	for _, product := range []string{"araihu", "goshtoso", "manja", "paje", "x9"} {
+		want := product + "-icon-adaptive-transparent-optical.svg"
+		if !strings.Contains(homeHTML, want) {
+			t.Errorf("home page misses adaptive %s mark", product)
+		}
+	}
+}
+
 func pageForTest(t *testing.T, path string) Page {
 	t.Helper()
 	for _, page := range Pages() {

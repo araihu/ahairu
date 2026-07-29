@@ -241,9 +241,9 @@ func BrandPageBody(page Page) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var15 string
-		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(BrandAssetsPublicPrefix + "icons/brand/araihu-icon-light-transparent-optical.svg")
+		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/brand_page.templ`, Line: 57, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/brand_page.templ`, Line: 57, Col: 101}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -254,9 +254,9 @@ func BrandPageBody(page Page) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var16 string
-		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(BrandAssetsPublicPrefix + "icons/brand/araihu-icon-light-transparent-optical.svg")
+		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.ResolveAttributeValue(BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/brand_page.templ`, Line: 58, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/brand_page.templ`, Line: 58, Col: 101}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var16)
 		if templ_7745c5c3_Err != nil {
@@ -267,9 +267,9 @@ func BrandPageBody(page Page) templ.Component {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var17 string
-		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(BrandAssetsPublicPrefix + "icons/brand/araihu-icon-light-transparent-optical.svg")
+		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/brand_page.templ`, Line: 59, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/brand_page.templ`, Line: 59, Col: 101}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 		if templ_7745c5c3_Err != nil {
