@@ -29,7 +29,9 @@ campaign. The harness strictly recomputes this document's channel digest,
 binds its theme to `themes.json` and the complete release inventory, and probes
 that immutable theme directly before browser execution. Active theme, brand,
 and toggle IDs are likewise bound to `themes.json`/`catalog.json`, their
-inventory entries, and declared sprite symbols.
+inventory entries, manifest-declared render modes, UI namespace, and declared
+sprite symbols. Sprite mode must use `icons/ui/sprite.svg`; asset mode must use
+the catalog member's discrete `icons/ui/` path.
 
 ```sh
 ASSET_BUNDLE=/absolute/path/to/verified-assets \
@@ -46,6 +48,11 @@ other HTTP origin are blocked and fail the canary. The expiry document is
 copied into generated `public/` before Wrangler starts, then its canonical
 `current` request is mapped to that local Wrangler route for the final refresh.
 No remote canary adapter or relaxed runtime origin rule exists.
+
+`CANARY_TIMEOUT_MS` (default 30000) bounds Wrangler readiness, the held runtime
+request, every expected `current` request, and Playwright waits. Missing runtime
+or channel fetches fail explicitly. Page close/crash, context close, intercepted
+request failure, and proxy failure reject pending request gates immediately.
 
 Browser scenarios:
 
