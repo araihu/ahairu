@@ -39,6 +39,12 @@ def handoff():
     }
 
 
+def compact_handoff():
+    value = handoff()
+    value["state"] = {"ref": value.pop("state_ref"), "path": value.pop("state_path")}
+    return value
+
+
 def write_release_archive(path, release):
     release_json = json.dumps({"release": release}, separators=(",", ":")).encode() + b"\n"
     files = {"release.json": release_json, "campaign/v1.js": b"runtime\n"}
@@ -63,6 +69,9 @@ class AssetHandoffContractTest(unittest.TestCase):
     def test_accepts_authoritative_handoff_schema(self):
         self.assertEqual(prepare.validate_handoff(handoff()), handoff())
         self.assertIsInstance(handoff()["channel_artifact_id"], int)
+
+    def test_accepts_compact_dispatch_schema(self):
+        self.assertEqual(prepare.validate_handoff(compact_handoff()), handoff())
 
     def test_rejects_cross_schema_and_malicious_urls(self):
         cases = []

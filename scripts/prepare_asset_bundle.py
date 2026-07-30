@@ -46,6 +46,7 @@ HANDOFF_FIELDS = {
     "state_ref",
     "state_path",
 }
+COMPACT_HANDOFF_FIELDS = (HANDOFF_FIELDS - {"state_ref", "state_path"}) | {"state"}
 RELEASE_ARTIFACT_FIELDS = {"release", "release_url", "release_sha256"}
 
 
@@ -108,6 +109,15 @@ def require_channel_artifact_url(url, identifier):
 
 
 def validate_handoff(payload):
+    if isinstance(payload, dict) and set(payload) == COMPACT_HANDOFF_FIELDS:
+        state = payload["state"]
+        if not isinstance(state, dict) or set(state) != {"ref", "path"}:
+            fail("state fields are invalid")
+        payload = {
+            **{key: value for key, value in payload.items() if key != "state"},
+            "state_ref": state["ref"],
+            "state_path": state["path"],
+        }
     if not isinstance(payload, dict) or set(payload) != HANDOFF_FIELDS:
         fail("handoff fields are invalid")
     if payload["assets_repository"] != ASSETS_REPOSITORY:
