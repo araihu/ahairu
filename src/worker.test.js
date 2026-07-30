@@ -139,10 +139,16 @@ test("maps only declared extensionless release channels", async () => {
   assert.equal(requested, undefined);
 });
 
-test("marks versioned assets immutable", async () => {
-  const { response } = await request("/assets/releases/v0.1.1/catalog.json");
+test("marks strict SemVer versioned assets immutable", async () => {
+  const { response } = await request("/assets/releases/v0.1.1-rc.1+build.42/catalog.json");
 
   assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
+});
+
+test("does not mark leading-zero release versions immutable", async () => {
+  const { response } = await request("/assets/releases/v01.1.1/catalog.json");
+
+  assert.equal(response.headers.get("cache-control"), null);
 });
 
 test("permits anonymous public asset consumption", async () => {
@@ -154,6 +160,25 @@ test("permits anonymous public asset consumption", async () => {
   assert.equal(response.headers.get("access-control-allow-credentials"), null);
   assert.equal(response.headers.get("cross-origin-resource-policy"), "cross-origin");
   assert.equal(response.headers.get("Vary"), "Accept-Encoding");
+});
+
+test("removes credentialed CORS headers and Origin Vary from asset upstreams", async () => {
+  const response = await worker.fetch(new Request("https://araihu.com/assets/releases/v0.1.1/catalog.json"), {
+    ASSETS: {
+      fetch() {
+        return new Response("asset", {
+          headers: {
+            "Access-Control-Allow-Credentials": "true",
+            Vary: "Accept-Encoding, Origin, Accept-Language",
+          },
+        });
+      },
+    },
+  });
+
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(response.headers.get("access-control-allow-credentials"), null);
+  assert.equal(response.headers.get("Vary"), "Accept-Encoding, Accept-Language");
 });
 
 test("preserves HEAD when mapping a release channel", async () => {

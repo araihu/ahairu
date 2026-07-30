@@ -12,6 +12,7 @@ const releaseChannels = new Map([
   ["/assets/releases/default", "/assets/releases/default.json"],
   ["/assets/releases/current", "/assets/releases/current.json"],
 ]);
+const immutableReleasePath = /^\/assets\/releases\/v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\//;
 
 function assetRequest(request, pathname) {
   const url = new URL(request.url);
@@ -65,11 +66,21 @@ function withAssetHeaders(response, pathname) {
   if (releaseChannels.has(pathname)) {
     headers.set("Content-Type", "application/json; charset=utf-8");
     headers.set("Cache-Control", "public, max-age=60, must-revalidate");
-  } else if (/^\/assets\/releases\/v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\//.test(pathname)) {
+  } else if (immutableReleasePath.test(pathname)) {
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
   }
   if (pathname.startsWith("/assets/releases/") || pathname.startsWith("/assets/campaign/")) {
     headers.set("Access-Control-Allow-Origin", "*");
+    headers.delete("Access-Control-Allow-Credentials");
+    const vary = (headers.get("Vary") || "")
+      .split(",")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry && entry.toLowerCase() !== "origin");
+    if (vary.length === 0) {
+      headers.delete("Vary");
+    } else {
+      headers.set("Vary", vary.join(", "));
+    }
     headers.set("Cross-Origin-Resource-Policy", "cross-origin");
   }
   return new Response(response.body, {
