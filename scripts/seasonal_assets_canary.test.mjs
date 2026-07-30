@@ -69,6 +69,8 @@ function enabledBundleFixture(root) {
     ["icons/brand/araihu-icon-tinted-transparent-optical.svg", 13],
     ["icons/ui/sprite.svg", 14],
     ["themes/araihu.css", 15],
+    ["icons/ui/heroicons/16-solid-sparkles.svg", 16],
+    ["icons/ui/heroicons/16-solid-moon.svg", 17],
   ];
   write(root, "releases/v0.1.1/release.json", JSON.stringify({ release: "v0.1.1", files: [] }));
   write(root, "releases/v0.1.1/campaigns.json", JSON.stringify({ schemaVersion: 1, campaigns: [] }));
@@ -81,6 +83,24 @@ function enabledBundleFixture(root) {
     })),
   }));
   write(root, `releases/${release}/campaigns.json`, JSON.stringify({ schemaVersion: 1, campaigns: [campaign] }));
+  write(root, `releases/${release}/themes.json`, JSON.stringify({
+    schemaVersion: 1,
+    release,
+    themes: [
+      { id: "araihu-signal-night", cssPath: assets[0][0], sha256: "1".repeat(64) },
+      { id: "araihu", cssPath: assets[4][0], sha256: "5".repeat(64) },
+    ],
+  }));
+  write(root, `releases/${release}/catalog.json`, JSON.stringify({
+    schemaVersion: 1,
+    release,
+    assets: [
+      { canonicalName: campaign.brand.logo, namespace: "brand", artwork: "logo", path: assets[1][0], sha256: "2".repeat(64) },
+      { canonicalName: campaign.brand.icon, namespace: "brand", artwork: "icon", path: assets[2][0], sha256: "3".repeat(64) },
+      { canonicalName: campaign.toggle.enabledIcon.asset, namespace: "ui", artwork: "icon", path: assets[5][0], spriteSymbol: "hi-16-solid-sparkles", sha256: "6".repeat(64) },
+      { canonicalName: campaign.toggle.disabledIcon.asset, namespace: "ui", artwork: "icon", path: assets[6][0], spriteSymbol: "hi-16-solid-moon", sha256: "7".repeat(64) },
+    ],
+  }));
   const current = {
     schemaVersion: 1,
     runtimeVersion: 1,

@@ -215,20 +215,63 @@ function inventoryFor(root, release) {
   return new Map(document.files.map((entry) => [entry.path, entry]));
 }
 
+function requireInventoryEntry(inventory, relative, release, label) {
+  const entry = inventory.get(relative);
+  if (!entry || !sha256Hex.test(entry.sha256 || "") || !Number.isInteger(entry.size) || entry.size < 0) {
+    fail(`${label} ${relative} is absent from ${release} inventory`);
+  }
+  return entry;
+}
+
+function validateResolvedMembership(root, channel, inventory, boundAssets, label) {
+  const releaseRoot = path.join(root, "releases", channel.release);
+  const themes = readJSON(path.join(releaseRoot, "themes.json"), `${label} themes catalog`);
+  const theme = themes?.themes?.find((entry) => entry.id === channel.theme.id);
+  const themeAsset = boundAssets.find((asset) => asset.kind === "theme");
+  const themeRelative = themeAsset.pathname.slice(`/assets/releases/${channel.release}/`.length);
+  if (!theme || theme.cssPath !== themeRelative || theme.sha256 !== themeAsset.sha256) {
+    fail(`${label} theme ${channel.theme.id} does not match ${channel.release} themes catalog`);
+  }
+  if (!channel.campaign) return;
+
+  const catalog = readJSON(path.join(releaseRoot, "catalog.json"), `${label} asset catalog`);
+  if (!catalog || !Array.isArray(catalog.assets)) fail(`${label} asset catalog has invalid schema`);
+  const catalogByName = new Map(catalog.assets.map((asset) => [asset.canonicalName, asset]));
+  const expectedArtwork = new Map([["brand-logo", "logo"], ["brand-icon", "icon"]]);
+  for (const asset of boundAssets.filter(({ kind }) => kind !== "theme")) {
+    const member = catalogByName.get(asset.id);
+    if (!member) fail(`${label} ${asset.kind} ${asset.id} is absent from ${channel.release} catalog`);
+    if (expectedArtwork.has(asset.kind)) {
+      const relative = asset.pathname.slice(`/assets/releases/${channel.release}/`.length);
+      if (member.namespace !== "brand" || member.artwork !== expectedArtwork.get(asset.kind) ||
+          member.path !== relative || member.sha256 !== asset.sha256) {
+        fail(`${label} ${asset.kind} ${asset.id} does not match ${channel.release} catalog`);
+      }
+      continue;
+    }
+    const icon = asset.kind === "toggle-enabled" ?
+      channel.campaign.toggle.enabledIcon : channel.campaign.toggle.disabledIcon;
+    const memberEntry = requireInventoryEntry(inventory, member.path, channel.release, `${label} ${asset.kind} catalog asset`);
+    if (member.artwork !== "icon" || member.sha256 !== memberEntry.sha256 ||
+        (icon.mode === "sprite" && member.spriteSymbol !== icon.spriteSymbol) ||
+        (icon.mode === "asset" && member.path !== asset.pathname.slice(`/assets/releases/${channel.release}/`.length))) {
+      fail(`${label} ${asset.kind} ${asset.id} does not match ${channel.release} catalog`);
+    }
+  }
+}
+
 function bindResolvedAssetsToInventory(root, channel, label) {
   const assets = resolvedAssets(channel);
   const inventory = inventoryFor(root, channel.release);
   for (const asset of assets) {
     const url = validateCanonicalReleaseURL(asset.url, channel.release, `${label} ${asset.kind} URL`);
     const relative = url.pathname.slice(`/assets/releases/${channel.release}/`.length);
-    const entry = inventory.get(relative);
-    if (!entry || !sha256Hex.test(entry.sha256 || "") || !Number.isInteger(entry.size) || entry.size < 0) {
-      fail(`${label} ${asset.kind} ${relative} is absent from ${channel.release} inventory`);
-    }
+    const entry = requireInventoryEntry(inventory, relative, channel.release, `${label} ${asset.kind}`);
     asset.pathname = url.pathname;
     asset.sha256 = entry.sha256;
     asset.bytes = entry.size;
   }
+  validateResolvedMembership(root, channel, inventory, assets, label);
   return assets;
 }
 
