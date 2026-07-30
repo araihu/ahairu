@@ -399,6 +399,10 @@ function assertCanonicalPage(state) {
   if (!state.href.startsWith(`${canonicalOrigin}/`)) {
     fail(`browser navigation lost canonical origin: ${state.href}`);
   }
+  const runtimeError = state.events.find((entry) => entry.type === "araihu:campaign:error");
+  if (runtimeError) {
+    fail(`campaign runtime emitted ${runtimeError.detail?.code || "unknown error"}`);
+  }
 }
 
 function assertToggleIcon(state, icon) {
@@ -424,6 +428,12 @@ function assertAppliedState(state, channel) {
   const style = state.themeStyles.find((entry) => entry.href === channel.theme.cssUrl);
   if (!style || style.media !== "all" || style.crossOrigin !== "anonymous") {
     fail("resolved campaign theme stylesheet is not active with anonymous CORS");
+  }
+  if (!state.events.some((entry) =>
+    entry.type === "araihu:campaign:applied" &&
+    entry.detail?.code === "applied" &&
+    entry.detail?.campaign === channel.campaign.id)) {
+    fail("campaign apply lifecycle event is absent");
   }
   assertToggleIcon(state, channel.campaign.toggle.enabledIcon);
 }
