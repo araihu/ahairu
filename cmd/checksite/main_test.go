@@ -30,6 +30,7 @@ func TestCheckAcceptsCompleteStaticSite(t *testing.T) {
 func TestCheckRejectsCampaignCanaryContractViolations(t *testing.T) {
 	tests := []struct {
 		name   string
+		path   string
 		mutate func(string) string
 		want   string
 	}{
@@ -54,11 +55,46 @@ func TestCheckRejectsCampaignCanaryContractViolations(t *testing.T) {
 			},
 			want: "image dimensions",
 		},
+		{
+			name: "icon hook target",
+			mutate: func(document string) string {
+				document = strings.Replace(document, `data-asset-brand="icon"`, "", 1)
+				return strings.Replace(document, `width="64" height="64"`, `width="64" height="64" data-asset-brand="icon"`, 1)
+			},
+			want: "icon hook must target link[href]",
+		},
+		{
+			name: "logo hook target",
+			path: "/brand/",
+			mutate: func(document string) string {
+				document = strings.Replace(document, `data-asset-brand="logo"`, "", 1)
+				return strings.Replace(document, `rel="manifest"`, `rel="manifest" data-asset-brand="logo"`, 1)
+			},
+			want: "logo hook must target img[src]",
+		},
+		{
+			name: "exact icon hook count",
+			mutate: func(document string) string {
+				return strings.Replace(document, `rel="manifest"`, `rel="icon" data-asset-brand="icon"`, 1)
+			},
+			want: "campaign brand hooks",
+		},
+		{
+			name: "exact logo hook count",
+			mutate: func(document string) string {
+				return strings.Replace(document, `width="64" height="64"`, `width="64" height="64" data-asset-brand="logo"`, 1)
+			},
+			want: "campaign brand hooks",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			root := writeValidPublic(t)
-			mutatePage(t, root, "/en/", test.mutate)
+			path := test.path
+			if path == "" {
+				path = "/en/"
+			}
+			mutatePage(t, root, path, test.mutate)
 			if err := Check(root); err == nil || !strings.Contains(err.Error(), test.want) {
 				t.Fatalf("Check() error = %v, want %q", err, test.want)
 			}
@@ -498,8 +534,12 @@ func writeValidPublic(t *testing.T) string {
 	writePNG(t, filepath.Join(root, "social", "brand.png"), 1200, 630)
 	writePNG(t, filepath.Join(root, "social", "license.png"), 1200, 630)
 	for _, page := range site.Pages() {
+		var content templ.Component = templ.NopComponent
+		if page.Meta.Kind == site.PageBrand {
+			content = templ.Raw(`<img src="/assets/araihu/v0.1.0/brand/araihu/logo/tinted-transparent-optical.svg" alt="Arai Hû" width="720" height="134" data-asset-brand="logo">`)
+		}
 		var output strings.Builder
-		if err := site.Layout(page, templ.NopComponent).Render(context.Background(), &output); err != nil {
+		if err := site.Layout(page, content).Render(context.Background(), &output); err != nil {
 			t.Fatal(err)
 		}
 		writeFile(t, filepath.Join(root, page.Meta.Path, "index.html"), []byte(output.String()))

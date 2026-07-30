@@ -45,41 +45,56 @@ func TestRenderedPagesEnrollCampaignCanaryWithFixedImages(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			var logoHooks, iconHooks int
-			walkRenderedElements(t, document, &logoHooks, &iconHooks)
+			var hooks brandHookCounts
+			walkRenderedElements(t, document, &hooks)
 			wantLogoHooks := 0
 			if page.Meta.Kind == PageBrand {
 				wantLogoHooks = 1
 			}
-			if logoHooks != wantLogoHooks || iconHooks != 1 {
-				t.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", logoHooks, iconHooks, wantLogoHooks)
+			if hooks.logo != wantLogoHooks || hooks.icon != 1 {
+				t.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", hooks.logo, hooks.icon, wantLogoHooks)
 			}
 		})
 	}
 }
 
-func walkRenderedElements(t *testing.T, node *html.Node, logoHooks, iconHooks *int) {
+type brandHookCounts struct {
+	logo int
+	icon int
+}
+
+func walkRenderedElements(t *testing.T, node *html.Node, hooks *brandHookCounts) {
 	t.Helper()
-	if node.Type == html.ElementNode && node.Data == "img" {
+	if node.Type == html.ElementNode {
 		attributes := make(map[string]string, len(node.Attr))
 		for _, attribute := range node.Attr {
 			attributes[attribute.Key] = attribute.Val
 		}
-		if attributes["width"] == "" || attributes["height"] == "" {
+		if node.Data == "img" && (attributes["width"] == "" || attributes["height"] == "") {
 			t.Errorf("replaceable image %q lacks fixed width and height", attributes["src"])
 		}
 		switch attributes["data-asset-brand"] {
-		case "logo":
-			*logoHooks++
-		case "icon":
-			*iconHooks++
 		case "":
+		case "logo":
+			if node.Data != "img" || attributes["src"] == "" {
+				t.Errorf("logo hook must target img[src]")
+			} else {
+				hooks.logo++
+			}
+		case "icon":
+			if node.Data != "link" || attributes["href"] == "" {
+				t.Errorf("icon hook must target link[href]")
+			} else if attributes["rel"] != "icon" {
+				t.Errorf("icon hook must target rel=icon link")
+			} else {
+				hooks.icon++
+			}
 		default:
 			t.Errorf("invalid asset brand hook %q", attributes["data-asset-brand"])
 		}
 	}
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
-		walkRenderedElements(t, child, logoHooks, iconHooks)
+		walkRenderedElements(t, child, hooks)
 	}
 }
 

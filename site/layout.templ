@@ -26,7 +26,7 @@ templ SiteHeader(page Page) {
 	<header class="ahairu-header">
 		<nav class="ahairu-shell ahairu-nav mx-auto flex items-center justify-between gap-5 px-6 py-5 md:px-10 md:py-7" aria-label={ sharedContent(page.Meta.Locale.Key).PrimaryNavigationLabel }>
 			<a class="ahairu-brand" href={ templ.SafeURL(pathFor(PageHome, page.Meta.Locale.Language)) }>
-				<img src={ araihuIconURL } alt="" width="64" height="64" data-asset-brand="icon"/>
+				<img src={ araihuIconURL } alt="" width="64" height="64"/>
 				<span>Arai Hû</span>
 			</a>
 			<div class="ahairu-nav-groups">

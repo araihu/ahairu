@@ -287,7 +287,7 @@ func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 	if document.language != page.Meta.Locale.Language {
 		return fmt.Errorf("page %q html lang = %q, want %q", page.Meta.Path, document.language, page.Meta.Locale.Language)
 	}
-	if err := requireCampaignCanary(document); err != nil {
+	if err := requireCampaignCanary(document, page); err != nil {
 		return pageError(page, err)
 	}
 	if err := requireExactly("title", document.titles, page.Meta.Title); err != nil {
@@ -360,7 +360,7 @@ func pageError(page site.Page, err error) error {
 	return fmt.Errorf("page %q: %w", page.Meta.Path, err)
 }
 
-func requireCampaignCanary(document htmlDocument) error {
+func requireCampaignCanary(document htmlDocument, page site.Page) error {
 	if document.htmlAttributes["data-theme"] != "araihu" || document.htmlAttributes["data-theme-source"] != "default" {
 		return fmt.Errorf("theme source must declare the Arai Hû default before body content")
 	}
@@ -391,9 +391,33 @@ func requireCampaignCanary(document htmlDocument) error {
 		if image.attributes["src"] == "" || image.attributes["width"] == "" || image.attributes["height"] == "" {
 			return fmt.Errorf("image dimensions must be explicit for every replaceable image")
 		}
-		if hook := image.attributes["data-asset-brand"]; hook != "" && hook != "logo" && hook != "icon" {
-			return fmt.Errorf("asset brand hook %q is invalid", hook)
+	}
+	var logoHooks, iconHooks int
+	for _, hook := range document.brandHooks {
+		switch hook.attributes["data-asset-brand"] {
+		case "logo":
+			if hook.name != "img" || hook.attributes["src"] == "" {
+				return fmt.Errorf("logo hook must target img[src]")
+			}
+			logoHooks++
+		case "icon":
+			if hook.name != "link" || hook.attributes["href"] == "" {
+				return fmt.Errorf("icon hook must target link[href]")
+			}
+			if hook.attributes["rel"] != "icon" {
+				return fmt.Errorf("icon hook must target rel=icon link")
+			}
+			iconHooks++
+		default:
+			return fmt.Errorf("asset brand hook %q is invalid", hook.attributes["data-asset-brand"])
 		}
+	}
+	wantLogoHooks := 0
+	if page.Meta.Kind == site.PageBrand {
+		wantLogoHooks = 1
+	}
+	if logoHooks != wantLogoHooks || iconHooks != 1 {
+		return fmt.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", logoHooks, iconHooks, wantLogoHooks)
 	}
 	return nil
 }
@@ -673,12 +697,14 @@ type htmlDocument struct {
 	links          []htmlElement
 	scripts        []htmlElement
 	images         []htmlElement
+	brandHooks     []htmlElement
 	jsonLD         []string
 	resources      []htmlResource
 	nextPosition   int
 }
 
 type htmlElement struct {
+	name       string
 	attributes map[string]string
 	position   int
 }
@@ -718,7 +744,10 @@ func collectHTML(node *html.Node, document *htmlDocument) error {
 			return fmt.Errorf("<%s>: %w", name, err)
 		}
 		document.nextPosition++
-		element := htmlElement{attributes: attributes, position: document.nextPosition}
+		element := htmlElement{name: name, attributes: attributes, position: document.nextPosition}
+		if attributes["data-asset-brand"] != "" {
+			document.brandHooks = append(document.brandHooks, element)
+		}
 		switch name {
 		case "html":
 			if document.language != "" {

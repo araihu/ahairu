@@ -160,7 +160,7 @@ func SiteHeader(page Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" alt=\"\" width=\"64\" height=\"64\" data-asset-brand=\"icon\"> <span>Arai Hû</span></a><div class=\"ahairu-nav-groups\"><div class=\"ahairu-primary-links\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\" alt=\"\" width=\"64\" height=\"64\"> <span>Arai Hû</span></a><div class=\"ahairu-nav-groups\"><div class=\"ahairu-primary-links\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
