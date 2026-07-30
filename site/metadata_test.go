@@ -73,7 +73,7 @@ func TestLayoutUsesMetadataForDocumentShell(t *testing.T) {
 	}
 	html := output.String()
 	for _, fragment := range []string{
-		`<!doctype html>`, `<html lang="en" data-theme="araihu">`, `<title>` + page.Meta.Title + `</title>`,
+		`<!doctype html>`, `<html lang="en" data-theme="araihu" data-theme-source="default">`, `<title>` + page.Meta.Title + `</title>`,
 		`<main id="main-content">content</main>`, `<meta property="og:image" content="` + page.Meta.SocialImageURL + `">`,
 	} {
 		if !strings.Contains(html, fragment) {

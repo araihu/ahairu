@@ -1,9 +1,87 @@
 package site
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"golang.org/x/net/html"
 )
+
+func TestRenderedPagesEnrollCampaignCanaryWithFixedImages(t *testing.T) {
+	for _, page := range Pages() {
+		t.Run(page.Meta.Path, func(t *testing.T) {
+			component, err := PageComponent(page)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var output strings.Builder
+			if err := component.Render(context.Background(), &output); err != nil {
+				t.Fatal(err)
+			}
+			htmlText := output.String()
+			for _, want := range []string{
+				`data-theme="araihu"`,
+				`data-theme-source="default"`,
+				`src="/assets/campaign/v1.js"`,
+				`data-channel="/assets/releases/current"`,
+				`integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n"`,
+				`crossorigin="anonymous"`,
+				`data-campaign-toggle`,
+				`data-campaign-toggle-icon`,
+			} {
+				if !strings.Contains(htmlText, want) {
+					t.Errorf("rendered page misses %s", want)
+				}
+			}
+			if runtime, styles := strings.Index(htmlText, `src="/assets/campaign/v1.js"`), strings.LastIndex(htmlText, `rel="stylesheet"`); runtime < styles {
+				t.Error("campaign runtime precedes baseline styles")
+			}
+			if source, body := strings.Index(htmlText, `data-theme-source="default"`), strings.Index(htmlText, "<body"); source < 0 || source > body {
+				t.Error("theme source is not available before body content")
+			}
+
+			document, err := html.Parse(strings.NewReader(htmlText))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var logoHooks, iconHooks int
+			walkRenderedElements(t, document, &logoHooks, &iconHooks)
+			wantLogoHooks := 0
+			if page.Meta.Kind == PageBrand {
+				wantLogoHooks = 1
+			}
+			if logoHooks != wantLogoHooks || iconHooks != 1 {
+				t.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", logoHooks, iconHooks, wantLogoHooks)
+			}
+		})
+	}
+}
+
+func walkRenderedElements(t *testing.T, node *html.Node, logoHooks, iconHooks *int) {
+	t.Helper()
+	if node.Type == html.ElementNode && node.Data == "img" {
+		attributes := make(map[string]string, len(node.Attr))
+		for _, attribute := range node.Attr {
+			attributes[attribute.Key] = attribute.Val
+		}
+		if attributes["width"] == "" || attributes["height"] == "" {
+			t.Errorf("replaceable image %q lacks fixed width and height", attributes["src"])
+		}
+		switch attributes["data-asset-brand"] {
+		case "logo":
+			*logoHooks++
+		case "icon":
+			*iconHooks++
+		case "":
+		default:
+			t.Errorf("invalid asset brand hook %q", attributes["data-asset-brand"])
+		}
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		walkRenderedElements(t, child, logoHooks, iconHooks)
+	}
+}
 
 func TestPagesContainNineCanonicalLocalizedPages(t *testing.T) {
 	pages := Pages()

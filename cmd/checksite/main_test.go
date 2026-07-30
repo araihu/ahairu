@@ -27,6 +27,45 @@ func TestCheckAcceptsCompleteStaticSite(t *testing.T) {
 	}
 }
 
+func TestCheckRejectsCampaignCanaryContractViolations(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(string) string
+		want   string
+	}{
+		{
+			name: "theme source",
+			mutate: func(document string) string {
+				return strings.Replace(document, ` data-theme-source="default"`, "", 1)
+			},
+			want: "theme source",
+		},
+		{
+			name: "runtime channel",
+			mutate: func(document string) string {
+				return strings.Replace(document, `data-channel="/assets/releases/current"`, `data-channel="/assets/releases/latest"`, 1)
+			},
+			want: "campaign runtime",
+		},
+		{
+			name: "image dimensions",
+			mutate: func(document string) string {
+				return strings.Replace(document, `width="64" height="64"`, `width="64"`, 1)
+			},
+			want: "image dimensions",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := writeValidPublic(t)
+			mutatePage(t, root, "/en/", test.mutate)
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("Check() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
 func TestCheckAcceptsNormalHTMLWithOptionalEndTags(t *testing.T) {
 	root := writeValidPublic(t)
 	mutatePage(t, root, "/en/", func(document string) string {
@@ -93,7 +132,7 @@ func TestCheckRejectsMissingLocalDocumentResources(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	html = []byte(strings.Replace(string(html), "</body>", `<img src="/assets/missing.svg" alt="">`+"</body>", 1))
+	html = []byte(strings.Replace(string(html), "</body>", `<img src="/assets/missing.svg" alt="" width="1" height="1">`+"</body>", 1))
 	if err := os.WriteFile(page, html, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +154,7 @@ func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
 func TestCheckRejectsExistingDotlessScriptAndImage(t *testing.T) {
 	for name, element := range map[string]string{
 		"script": `<script src="/assets/araihu/v0.1.0/NOTICE"></script>`,
-		"image":  `<img src="/assets/araihu/v0.1.0/NOTICE" alt="">`,
+		"image":  `<img src="/assets/araihu/v0.1.0/NOTICE" alt="" width="1" height="1">`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := writeValidPublic(t)

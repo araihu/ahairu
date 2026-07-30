@@ -35,4 +35,11 @@ Social previews deliberately use two PageKind assets: home and brand pages share
 
 `site/brand-assets` is an exact release subset, not a subtree. It contains only `catalog.json`, `checksums.txt`, `NOTICE`, `brand/**`, `icons/brand/**`, `platform/web/**`, and `licenses/**`. Build-time validation rejects additions, omissions, and checksum drift. Public files retain release paths below `/assets/araihu/v0.1.0/`.
 
-Current provenance: Arai Hû Assets `v0.1.0`, Goshtoso `v0.1.0`, catalog SHA-256 `d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af`, checksums SHA-256 `2d83421b3a95c75f68c88af7d5618034b4189d42adf3f2e39b2c4c048c553d5d`, and brand sprite SHA-256 `e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45`.
+Current provenance: Arai Hû Assets `v0.1.0`, Goshtoso `v0.1.1`, catalog SHA-256 `d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af`, checksums SHA-256 `2d83421b3a95c75f68c88af7d5618034b4189d42adf3f2e39b2c4c048c553d5d`, and brand sprite SHA-256 `e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45`.
+
+## Deferred shell adoption
+
+This remains a static-first site. Goshtoso App Shells `v0.1.0` is deliberately
+not a dependency while pages need no persistent application shell, client state,
+or duplicate preference store. Re-evaluate only if an application surface is
+introduced; campaign preference stays owned by the released Assets runtime.

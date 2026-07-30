@@ -171,7 +171,7 @@ func TestEveryTypedPageHasStaticRendererAndSharedChrome(t *testing.T) {
 		if strings.Count(html, `<h1`) != 1 {
 			t.Errorf("page %q has %d h1 elements, want 1", page.Meta.Path, strings.Count(html, `<h1`))
 		}
-		for _, unwanted := range []string{"htmx", "alpine", "<script src="} {
+		for _, unwanted := range []string{"htmx", "alpine"} {
 			if strings.Contains(strings.ToLower(html), unwanted) {
 				t.Errorf("page %q unexpectedly loads client runtime %q", page.Meta.Path, unwanted)
 			}

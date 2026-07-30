@@ -22,10 +22,11 @@ const canonicalOrigin = "https://araihu.com"
 const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 const (
-	faviconURL        = "/assets/araihu/v0.1.0/platform/web/araihu/favicon.svg"
-	appleTouchIconURL = "/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png"
-	manifestURL       = "/site.webmanifest"
-	themeColor        = "#07111f"
+	faviconURL               = "/assets/araihu/v0.1.0/platform/web/araihu/favicon.svg"
+	appleTouchIconURL        = "/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png"
+	manifestURL              = "/site.webmanifest"
+	themeColor               = "#07111f"
+	campaignRuntimeIntegrity = "sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n"
 )
 
 func main() {
@@ -286,6 +287,9 @@ func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 	if document.language != page.Meta.Locale.Language {
 		return fmt.Errorf("page %q html lang = %q, want %q", page.Meta.Path, document.language, page.Meta.Locale.Language)
 	}
+	if err := requireCampaignCanary(document); err != nil {
+		return pageError(page, err)
+	}
 	if err := requireExactly("title", document.titles, page.Meta.Title); err != nil {
 		return pageError(page, err)
 	}
@@ -354,6 +358,44 @@ func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 
 func pageError(page site.Page, err error) error {
 	return fmt.Errorf("page %q: %w", page.Meta.Path, err)
+}
+
+func requireCampaignCanary(document htmlDocument) error {
+	if document.htmlAttributes["data-theme"] != "araihu" || document.htmlAttributes["data-theme-source"] != "default" {
+		return fmt.Errorf("theme source must declare the Arai Hû default before body content")
+	}
+
+	var runtime *htmlElement
+	for index := range document.scripts {
+		script := &document.scripts[index]
+		if script.attributes["src"] != "/assets/campaign/v1.js" {
+			continue
+		}
+		if runtime != nil {
+			return fmt.Errorf("campaign runtime appears more than once")
+		}
+		runtime = script
+	}
+	if runtime == nil || runtime.attributes["data-channel"] != "/assets/releases/current" || runtime.attributes["integrity"] != campaignRuntimeIntegrity || runtime.attributes["crossorigin"] != "anonymous" {
+		return fmt.Errorf("campaign runtime contract is invalid")
+	}
+	if _, deferred := runtime.attributes["defer"]; !deferred {
+		return fmt.Errorf("campaign runtime must defer")
+	}
+	for _, link := range document.links {
+		if link.attributes["rel"] == "stylesheet" && link.position > runtime.position {
+			return fmt.Errorf("campaign runtime must follow baseline styles")
+		}
+	}
+	for _, image := range document.images {
+		if image.attributes["src"] == "" || image.attributes["width"] == "" || image.attributes["height"] == "" {
+			return fmt.Errorf("image dimensions must be explicit for every replaceable image")
+		}
+		if hook := image.attributes["data-asset-brand"]; hook != "" && hook != "logo" && hook != "icon" {
+			return fmt.Errorf("asset brand hook %q is invalid", hook)
+		}
+	}
+	return nil
 }
 
 func requireExactly(name string, values []string, want string) error {
@@ -624,15 +666,22 @@ func exactLocalFile(root, resource string) (string, error) {
 }
 
 type htmlDocument struct {
-	language  string
-	titles    []string
-	metas     []htmlElement
-	links     []htmlElement
-	jsonLD    []string
-	resources []htmlResource
+	language       string
+	htmlAttributes map[string]string
+	titles         []string
+	metas          []htmlElement
+	links          []htmlElement
+	scripts        []htmlElement
+	images         []htmlElement
+	jsonLD         []string
+	resources      []htmlResource
+	nextPosition   int
 }
 
-type htmlElement struct{ attributes map[string]string }
+type htmlElement struct {
+	attributes map[string]string
+	position   int
+}
 
 type htmlResource struct {
 	URL  string
@@ -668,22 +717,27 @@ func collectHTML(node *html.Node, document *htmlDocument) error {
 		if err != nil {
 			return fmt.Errorf("<%s>: %w", name, err)
 		}
+		document.nextPosition++
+		element := htmlElement{attributes: attributes, position: document.nextPosition}
 		switch name {
 		case "html":
 			if document.language != "" {
 				return fmt.Errorf("duplicate <html>")
 			}
 			document.language = attributes["lang"]
+			document.htmlAttributes = attributes
 		case "title":
 			document.titles = append(document.titles, nodeText(node))
 		case "meta":
-			document.metas = append(document.metas, htmlElement{attributes: attributes})
+			document.metas = append(document.metas, element)
 		case "link":
-			document.links = append(document.links, htmlElement{attributes: attributes})
+			document.links = append(document.links, element)
 			appendResource(document, attributes["href"], "link")
 		case "img":
+			document.images = append(document.images, element)
 			appendResource(document, attributes["src"], "image")
 		case "script":
+			document.scripts = append(document.scripts, element)
 			appendResource(document, attributes["src"], "script")
 			if attributes["type"] == "application/ld+json" {
 				if attributes["id"] != "structured-data" {

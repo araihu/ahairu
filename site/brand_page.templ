@@ -27,7 +27,7 @@ templ BrandPageBody(page Page) {
 				<p>{ page.Brand.IdentityBody }</p>
 			</div>
 			<figure class="identity-master">
-				<img src={ BrandAssetsPublicPrefix + "brand/araihu/logo/tinted-transparent-optical.svg" } alt="Arai Hû" width="720" height="134"/>
+				<img src={ BrandAssetsPublicPrefix + "brand/araihu/logo/tinted-transparent-optical.svg" } alt="Arai Hû" width="720" height="134" data-asset-brand="logo"/>
 				<figcaption>V11 · optical wordmark · protected color</figcaption>
 			</figure>
 		</section>
@@ -41,7 +41,7 @@ templ BrandPageBody(page Page) {
 			<div class="variant-grid">
 				for _, variant := range page.Brand.Variants {
 					<figure class={ "variant-card " + variant.SurfaceClass }>
-						<div class="variant-art"><img src={ variant.AssetURL } alt={ "Arai Hû · " + variant.Name } loading="lazy" decoding="async"/></div>
+						<div class="variant-art"><img src={ variant.AssetURL } alt={ "Arai Hû · " + variant.Name } width="720" height="134" loading="lazy" decoding="async"/></div>
 						<figcaption><strong>{ variant.Name }</strong><span>{ variant.Description }</span></figcaption>
 					</figure>
 				}
@@ -63,7 +63,7 @@ templ BrandPageBody(page Page) {
 				<article class="measurement-card" aria-labelledby="clear-space-title">
 					<p class="bench-label">03B · x = signal width</p>
 					<h2 id="clear-space-title">{ page.Brand.ClearSpaceTitle }</h2>
-					<div class="clear-space-demo" aria-hidden="true"><img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-tinted-transparent-optical.svg" } alt=""/></div>
+					<div class="clear-space-demo" aria-hidden="true"><img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-tinted-transparent-optical.svg" } alt="" width="144" height="144"/></div>
 					<p>{ page.Brand.ClearSpaceBody }</p>
 				</article>
 			</div>
@@ -90,13 +90,13 @@ templ BrandPageBody(page Page) {
 				<article class="context-card browser-context" aria-labelledby="web-context-title">
 					<div class="browser-bar" aria-hidden="true"><span></span><span></span><span></span></div>
 					<div class="context-stage web-stage">
-						<img src={ BrandAssetsPublicPrefix + "brand/araihu/logo/light-transparent-optical.svg" } alt="Arai Hû"/>
+						<img src={ BrandAssetsPublicPrefix + "brand/araihu/logo/light-transparent-optical.svg" } alt="Arai Hû" width="720" height="134"/>
 					</div>
 					<h3 id="web-context-title">{ page.Brand.WebTitle }</h3><p>{ page.Brand.WebBody }</p>
 				</article>
 				<article class="context-card mobile-context" aria-labelledby="mobile-context-title">
 					<div class="context-stage phone-stage">
-						<div class="phone-frame"><img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-tinted-plate-launcher.svg" } alt="Arai Hû"/></div>
+						<div class="phone-frame"><img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-tinted-plate-launcher.svg" } alt="Arai Hû" width="1024" height="1024"/></div>
 					</div>
 					<h3 id="mobile-context-title">{ page.Brand.MobileTitle }</h3><p>{ page.Brand.MobileBody }</p>
 				</article>

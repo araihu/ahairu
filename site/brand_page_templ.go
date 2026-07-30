@@ -117,7 +117,7 @@ func BrandPageBody(page Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" alt=\"Arai Hû\" width=\"720\" height=\"134\"><figcaption>V11 · optical wordmark · protected color</figcaption></figure></section><section class=\"guidance-section\" aria-labelledby=\"variants-title\"><div class=\"guidance-section-copy\"><p class=\"bench-label\">02 · V11</p><h2 id=\"variants-title\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" alt=\"Arai Hû\" width=\"720\" height=\"134\" data-asset-brand=\"logo\"><figcaption>V11 · optical wordmark · protected color</figcaption></figure></section><section class=\"guidance-section\" aria-labelledby=\"variants-title\"><div class=\"guidance-section-copy\"><p class=\"bench-label\">02 · V11</p><h2 id=\"variants-title\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -192,7 +192,7 @@ func BrandPageBody(page Page) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" loading=\"lazy\" decoding=\"async\"></div><figcaption><strong>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\" width=\"720\" height=\"134\" loading=\"lazy\" decoding=\"async\"></div><figcaption><strong>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -314,7 +314,7 @@ func BrandPageBody(page Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" alt=\"\"></div><p>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 21, "\" alt=\"\" width=\"144\" height=\"144\"></div><p>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -402,7 +402,7 @@ func BrandPageBody(page Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" alt=\"Arai Hû\"></div><h3 id=\"web-context-title\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 29, "\" alt=\"Arai Hû\" width=\"720\" height=\"134\"></div><h3 id=\"web-context-title\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -441,7 +441,7 @@ func BrandPageBody(page Page) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" alt=\"Arai Hû\"></div></div><h3 id=\"mobile-context-title\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 32, "\" alt=\"Arai Hû\" width=\"1024\" height=\"1024\"></div></div><h3 id=\"mobile-context-title\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
