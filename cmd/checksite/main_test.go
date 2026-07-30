@@ -58,24 +58,32 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"if: github.event_name == 'repository_dispatch'",
 		"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
 		"permission-actions: read",
-		"missing or invalid dispatch payload",
-		"missing or invalid main promotion variable",
+		"- araihu-assets-released",
+		"DISPATCH_EVENT_TYPE: ${{ github.event.action }}",
+		"ASSETS_HANDOFF_JSON: ${{ toJSON(github.event.client_payload) }}",
+		"ASSETS_HANDOFF_JSON: ${{ vars.ASSETS_RELEASE_HANDOFF_JSON }}",
+		"--handoff-json \"$ASSETS_HANDOFF_JSON\"",
+		"--accepted-output \"$ACCEPTED_ASSETS\"",
+		"npm run test:workflow",
 	} {
 		if !strings.Contains(ci, want) {
 			t.Errorf("CI misses %q", want)
 		}
 	}
-	if strings.Contains(ci, "client_payload.assets_release_url || vars") || strings.Contains(ci, "client_payload.assets_channel_url || vars") {
+	if strings.Contains(ci, "assets-release-promoted") || strings.Contains(ci, "assets_release_") || strings.Contains(ci, "assets_channel_") {
+		t.Error("CI retains the obsolete flat Assets dispatch schema")
+	}
+	if strings.Contains(ci, "client_payload.assets_") || strings.Contains(ci, "|| vars") {
 		t.Error("CI allows repository variables to fill a dispatch payload")
 	}
-	if got := strings.Count(ci, "github.event.client_payload.assets_"); got != 6 {
-		t.Errorf("CI has %d dispatch asset fields, want 6", got)
+	if got := strings.Count(ci, "github.event.client_payload"); got != 1 {
+		t.Errorf("CI has %d dispatch payload references, want exactly one full handoff", got)
 	}
-	if got := strings.Count(ci, "vars.ASSETS_"); got != 6 {
-		t.Errorf("CI has %d main-promotion asset variables, want 6", got)
+	if got := strings.Count(ci, "vars.ASSETS_"); got != 1 {
+		t.Errorf("CI has %d main-promotion variables, want one full handoff JSON", got)
 	}
-	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Contains(ci, "permission-contents:") {
-		t.Error("CI Assets token does not request only Actions read")
+	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Count(ci, "permission-contents: read") != 1 {
+		t.Error("CI Assets token does not request least Actions and Contents read")
 	}
 
 	deploy := readWorkflow(t, "deploy.yml")
@@ -89,6 +97,19 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"--uploaded-version \"$UPLOADED_VERSION\"",
 		"scripts/select_deployed_version.mjs",
 		"set -o pipefail",
+		"permission-contents: read",
+		"permission-contents: write",
+		"scripts/accepted_assets_state.py",
+		"AHAIRU_REPOSITORY: araihu/ahairu",
+		"STATE_REF: automation/araihu-assets-state",
+		"STATE_PATH: .automation/araihu-assets/accepted-channel-v1.json",
+		"wrangler deployments status --json",
+		"Create dedicated accepted-state ref failed",
+		"Create accepted state conflicted or failed",
+		"Update accepted state conflicted or failed",
+		"if [[ -z \"$state_sha\" ]]; then",
+		"test \"$update_status\" = 201",
+		"test \"$update_status\" = 200",
 	} {
 		if !strings.Contains(deploy, want) {
 			t.Errorf("deploy misses %q", want)
@@ -99,21 +120,32 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 			t.Errorf("deploy retains ambiguous Worker version inference %q", forbidden)
 		}
 	}
-	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Contains(deploy, "permission-contents:") {
-		t.Error("deploy Assets token does not request only Actions read")
+	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Count(deploy, "permission-contents: read") != 1 || strings.Count(deploy, "permission-contents: write") != 1 {
+		t.Error("deploy tokens do not use least Assets read and post-promotion Ahairu write permissions")
+	}
+	if strings.Index(deploy, "wrangler deployments status --json") > strings.Index(deploy, "Mint post-promotion state token") || strings.Index(deploy, "Mint post-promotion state token") > strings.Index(deploy, "Durably accept verified deployed Assets channel") {
+		t.Error("accepted state must be written only after deployed Worker version is verified active")
+	}
+	if strings.Contains(deploy, "refs/heads/main") || strings.Contains(deploy, "contents/.github/") {
+		t.Error("deploy state write must never target main or a mutable workflow path")
+	}
+	createBranch := strings.Index(deploy, "if [[ -z \"$state_sha\" ]]; then")
+	createStatus := strings.Index(deploy, "test \"$update_status\" = 201")
+	updateBranch := strings.Index(deploy, "else\n            test \"$update_status\" = 200")
+	if createBranch < 0 || createStatus < createBranch || updateBranch < createStatus {
+		t.Error("accepted-state Contents PUT must require 201 for creates and 200 for updates")
 	}
 }
 
 func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	ci := readWorkflow(t, "ci.yml")
 	for _, want := range []string{
-		"github.event.client_payload.assets_release_url",
-		"github.event.client_payload.assets_release_id",
-		"github.event.client_payload.assets_release_sha256",
-		"github.event.client_payload.assets_channel_url",
-		"github.event.client_payload.assets_channel_id",
-		"github.event.client_payload.assets_channel_sha256",
+		"araihu-assets-released",
+		"toJSON(github.event.client_payload)",
+		"ASSETS_RELEASE_HANDOFF_JSON",
 		"scripts/prepare_asset_bundle.py",
+		"--handoff-json",
+		"--accepted-output",
 		"npm run check",
 		"name: accepted-assets",
 	} {
@@ -126,6 +158,7 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 		"run-id: ${{ github.event.workflow_run.id }}",
 		"name: accepted-assets",
 		"scripts/prepare_asset_bundle.py",
+		"--handoff-file \"$ACCEPTED_ASSETS\"",
 		"npm run check",
 		"wrangler versions upload",
 		"wrangler versions deploy",
@@ -143,6 +176,9 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 				t.Errorf("%s retains forbidden secret %q", workflow.name, forbidden)
 			}
 		}
+	}
+	if strings.Contains(deploy, "accepted.releaseURL") || strings.Contains(deploy, "accepted.channelURL") {
+		t.Error("deploy retains the obsolete flat accepted-assets schema")
 	}
 }
 

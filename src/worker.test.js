@@ -145,10 +145,11 @@ test("marks strict SemVer versioned assets immutable", async () => {
   assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
 });
 
-test("does not mark leading-zero release versions immutable", async () => {
-  const { response } = await request("/assets/releases/v01.1.1/catalog.json");
-
-  assert.equal(response.headers.get("cache-control"), null);
+test("does not mark leading-zero SemVer identifiers immutable", async () => {
+  for (const version of ["v01.1.1", "v0.1.1-01"]) {
+    const { response } = await request(`/assets/releases/${version}/catalog.json`);
+    assert.equal(response.headers.get("cache-control"), null, version);
+  }
 });
 
 test("permits anonymous public asset consumption", async () => {
