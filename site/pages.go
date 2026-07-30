@@ -163,13 +163,24 @@ func navigationFor(kind PageKind) Navigation {
 }
 
 func pageTitle(kind PageKind, locale Locale) string {
+	if kind == PageHome {
+		return map[string]string{
+			"en":    "Open software projects | Arai Hû",
+			"pt-br": "Projetos de software aberto | Arai Hû",
+			"es":    "Proyectos de software abierto | Arai Hû",
+		}[locale.Key]
+	}
 	return localizedHeading(kind, locale.Key) + " | Arai Hû"
 }
 
 func pageDescription(kind PageKind, locale Locale) string {
 	switch kind {
 	case PageHome:
-		return homeContent(locale.Key).Intro
+		return map[string]string{
+			"en":    "Open software from Arai Hû for server-rendered interfaces, OpenAPI documentation, durable code-change workflows, and self-hosted monitoring.",
+			"pt-br": "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação OpenAPI, workflows duráveis de mudança de código e monitoramento auto-hospedado.",
+			"es":    "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación OpenAPI, flujos de trabajo duraderos para cambios de código y monitoreo autoalojado.",
+		}[locale.Key]
 	case PageBrand:
 		return brandContent(locale.Key).Lead
 	case PageLicense:
