@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
   pull_request:
 
 jobs:
@@ -18,4 +20,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run check
+      - name: Verify generated templ output is current
+        run: templ generate && git diff --exit-code -- 'site/*_templ.go'
+      - name: Verify static site and undeployed Worker bundle
+        run: npm run check

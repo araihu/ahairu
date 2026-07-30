@@ -7,8 +7,11 @@
   },
   "scripts": {
     "build": "templ generate && go run ./cmd/ahairu build",
-    "test:worker": "node --test src/worker.test.js",
-    "check": "npm run build && go test ./... -count=1 && npm run test:worker && wrangler deploy --dry-run"
+    "test:metadata": "go test ./site -run 'Metadata|StructuredData|Sitemap|Manifest' -count=1",
+    "test:routes": "node --test src/worker.test.js",
+    "test:visual": "node --test test/browser/site.test.js",
+    "test:worker": "npm run test:routes",
+    "check": "npm run build && go test ./... -count=1 && go run ./cmd/checksite public && npm run test:routes && npm run test:visual && wrangler deploy --dry-run"
   },
   "allowScripts": {
     "puppeteer@25.4.0": true,

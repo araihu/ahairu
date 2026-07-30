@@ -39,29 +39,26 @@ func build() error {
 	if err := os.WriteFile(filepath.Join("public", "assets", "araihu-theme.css"), site.BrandThemeCSS(), 0o644); err != nil {
 		return err
 	}
-	logosDir := filepath.Join("public", "assets", "logos")
-	if err := os.MkdirAll(logosDir, 0o755); err != nil {
+	releaseDir := filepath.Join("public", "assets", "araihu", "v0.1.0")
+	if err := site.CopyBundledBrandAssets(releaseDir); err != nil {
+		return fmt.Errorf("copy Arai Hû assets v0.1.0: %w", err)
+	}
+	if err := site.CopyBundledSocialImages(filepath.Join("public", "social")); err != nil {
+		return fmt.Errorf("copy social previews: %w", err)
+	}
+	for _, page := range site.Pages() {
+		if err := render(page); err != nil {
+			return err
+		}
+	}
+	if err := writeStaticPages(site.Pages()); err != nil {
 		return err
-	}
-	for _, name := range site.BrandAssetNames() {
-		asset, err := site.BrandAsset(name)
-		if err != nil {
-			return err
-		}
-		if err := os.WriteFile(filepath.Join(logosDir, name), asset, 0o644); err != nil {
-			return err
-		}
-	}
-	for _, locale := range site.Locales() {
-		if err := render(locale); err != nil {
-			return err
-		}
 	}
 	return nil
 }
 
-func render(content site.Content) error {
-	destination := filepath.Join("public", content.Path, "index.html")
+func render(page site.Page) error {
+	destination := filepath.Join("public", page.Meta.Path, "index.html")
 	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
 		return err
 	}
@@ -70,5 +67,26 @@ func render(content site.Content) error {
 		return err
 	}
 	defer file.Close()
-	return site.Page(content).Render(context.Background(), file)
+	component, err := site.PageComponent(page)
+	if err != nil {
+		return fmt.Errorf("select renderer for %q: %w", page.Meta.Path, err)
+	}
+	return component.Render(context.Background(), file)
+}
+
+func writeStaticPages(pages []site.Page) error {
+	sitemap, err := site.Sitemap(pages)
+	if err != nil {
+		return err
+	}
+	for name, contents := range map[string][]byte{
+		"robots.txt":       site.Robots(),
+		"sitemap.xml":      sitemap,
+		"site.webmanifest": site.SiteManifest(),
+	} {
+		if err := os.WriteFile(filepath.Join("public", name), contents, 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
 }

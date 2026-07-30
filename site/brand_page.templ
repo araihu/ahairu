@@ -1,0 +1,151 @@
+package site
+
+import (
+	"github.com/araihu/goshtoso/components/icon"
+	"github.com/araihu/goshtoso/components/pageheader"
+	"github.com/araihu/goshtoso/components/panel"
+	"github.com/araihu/ahairu/site/brandicons"
+)
+
+templ BrandPage(page Page) {
+	@Layout(page, BrandPageBody(page))
+}
+
+templ BrandPageBody(page Page) {
+	<main id="main-content" class="ahairu-shell guidance-main mx-auto px-6 md:px-10" tabindex="-1">
+		@pageheader.PageHeader(pageheader.Config{
+			Title: page.Brand.Heading,
+			Description: page.Brand.Lead,
+			RootClass: "guidance-page-header",
+			TitleClass: "guidance-title",
+		})
+
+		<section class="guidance-section identity-section" aria-labelledby="identity-title">
+			<div class="guidance-section-copy">
+				<p class="bench-label">01 · V11</p>
+				<h2 id="identity-title">{ page.Brand.IdentityTitle }</h2>
+				<p>{ page.Brand.IdentityBody }</p>
+			</div>
+			<figure class="identity-master">
+				<img src={ BrandAssetsPublicPrefix + "brand/araihu/logo/tinted-transparent-optical.svg" } alt="Arai Hû" width="720" height="134"/>
+				<figcaption>V11 · optical wordmark · protected color</figcaption>
+			</figure>
+		</section>
+
+		<section class="guidance-section" aria-labelledby="variants-title">
+			<div class="guidance-section-copy">
+				<p class="bench-label">02 · V11</p>
+				<h2 id="variants-title">{ page.Brand.VariantsTitle }</h2>
+				<p>{ page.Brand.VariantsLead }</p>
+			</div>
+			<div class="variant-grid">
+				for _, variant := range page.Brand.Variants {
+					<figure class={ "variant-card " + variant.SurfaceClass }>
+						<div class="variant-art"><img src={ variant.AssetURL } alt={ "Arai Hû · " + variant.Name } loading="lazy" decoding="async"/></div>
+						<figcaption><strong>{ variant.Name }</strong><span>{ variant.Description }</span></figcaption>
+					</figure>
+				}
+			</div>
+		</section>
+
+		<div class="guidance-section">
+			<div class="measurement-grid">
+				<article class="measurement-card" aria-labelledby="minimum-size-title">
+					<p class="bench-label">03A · 16 px / 24 dp</p>
+					<h2 id="minimum-size-title">{ page.Brand.MinimumSizeTitle }</h2>
+					<div class="minimum-size-demo" aria-hidden="true">
+						<img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg" } alt="" width="16" height="16"/>
+						<img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg" } alt="" width="24" height="24"/>
+						<img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-adaptive-transparent-optical.svg" } alt="" width="48" height="48"/>
+					</div>
+					<p>{ page.Brand.MinimumSizeBody }</p>
+				</article>
+				<article class="measurement-card" aria-labelledby="clear-space-title">
+					<p class="bench-label">03B · x = signal width</p>
+					<h2 id="clear-space-title">{ page.Brand.ClearSpaceTitle }</h2>
+					<div class="clear-space-demo" aria-hidden="true"><img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-tinted-transparent-optical.svg" } alt=""/></div>
+					<p>{ page.Brand.ClearSpaceBody }</p>
+				</article>
+			</div>
+		</div>
+
+		<section class="guidance-section incorrect-section" aria-labelledby="incorrect-title">
+			<div class="guidance-section-copy">
+				<p class="bench-label">04 · V11</p>
+				<h2 id="incorrect-title">{ page.Brand.IncorrectUseTitle }</h2>
+			</div>
+			<ul class="incorrect-grid">
+				for index, misuse := range page.Brand.IncorrectUses {
+					<li><span aria-hidden="true">×</span><strong>{ formatIndex(index) }</strong><p>{ misuse }</p></li>
+				}
+			</ul>
+		</section>
+
+		<section class="guidance-section" aria-labelledby="contexts-title">
+			<div class="guidance-section-copy">
+				<p class="bench-label">05 · Web / Mobile</p>
+				<h2 id="contexts-title">{ page.Brand.ContextsTitle }</h2>
+			</div>
+			<div class="context-grid">
+				<article class="context-card browser-context" aria-labelledby="web-context-title">
+					<div class="browser-bar" aria-hidden="true"><span></span><span></span><span></span></div>
+					<div class="context-stage web-stage">
+						<img src={ BrandAssetsPublicPrefix + "brand/araihu/logo/light-transparent-optical.svg" } alt="Arai Hû"/>
+					</div>
+					<h3 id="web-context-title">{ page.Brand.WebTitle }</h3><p>{ page.Brand.WebBody }</p>
+				</article>
+				<article class="context-card mobile-context" aria-labelledby="mobile-context-title">
+					<div class="context-stage phone-stage">
+						<div class="phone-frame"><img src={ BrandAssetsPublicPrefix + "icons/brand/araihu-icon-tinted-plate-launcher.svg" } alt="Arai Hû"/></div>
+					</div>
+					<h3 id="mobile-context-title">{ page.Brand.MobileTitle }</h3><p>{ page.Brand.MobileBody }</p>
+				</article>
+			</div>
+		</section>
+
+		<section class="guidance-section" aria-labelledby="downloads-title">
+			@panel.Panel(panel.Config{
+				Appearance: panel.AppearanceOutlined,
+				Density: panel.DensityRelaxed,
+				Header: BrandPanelHeading("downloads-title", page.Brand.DownloadsTitle, page.Brand.DownloadsLead),
+				RootClass: "release-panel",
+				RootAttrs: templ.Attributes{"role": "region", "aria-labelledby": "downloads-title"},
+			}) {
+				<ul class="download-list">
+					for _, download := range page.Brand.Downloads {
+						<li><a href={ download.URL } download><span>{ download.Label }</span><small>{ download.Detail }</small><strong aria-hidden="true">↓</strong></a></li>
+					}
+				</ul>
+			}
+		</section>
+
+		<div class="guidance-section integration-grid">
+			@panel.Panel(panel.Config{
+				Appearance: panel.AppearanceSubtle,
+				Density: panel.DensityRelaxed,
+				Header: BrandPanelHeading("integration-title", page.Brand.IntegrationTitle, page.Brand.IntegrationBody),
+				RootClass: "integration-panel",
+				RootAttrs: templ.Attributes{"role": "region", "aria-labelledby": "integration-title"},
+			}) {
+				<div class="component-example">
+					@icon.Icon(icon.Config{SpriteURL: brandicons.SpriteURL, Symbol: brandicons.IconAraihuIconMonochromeTransparentOptical, Label: "Arai Hû", RootClass: "brand-component-icon"})
+					<pre tabindex="0"><code>{ page.Brand.IntegrationCode }</code></pre>
+				</div>
+				<p class="artifact-links"><a href={ BrandAssetsPublicPrefix + "catalog.json" }>catalog.json</a> · <a href={ BrandAssetsPublicPrefix + "checksums.txt" }>checksums.txt</a> · <a href={ BrandAssetsPublicPrefix + "icons/brand/sprite.svg" }>sprite.svg</a> · Goshtoso</p>
+			}
+			@panel.Panel(panel.Config{
+				Appearance: panel.AppearanceOutlined,
+				Density: panel.DensityRelaxed,
+				Header: BrandPanelHeading("attribution-title", page.Brand.AttributionTitle, page.Brand.AttributionBody),
+				RootClass: "attribution-panel",
+				RootAttrs: templ.Attributes{"role": "region", "aria-labelledby": "attribution-title"},
+			}) {
+				<a class="license-cta" href={ templ.SafeURL(pathFor(PageLicense, page.Meta.Locale.Language)) }><span><strong>{ page.Brand.LicenseTitle }</strong><small>{ page.Brand.LicenseBody }</small></span><span>{ page.Brand.LicenseCTA } ↗</span></a>
+			}
+		</div>
+	</main>
+}
+
+templ BrandPanelHeading(id, title, body string) {
+	<div class="panel-heading"><p class="bench-label">Release v0.1.0</p><h2 id={ id }>{ title }</h2><p>{ body }</p></div>
+}

@@ -1,12 +1,12 @@
 package main
 
 import (
+	"image"
+	_ "image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/araihu/ahairu/site"
 )
 
 func TestBuildWritesStandaloneSite(t *testing.T) {
@@ -41,22 +41,41 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		`href="/en/" aria-current="page"`,
 		`aria-label="Primary navigation"`,
 		`<h3 class="project-name">X-9</h3>`,
+		`<link rel="canonical" href="https://araihu.com/en/">`,
+		`<meta property="og:image" content="https://araihu.com/social/brand.png">`,
+		`<script id="structured-data" type="application/ld+json">`,
 	} {
 		if !strings.Contains(page, landmark) {
 			t.Errorf("generated HTML misses accessibility landmark %q", landmark)
 		}
 	}
+	for name, want := range map[string]string{
+		"robots.txt":       "Sitemap: https://araihu.com/sitemap.xml",
+		"sitemap.xml":      "https://araihu.com/license/",
+		"site.webmanifest": `"name":"Arai Hû"`,
+	} {
+		data, err := os.ReadFile(filepath.Join("public", name))
+		if err != nil {
+			t.Errorf("static discovery file %s missing: %v", name, err)
+			continue
+		}
+		if !strings.Contains(string(data), want) {
+			t.Errorf("static discovery file %s misses %q", name, want)
+		}
+	}
 	for _, asset := range []string{
-		"logos/araihu-icon-background.svg?rev=a8a9647a",
-		"logos/araihu-icon-transparent.svg?rev=a8a9647a",
-		"logos/goshtoso-icon-transparent.svg?rev=a8a9647a",
-		"logos/manja-icon-transparent.svg?rev=a8a9647a",
-		"logos/paje-icon-transparent.svg?rev=a8a9647a",
-		"logos/x9-icon-transparent.svg?rev=a8a9647a",
+		"/assets/araihu/v0.1.0/icons/brand/araihu-icon-adaptive-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/goshtoso-icon-adaptive-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/manja-icon-adaptive-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/paje-icon-adaptive-transparent-optical.svg",
+		"/assets/araihu/v0.1.0/icons/brand/x9-icon-adaptive-transparent-optical.svg",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
 		}
+	}
+	if strings.Contains(page, "?rev=a8a9647a") {
+		t.Error("generated HTML contains stale V10 revision query")
 	}
 	if !strings.Contains(page, `href="https://x9.araihu.com"`) {
 		t.Error("generated HTML misses the X-9 product URL")
@@ -71,11 +90,23 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		t.Fatalf("brand stylesheet missing or empty: %v", err)
 	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
-		t.Fatalf("brand theme missing or empty: %v", err)
+		t.Fatalf("Arai Hû theme missing or empty: %v", err)
 	}
-	for _, name := range site.BrandAssetNames() {
-		if info, err := os.Stat(filepath.Join("public", "assets", "logos", name)); err != nil || info.Size() == 0 {
-			t.Errorf("brand asset %s missing or empty: %v", name, err)
+	for _, name := range []string{"catalog.json", "checksums.txt", "NOTICE", "icons/brand/sprite.svg", "platform/web/araihu/favicon.svg"} {
+		if info, err := os.Stat(filepath.Join("public", "assets", "araihu", "v0.1.0", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
+			t.Errorf("brand release asset %s missing or empty: %v", name, err)
+		}
+	}
+	for _, name := range []string{"brand.png", "license.png"} {
+		file, err := os.Open(filepath.Join("public", "social", name))
+		if err != nil {
+			t.Errorf("social preview %s missing: %v", name, err)
+			continue
+		}
+		config, format, decodeErr := image.DecodeConfig(file)
+		_ = file.Close()
+		if decodeErr != nil || format != "png" || config.Width != 1200 || config.Height != 630 {
+			t.Errorf("social preview %s = %s %dx%d, want png 1200x630: %v", name, format, config.Width, config.Height, decodeErr)
 		}
 	}
 	for locale, skipLabel := range map[string]string{"pt-br": "Pular para o conteúdo", "es": "Saltar al contenido"} {
@@ -85,6 +116,16 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		}
 		if !strings.Contains(string(localizedHTML), skipLabel) || !strings.Contains(string(localizedHTML), `aria-current="page"`) {
 			t.Errorf("localized page %s misses skip link or locale state", locale)
+		}
+	}
+	for _, path := range []string{"brand", "license", "pt-br/brand", "pt-br/license", "es/brand", "es/license"} {
+		data, err := os.ReadFile(filepath.Join("public", path, "index.html"))
+		if err != nil {
+			t.Errorf("%s missing: %v", path, err)
+			continue
+		}
+		if !strings.Contains(string(data), `<main id="main-content"`) {
+			t.Errorf("%s misses shared main landmark", path)
 		}
 	}
 }
