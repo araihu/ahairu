@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/url"
 	"os"
 	"path"
 	"regexp"
@@ -23,6 +24,8 @@ var (
 	sha256Hex  = regexp.MustCompile(`^[0-9a-f]{64}$`)
 	lowerKebab = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
 )
+
+const trustedPublicOrigin = "https://araihu.com"
 
 // Bundle is a validated immutable release and channel bundle.
 type Bundle struct {
@@ -99,10 +102,26 @@ type releaseFile struct {
 	Size   int64  `json:"size"`
 }
 
+// snapshot is the one verified view of an untrusted source. Assemble must not
+// reopen source paths after this point: an fs.FS may otherwise swap a checked
+// path for different bytes (or a link) between validation and publication.
+type snapshot struct {
+	bundle Bundle
+	files  map[string][]byte
+}
+
 // Validate verifies a complete public bundle before it can be assembled.
 func Validate(source fs.FS) (Bundle, error) {
+	verified, err := snapshotBundle(source)
+	if err != nil {
+		return Bundle{}, err
+	}
+	return verified.bundle, nil
+}
+
+func snapshotBundle(source fs.FS) (snapshot, error) {
 	if source == nil {
-		return Bundle{}, errors.New("asset bundle source is nil")
+		return snapshot{}, errors.New("asset bundle source is nil")
 	}
 	files := make(map[string][]byte)
 	releases := make(map[string]struct{})
@@ -139,28 +158,28 @@ func Validate(source fs.FS) (Bundle, error) {
 		if err != nil {
 			return fmt.Errorf("read asset bundle path %q: %w", name, err)
 		}
-		files[name] = data
+		files[name] = append([]byte(nil), data...)
 		return nil
 	}); err != nil {
-		return Bundle{}, err
+		return snapshot{}, err
 	}
 
 	if _, ok := files["campaign/v1.js"]; !ok {
-		return Bundle{}, errors.New("asset bundle misses campaign/v1.js")
+		return snapshot{}, errors.New("asset bundle misses campaign/v1.js")
 	}
 	for _, channel := range []string{"latest", "default", "current"} {
 		if _, ok := files["releases/"+channel+".json"]; !ok {
-			return Bundle{}, fmt.Errorf("asset bundle misses releases/%s.json", channel)
+			return snapshot{}, fmt.Errorf("asset bundle misses releases/%s.json", channel)
 		}
 	}
 	if len(releases) == 0 {
-		return Bundle{}, errors.New("asset bundle has no immutable releases")
+		return snapshot{}, errors.New("asset bundle has no immutable releases")
 	}
 
 	ordered := make([]string, 0, len(releases))
 	for release := range releases {
 		if err := validateRelease(release, files); err != nil {
-			return Bundle{}, err
+			return snapshot{}, err
 		}
 		ordered = append(ordered, release)
 	}
@@ -170,11 +189,18 @@ func Validate(source fs.FS) (Bundle, error) {
 	for _, name := range []string{"latest", "default", "current"} {
 		channel, err := validateChannel(name, files["releases/"+name+".json"], releases, files)
 		if err != nil {
-			return Bundle{}, err
+			return snapshot{}, err
 		}
 		channels[name] = channel
 	}
-	return Bundle{Releases: ordered, Latest: channels["latest"], Default: channels["default"], Current: channels["current"]}, nil
+	currentRuntime, found := files["releases/"+channels["current"].Release+"/campaign/v1.js"]
+	if !found {
+		return snapshot{}, fmt.Errorf("current immutable release %q misses campaign/v1.js", channels["current"].Release)
+	}
+	if !bytes.Equal(files["campaign/v1.js"], currentRuntime) {
+		return snapshot{}, fmt.Errorf("campaign/v1.js does not match current immutable release %q runtime", channels["current"].Release)
+	}
+	return snapshot{bundle: Bundle{Releases: ordered, Latest: channels["latest"], Default: channels["default"], Current: channels["current"]}, files: files}, nil
 }
 
 func knownPath(name string, directory bool, releases map[string]struct{}) bool {
@@ -384,27 +410,84 @@ func validateCampaign(release string, campaign resolvedCampaign, files map[strin
 	if !lowerKebab.MatchString(campaign.ID) {
 		return errors.New("invalid campaign id")
 	}
-	for _, asset := range []string{campaign.Toggle.EnabledIcon.URL, campaign.Toggle.DisabledIcon.URL, campaign.Brand.Logo.URL, campaign.Brand.Icon.URL} {
-		if err := validateReleaseURL(release, asset, files); err != nil {
+	for _, icon := range []resolvedIcon{campaign.Toggle.EnabledIcon, campaign.Toggle.DisabledIcon} {
+		if !lowerKebab.MatchString(icon.ID) || (icon.Mode != "asset" && icon.Mode != "sprite") {
+			return errors.New("invalid resolved icon")
+		}
+		relative, err := releaseURLPath(release, icon.URL)
+		if err != nil {
+			return err
+		}
+		if _, found := files["releases/"+release+"/"+relative]; !found {
+			return fmt.Errorf("%q is unavailable", icon.URL)
+		}
+		if icon.Mode == "asset" && (icon.SpriteSymbol != "" || isSpritePath(relative)) {
+			return errors.New("asset icon cannot have sprite URL or symbol")
+		}
+		if icon.Mode == "sprite" {
+			if !lowerKebab.MatchString(icon.SpriteSymbol) || !isSpritePath(relative) {
+				return errors.New("sprite icon requires sprite URL and symbol")
+			}
+			if !bytes.Contains(files["releases/"+release+"/"+relative], []byte(`id="`+icon.SpriteSymbol+`"`)) {
+				return fmt.Errorf("sprite icon symbol %q is unavailable", icon.SpriteSymbol)
+			}
+		}
+	}
+	for _, asset := range []resolvedAsset{campaign.Brand.Logo, campaign.Brand.Icon} {
+		if !lowerKebab.MatchString(asset.ID) {
+			return errors.New("invalid resolved brand asset")
+		}
+		if err := validateReleaseURL(release, asset.URL, files); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+func isSpritePath(relative string) bool {
+	return relative == "icons/ui/sprite.svg" || relative == "icons/brand/sprite.svg"
+}
+
 func validateReleaseURL(release, value string, files map[string][]byte) error {
-	prefix := "/assets/releases/" + release + "/"
-	if !strings.HasPrefix(value, prefix) || strings.Contains(value, `\`) {
-		return fmt.Errorf("%q does not target immutable release %q", value, release)
-	}
-	relative := strings.TrimPrefix(value, prefix)
-	if !safePath(relative) {
-		return fmt.Errorf("%q has invalid release path", value)
+	relative, err := releaseURLPath(release, value)
+	if err != nil {
+		return err
 	}
 	if _, found := files["releases/"+release+"/"+relative]; !found {
 		return fmt.Errorf("%q is unavailable", value)
 	}
 	return nil
+}
+
+// releaseURLPath accepts root-relative release URLs and HTTPS URLs at the
+// configured site origin. Channel documents are untrusted runtime input: no
+// alternate origin, scheme-relative URL, query, fragment, or escaped path can
+// select a file.
+func releaseURLPath(release, value string) (string, error) {
+	if strings.ContainsAny(value, "\\\r\n\x00") {
+		return "", fmt.Errorf("%q does not target immutable release %q", value, release)
+	}
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.RawPath != "" {
+		return "", fmt.Errorf("%q does not target immutable release %q", value, release)
+	}
+	if parsed.IsAbs() {
+		trusted, _ := url.Parse(trustedPublicOrigin)
+		if parsed.Scheme != "https" || parsed.Host != trusted.Host {
+			return "", fmt.Errorf("%q does not target immutable release %q", value, release)
+		}
+	} else if parsed.Scheme != "" || parsed.Host != "" || !strings.HasPrefix(parsed.Path, "/") || strings.HasPrefix(parsed.Path, "//") {
+		return "", fmt.Errorf("%q does not target immutable release %q", value, release)
+	}
+	prefix := "/assets/releases/" + release + "/"
+	if !strings.HasPrefix(parsed.Path, prefix) {
+		return "", fmt.Errorf("%q does not target immutable release %q", value, release)
+	}
+	relative := strings.TrimPrefix(parsed.Path, prefix)
+	if !safePath(relative) {
+		return "", fmt.Errorf("%q has invalid release path", value)
+	}
+	return relative, nil
 }
 
 func decodeStrict(data []byte, target any) error {
@@ -444,30 +527,20 @@ func Assemble(ctx context.Context, source fs.FS, destination *os.Root) error {
 	if destination == nil {
 		return errors.New("asset bundle destination is nil")
 	}
-	if _, err := Validate(source); err != nil {
+	verified, err := snapshotBundle(source)
+	if err != nil {
 		return err
 	}
-	var names []string
-	if err := fs.WalkDir(source, ".", func(name string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if !entry.IsDir() {
-			names = append(names, name)
-		}
-		return nil
-	}); err != nil {
-		return err
+	names := make([]string, 0, len(verified.files))
+	for name := range verified.files {
+		names = append(names, name)
 	}
 	sort.Strings(names)
 	for _, name := range names {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		data, err := fs.ReadFile(source, name)
-		if err != nil {
-			return err
-		}
+		data := verified.files[name]
 		if err := rejectDestinationSymlink(destination, name); err != nil {
 			return err
 		}
@@ -485,10 +558,7 @@ func Assemble(ctx context.Context, source fs.FS, destination *os.Root) error {
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		data, err := fs.ReadFile(source, name)
-		if err != nil {
-			return err
-		}
+		data := verified.files[name]
 		if err := ensureDestinationDirectories(destination, path.Dir(name)); err != nil {
 			return err
 		}

@@ -10,11 +10,15 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strings"
 
 	"github.com/araihu/ahairu/internal/assetbundle"
 	"github.com/araihu/ahairu/site"
 	"github.com/araihu/goshtoso/assets"
 )
+
+var immutableReleaseName = regexp.MustCompile(`^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-(?:(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$`)
 
 func main() {
 	if err := run(os.Args[1:], os.Stderr); err != nil {
@@ -55,10 +59,72 @@ func build(assetBundle string) error {
 		return err
 	}
 	defer os.RemoveAll(staging)
+	if err := seedImmutableReleases(filepath.Join(staging, "public", "assets")); err != nil {
+		return err
+	}
 	if err := buildAt(staging, os.DirFS(assetBundle)); err != nil {
 		return err
 	}
 	return replacePublic(filepath.Join(staging, "public"))
+}
+
+// seedImmutableReleases carries historical immutable releases into staging.
+// buildAt then lets Assemble add the requested channel release without making a
+// normal site rebuild erase URLs already published to users.
+func seedImmutableReleases(destination string) error {
+	source := filepath.Join("public", "assets", "releases")
+	info, err := os.Lstat(source)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("inspect prior immutable releases: %w", err)
+	}
+	if info.Mode()&fs.ModeSymlink != 0 || !info.IsDir() {
+		return fmt.Errorf("prior immutable releases %q is not a directory", source)
+	}
+	if err := fs.WalkDir(os.DirFS(filepath.Join("public", "assets")), "releases", func(name string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if name != "releases" {
+			release := strings.Split(name, "/")[1]
+			if !immutableReleaseName.MatchString(release) {
+				if entry.IsDir() {
+					return fs.SkipDir
+				}
+				return nil
+			}
+		}
+		if entry.Type()&fs.ModeSymlink != 0 {
+			return fmt.Errorf("prior immutable release path %q is a symbolic link", name)
+		}
+		if entry.IsDir() {
+			return os.MkdirAll(filepath.Join(destination, filepath.FromSlash(name)), 0o755)
+		}
+		entryInfo, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("inspect prior immutable release path %q: %w", name, err)
+		}
+		if !entryInfo.Mode().IsRegular() {
+			return fmt.Errorf("prior immutable release path %q is not a regular file", name)
+		}
+		data, err := os.ReadFile(filepath.Join("public", "assets", filepath.FromSlash(name)))
+		if err != nil {
+			return fmt.Errorf("read prior immutable release path %q: %w", name, err)
+		}
+		target := filepath.Join(destination, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		if err := os.WriteFile(target, data, 0o644); err != nil {
+			return fmt.Errorf("seed prior immutable release path %q: %w", name, err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("seed prior immutable releases: %w", err)
+	}
+	return nil
 }
 
 func replacePublic(staging string) error {

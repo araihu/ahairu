@@ -141,6 +141,39 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	}
 }
 
+func TestBuildRetainsExistingImmutableReleases(t *testing.T) {
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	working := t.TempDir()
+	if err := os.Chdir(working); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(original) })
+
+	historical := filepath.Join("public", "assets", "releases", "v0.1.0", "release.json")
+	if err := os.MkdirAll(filepath.Dir(historical), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(historical, []byte("historical release\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join("public", "assets", "releases", "latest.json"), []byte("stale channel\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := build(fixtureAssetBundle(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(historical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "historical release\n" {
+		t.Fatalf("historical release = %q", got)
+	}
+}
+
 func fixtureAssetBundle(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
@@ -153,7 +186,7 @@ func fixtureAssetBundle(t *testing.T) string {
 		"campaign/v1.js":  []byte("(() => {})()\n"),
 	} {
 		file := filepath.Join(root, filepath.FromSlash(name))
-		if strings.Contains(name, ".json") || strings.Contains(name, ".css") {
+		if strings.Contains(name, ".json") || strings.Contains(name, ".css") || name == "campaign/v1.js" {
 			file = filepath.Join(releaseRoot, filepath.FromSlash(name))
 		}
 		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
@@ -163,13 +196,14 @@ func fixtureAssetBundle(t *testing.T) string {
 			t.Fatal(err)
 		}
 	}
+	writeBundleFile(t, filepath.Join(root, "campaign", "v1.js"), []byte("(() => {})()\n"))
 	type inventoryFile struct {
 		Path   string `json:"path"`
 		SHA256 string `json:"sha256"`
 		Size   int64  `json:"size"`
 	}
 	var inventory []inventoryFile
-	for _, name := range []string{"catalog.json", "themes.json", "campaigns.json", "themes/base.css"} {
+	for _, name := range []string{"catalog.json", "themes.json", "campaigns.json", "campaign/v1.js", "themes/base.css"} {
 		contents, err := os.ReadFile(filepath.Join(releaseRoot, filepath.FromSlash(name)))
 		if err != nil {
 			t.Fatal(err)
@@ -203,7 +237,7 @@ func fixtureAssetBundle(t *testing.T) string {
 	}
 	writeBundleFile(t, filepath.Join(releaseRoot, "release.json"), releaseJSON)
 	var checksumLines []string
-	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "themes/base.css"} {
+	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "campaign/v1.js", "themes/base.css"} {
 		contents, err := os.ReadFile(filepath.Join(releaseRoot, filepath.FromSlash(name)))
 		if err != nil {
 			t.Fatal(err)
@@ -225,7 +259,7 @@ func fixtureAssetBundle(t *testing.T) string {
 		Theme          theme  `json:"theme"`
 		Digest         string `json:"digest"`
 	}
-	value := channel{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.1.1", Source: "default", Theme: theme{ID: "base", CSSURL: "/assets/releases/v0.1.1/themes/base.css"}}
+	value := channel{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.1.1", Source: "default", Theme: theme{ID: "base", CSSURL: "https://araihu.com/assets/releases/v0.1.1/themes/base.css"}}
 	channelJSON, err := canonicalJSON(value)
 	if err != nil {
 		t.Fatal(err)

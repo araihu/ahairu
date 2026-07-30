@@ -1,6 +1,7 @@
 package assetbundle
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -26,6 +28,74 @@ func TestValidateRejectsChecksumMismatch(t *testing.T) {
 	input := fixtureBundle(t)
 	input.Write("releases/v0.1.1/catalog.json", []byte(`{"changed":true}`))
 	if _, err := Validate(input.FS()); err == nil || !strings.Contains(err.Error(), "checksum") {
+		t.Fatalf("Validate() error = %v", err)
+	}
+}
+
+func TestValidateChannelReleaseURLsAcceptTrustedOriginsOnly(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		url   string
+		valid bool
+	}{
+		{"root relative", "/assets/releases/v0.1.1/themes/base.css", true},
+		{"trusted absolute", "https://araihu.com/assets/releases/v0.1.1/themes/base.css", true},
+		{"cross origin", "https://evil.example/assets/releases/v0.1.1/themes/base.css", false},
+		{"insecure", "http://araihu.com/assets/releases/v0.1.1/themes/base.css", false},
+		{"scheme relative", "//araihu.com/assets/releases/v0.1.1/themes/base.css", false},
+		{"script scheme", "javascript:alert(1)", false},
+		{"query", "https://araihu.com/assets/releases/v0.1.1/themes/base.css?x=1", false},
+		{"control", "https://araihu.com/assets/releases/v0.1.1/themes/base.css\n", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			input := fixtureBundle(t)
+			document := input.channelDocument(t, "current")
+			document.Theme.CSSURL = test.url
+			input.writeChannel(t, "current", document)
+			_, err := Validate(input.FS())
+			if test.valid && err != nil {
+				t.Fatalf("Validate() error = %v", err)
+			}
+			if !test.valid && err == nil {
+				t.Fatal("Validate() error = nil")
+			}
+		})
+	}
+}
+
+func TestValidateCampaignEnforcesResolvedIconSemantics(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(*channelDocument)
+	}{
+		{"invalid icon id", func(document *channelDocument) { document.Campaign.Toggle.EnabledIcon.ID = "bad icon" }},
+		{"invalid icon mode", func(document *channelDocument) { document.Campaign.Toggle.EnabledIcon.Mode = "inline" }},
+		{"sprite misses symbol", func(document *channelDocument) { document.Campaign.Toggle.EnabledIcon.SpriteSymbol = "missing-symbol" }},
+		{"asset has symbol", func(document *channelDocument) { document.Campaign.Toggle.DisabledIcon.SpriteSymbol = "ui-moon" }},
+		{"asset has sprite URL", func(document *channelDocument) {
+			document.Campaign.Toggle.DisabledIcon.URL = "https://araihu.com/assets/releases/v0.1.1/icons/ui/sprite.svg"
+		}},
+		{"sprite has asset URL", func(document *channelDocument) {
+			document.Campaign.Toggle.EnabledIcon.URL = "https://araihu.com/assets/releases/v0.1.1/icons/ui/sun.svg"
+		}},
+		{"invalid brand id", func(document *channelDocument) { document.Campaign.Brand.Logo.ID = "bad logo" }},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			input := fixtureBundle(t)
+			document := input.channelDocument(t, "current")
+			test.mutate(&document)
+			input.writeChannel(t, "current", document)
+			if _, err := Validate(input.FS()); err == nil {
+				t.Fatal("Validate() error = nil")
+			}
+		})
+	}
+}
+
+func TestValidateRequiresRootCampaignRuntimeToMatchCurrentRelease(t *testing.T) {
+	input := fixtureBundle(t)
+	input.Write("campaign/v1.js", []byte("changed runtime\n"))
+	if _, err := Validate(input.FS()); err == nil || !strings.Contains(err.Error(), "does not match current immutable release") {
 		t.Fatalf("Validate() error = %v", err)
 	}
 }
@@ -58,16 +128,65 @@ func TestAssembleRejectsDifferentByteCollision(t *testing.T) {
 	}
 }
 
+func TestAssemblePublishesVerifiedSnapshotWhenSourceBecomesSymlink(t *testing.T) {
+	directory := t.TempDir()
+	writeFixtureToDirectory(t, fixtureBundle(t), directory)
+	foreign := filepath.Join(t.TempDir(), "foreign-runtime.js")
+	if err := os.WriteFile(foreign, []byte("foreign runtime\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	source := &swapAfterOpenFS{FS: os.DirFS(directory), target: filepath.Join(directory, "campaign", "v1.js"), foreign: foreign}
+	destination := rootedFixture(t, "placeholder", []byte("unused"))
+	if err := Assemble(context.Background(), source, destination); err != nil {
+		t.Fatal(err)
+	}
+	published, err := destination.ReadFile("campaign/v1.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(published, []byte("(() => {})()\n")) {
+		t.Fatalf("published runtime = %q, want verified runtime", published)
+	}
+}
+
+type swapAfterOpenFS struct {
+	fs.FS
+	target, foreign string
+	swapped         bool
+}
+
+func (source *swapAfterOpenFS) Open(name string) (fs.File, error) {
+	file, err := source.FS.Open(name)
+	if err != nil || name != "campaign/v1.js" || source.swapped {
+		return file, err
+	}
+	source.swapped = true
+	if err := os.Remove(source.target); err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	if err := os.Symlink(source.foreign, source.target); err != nil {
+		_ = file.Close()
+		return nil, err
+	}
+	return file, nil
+}
+
 type bundleFixture struct{ files fstest.MapFS }
 
 func fixtureBundle(t *testing.T) *bundleFixture {
 	t.Helper()
 	files := fstest.MapFS{
-		"campaign/v1.js":                  {Data: []byte("(() => {})()\n")},
-		"releases/v0.1.1/catalog.json":    {Data: []byte(`{"schemaVersion":1}`)},
-		"releases/v0.1.1/themes.json":     {Data: []byte(`{"schemaVersion":1}`)},
-		"releases/v0.1.1/campaigns.json":  {Data: []byte(`{"schemaVersion":1,"campaigns":[]}`)},
-		"releases/v0.1.1/themes/base.css": {Data: []byte("body{}\n")},
+		"campaign/v1.js":                       {Data: []byte("(() => {})()\n")},
+		"releases/v0.1.1/catalog.json":         {Data: []byte(`{"schemaVersion":1}`)},
+		"releases/v0.1.1/themes.json":          {Data: []byte(`{"schemaVersion":1}`)},
+		"releases/v0.1.1/campaigns.json":       {Data: []byte(`{"schemaVersion":1,"campaigns":[]}`)},
+		"releases/v0.1.1/themes/base.css":      {Data: []byte("body{}\n")},
+		"releases/v0.1.1/campaign/v1.js":       {Data: []byte("(() => {})()\n")},
+		"releases/v0.1.1/icons/ui/sprite.svg":  {Data: []byte(`<svg><symbol id="ui-sun"/></svg>\n`)},
+		"releases/v0.1.1/icons/ui/moon.svg":    {Data: []byte("moon\n")},
+		"releases/v0.1.1/brand/logo.svg":       {Data: []byte("logo\n")},
+		"releases/v0.1.1/icons/brand/icon.svg": {Data: []byte("icon\n")},
 	}
 	fixture := &bundleFixture{files: files}
 	fixture.release(t, "v0.1.1")
@@ -93,7 +212,7 @@ func (f *bundleFixture) release(t *testing.T, release string) {
 		Size   int64  `json:"size"`
 	}
 	var inventory []file
-	for _, path := range []string{"catalog.json", "themes.json", "campaigns.json", "themes/base.css"} {
+	for _, path := range []string{"catalog.json", "themes.json", "campaigns.json", "brand/logo.svg", "campaign/v1.js", "icons/brand/icon.svg", "icons/ui/moon.svg", "icons/ui/sprite.svg", "themes/base.css"} {
 		data := f.files[prefix+path].Data
 		sum := sha256.Sum256(data)
 		inventory = append(inventory, file{Path: path, SHA256: hex.EncodeToString(sum[:]), Size: int64(len(data))})
@@ -152,9 +271,27 @@ func (f *bundleFixture) channel(t *testing.T, release string) []byte {
 		SchemaVersion:  1,
 		RuntimeVersion: 1,
 		Release:        release,
-		Source:         "default",
-		Theme:          resolvedTheme{ID: "base", CSSURL: "/assets/releases/" + release + "/themes/base.css"},
+		Source:         "campaign",
+		Theme:          resolvedTheme{ID: "base", CSSURL: "https://araihu.com/assets/releases/" + release + "/themes/base.css"},
+		Campaign: &resolvedCampaign{ID: "summer-2026", Toggle: resolvedToggle{
+			EnabledIcon:  resolvedIcon{ID: "ui-sun", Mode: "sprite", URL: "https://araihu.com/assets/releases/" + release + "/icons/ui/sprite.svg", SpriteSymbol: "ui-sun"},
+			DisabledIcon: resolvedIcon{ID: "ui-moon", Mode: "asset", URL: "https://araihu.com/assets/releases/" + release + "/icons/ui/moon.svg"},
+		}, Brand: resolvedBrand{
+			Logo: resolvedAsset{ID: "araihu-logo", URL: "https://araihu.com/assets/releases/" + release + "/brand/logo.svg"},
+			Icon: resolvedAsset{ID: "araihu-icon", URL: "https://araihu.com/assets/releases/" + release + "/icons/brand/icon.svg"},
+		}},
 	}
+	return encodeChannel(t, document)
+}
+
+func (f *bundleFixture) writeChannel(t *testing.T, name string, document channelDocument) {
+	t.Helper()
+	f.Write("releases/"+name+".json", encodeChannel(t, document))
+}
+
+func encodeChannel(t *testing.T, document channelDocument) []byte {
+	t.Helper()
+	document.Digest = ""
 	data, err := encodeCanonical(document)
 	if err != nil {
 		t.Fatal(err)
@@ -166,6 +303,28 @@ func (f *bundleFixture) channel(t *testing.T, release string) []byte {
 		t.Fatal(err)
 	}
 	return data
+}
+
+func (f *bundleFixture) channelDocument(t *testing.T, name string) channelDocument {
+	t.Helper()
+	var document channelDocument
+	if err := decodeStrict(f.files["releases/"+name+".json"].Data, &document); err != nil {
+		t.Fatal(err)
+	}
+	return document
+}
+
+func writeFixtureToDirectory(t *testing.T, fixture *bundleFixture, directory string) {
+	t.Helper()
+	for name, file := range fixture.files {
+		path := filepath.Join(directory, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, file.Data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func rootedFixture(t *testing.T, name string, data []byte) *os.Root {
