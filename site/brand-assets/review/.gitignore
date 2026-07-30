@@ -3,3 +3,4 @@
 !screenshots/*.png
 !screenshots/context/
 !screenshots/context/site-context-current-v10.png
+.DS_Store
