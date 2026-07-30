@@ -42,6 +42,38 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if !strings.Contains(page, "Open software for building") || !strings.Contains(page, "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
 	}
+	for locale, want := range map[string]struct {
+		title       string
+		description string
+	}{
+		"en": {
+			title:       "Open software projects | Arai Hû",
+			description: "Open software from Arai Hû for server-rendered interfaces, OpenAPI documentation, durable code-change workflows, and self-hosted monitoring.",
+		},
+		"pt-br": {
+			title:       "Projetos de software aberto | Arai Hû",
+			description: "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação OpenAPI, workflows duráveis de mudança de código e monitoramento auto-hospedado.",
+		},
+		"es": {
+			title:       "Proyectos de software abierto | Arai Hû",
+			description: "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación OpenAPI, flujos de trabajo duraderos para cambios de código y monitoreo autoalojado.",
+		},
+	} {
+		data, readErr := os.ReadFile(filepath.Join("public", locale, "index.html"))
+		if readErr != nil {
+			t.Errorf("localized homepage %s missing: %v", locale, readErr)
+			continue
+		}
+		localizedPage := string(data)
+		for _, metadata := range []string{
+			"<title>" + want.title + "</title>",
+			`<meta name="description" content="` + want.description + `">`,
+		} {
+			if !strings.Contains(localizedPage, metadata) {
+				t.Errorf("localized homepage %s misses metadata %q", locale, metadata)
+			}
+		}
+	}
 	for _, landmark := range []string{
 		`class="skip-link" href="#main-content"`,
 		`<header class="ahairu-header">`,

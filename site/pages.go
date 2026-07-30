@@ -177,9 +177,9 @@ func pageDescription(kind PageKind, locale Locale) string {
 	switch kind {
 	case PageHome:
 		return map[string]string{
-			"en":    "Open software from Arai Hû for server-rendered interfaces, API documentation, code-change workflows, and self-hosted monitoring.",
-			"pt-br": "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação de APIs, workflows de código e monitoramento auto-hospedado.",
-			"es":    "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación de API, flujos de código y monitoreo autoalojado.",
+			"en":    "Open software from Arai Hû for server-rendered interfaces, OpenAPI documentation, durable code-change workflows, and self-hosted monitoring.",
+			"pt-br": "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação OpenAPI, workflows duráveis de mudança de código e monitoramento auto-hospedado.",
+			"es":    "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación OpenAPI, flujos de trabajo duraderos para cambios de código y monitoreo autoalojado.",
 		}[locale.Key]
 	case PageBrand:
 		return brandContent(locale.Key).Lead
