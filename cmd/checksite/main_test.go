@@ -79,8 +79,8 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	if got := strings.Count(ci, "github.event.client_payload"); got != 1 {
 		t.Errorf("CI has %d dispatch payload references, want exactly one full handoff", got)
 	}
-	if got := strings.Count(ci, "vars.ASSETS_"); got != 1 {
-		t.Errorf("CI has %d main-promotion variables, want one full handoff JSON", got)
+	if got := strings.Count(ci, "vars.ASSETS_"); got != 2 {
+		t.Errorf("CI has %d main-promotion variable references, want the handoff and its non-empty guard", got)
 	}
 	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Count(ci, "permission-contents: read") != 1 {
 		t.Error("CI Assets token does not request least Actions and Contents read")
