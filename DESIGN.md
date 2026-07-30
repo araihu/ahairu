@@ -16,7 +16,15 @@ Brand and license pages extend that world as a Calibration Bench: measured rules
 
 ## Identity specimens
 
-Use only cataloged V11 SVGs. Light, dark, monochrome/transparent, and designed-tint examples remain on explicit contrasting surfaces with identical specimen geometry. The protected variants keep embedded colors; only the designated monochrome asset may inherit presentation color. Downloads always retain immutable v0.1.0 paths and point to the license terms.
+Use only cataloged V11 SVGs. Light, dark, monochrome/transparent, and designed-tint examples remain on explicit contrasting surfaces with identical specimen geometry. The protected variants keep embedded colors; only the designated monochrome asset may inherit presentation color. Downloads always retain immutable v0.1.1 release paths and point to the license terms.
+
+## Released themes and campaigns
+
+Theme manifests, theme CSS, campaign manifests, and the campaign runtime are
+release artifacts, not ad-hoc page styling. `current` may select an eligible
+campaign, but it can only point at assets in a retained immutable release.
+Default appearance remains the safe first paint; campaign enhancement is
+deferred, optional, and reversible.
 
 ## Responsive behavior
 

@@ -22,6 +22,107 @@ import (
 	"github.com/araihu/ahairu/site"
 )
 
+func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
+	ci := readWorkflow(t, "ci.yml")
+	for _, want := range []string{
+		"repository_dispatch:",
+		"go-version: 1.26.5",
+		"node-version: 24",
+		"actions/create-github-app-token@",
+		"actions/upload-artifact@",
+	} {
+		if !strings.Contains(ci, want) {
+			t.Errorf("CI misses %q", want)
+		}
+	}
+	assertPinnedActions(t, "ci.yml", ci)
+
+	deploy := readWorkflow(t, "deploy.yml")
+	for _, want := range []string{
+		"group: ahairu-production",
+		"cancel-in-progress: false",
+		"environment: production",
+		"actions/create-github-app-token@",
+		"actions/download-artifact@",
+	} {
+		if !strings.Contains(deploy, want) {
+			t.Errorf("deploy misses %q", want)
+		}
+	}
+	assertPinnedActions(t, "deploy.yml", deploy)
+}
+
+func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
+	ci := readWorkflow(t, "ci.yml")
+	for _, want := range []string{
+		"github.event.client_payload.assets_release_url",
+		"github.event.client_payload.assets_release_id",
+		"github.event.client_payload.assets_release_sha256",
+		"github.event.client_payload.assets_channel_url",
+		"github.event.client_payload.assets_channel_id",
+		"github.event.client_payload.assets_channel_sha256",
+		"scripts/prepare_asset_bundle.py",
+		"npm run check",
+		"name: accepted-assets",
+	} {
+		if !strings.Contains(ci, want) {
+			t.Errorf("CI misses %q", want)
+		}
+	}
+	deploy := readWorkflow(t, "deploy.yml")
+	for _, want := range []string{
+		"run-id: ${{ github.event.workflow_run.id }}",
+		"name: accepted-assets",
+		"scripts/prepare_asset_bundle.py",
+		"npm run check",
+		"wrangler deploy",
+		"CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
+	} {
+		if !strings.Contains(deploy, want) {
+			t.Errorf("deploy misses %q", want)
+		}
+	}
+	for _, workflow := range []struct {
+		name, contents string
+	}{{"CI", ci}, {"deploy", deploy}} {
+		for _, forbidden := range []string{"CLOUDFLARE_DEPLOY_HOOK", "ASSETS_CLOUDFLARE"} {
+			if strings.Contains(workflow.contents, forbidden) {
+				t.Errorf("%s retains forbidden secret %q", workflow.name, forbidden)
+			}
+		}
+	}
+}
+
+func readWorkflow(t *testing.T, name string) string {
+	t.Helper()
+	contents, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(contents)
+}
+
+func assertPinnedActions(t *testing.T, name, workflow string) {
+	t.Helper()
+	for _, line := range strings.Split(workflow, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "- uses: ") {
+			continue
+		}
+		parts := strings.SplitN(strings.TrimPrefix(line, "- uses: "), "@", 2)
+		if len(parts) != 2 || len(parts[1]) != 40 {
+			t.Errorf("%s action is not pinned to a full SHA: %q", name, line)
+			continue
+		}
+		for _, character := range parts[1] {
+			if !(character >= '0' && character <= '9' || character >= 'a' && character <= 'f') {
+				t.Errorf("%s action is not pinned to a lowercase SHA: %q", name, line)
+				break
+			}
+		}
+	}
+}
+
 func TestCheckAcceptsCompleteStaticSite(t *testing.T) {
 	root := writeValidPublic(t)
 	if err := Check(root); err != nil {

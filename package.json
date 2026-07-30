@@ -6,7 +6,7 @@
     "wrangler": "^4.114.0"
   },
   "scripts": {
-    "build": "templ generate && go run ./cmd/ahairu build",
+    "build": "templ generate && go run ./cmd/ahairu build --asset-bundle \"$ASSET_BUNDLE\"",
     "test:metadata": "go test ./site -run 'Metadata|StructuredData|Sitemap|Manifest' -count=1",
     "test:routes": "node --test src/worker.test.js",
     "test:visual": "node --test test/browser/site.test.js",
