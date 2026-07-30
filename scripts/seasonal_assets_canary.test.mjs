@@ -9,6 +9,7 @@ import {
   buildProbeSpecs,
   canonicalProxyURL,
   computeChannelDigest,
+  createBrowserRequestGate,
   inspectEnabledBundle,
   snapshotSSRBaseline,
 } from "./seasonal_assets_canary.mjs";
@@ -43,6 +44,20 @@ test("canary rejects mismatched capture fields", () => {
     { method: "GET", route: "/asset", status: 200, type: null, cache: null, cors: null, bytes: 2, sha256: "bad" },
     { status: 200, type: null, cache: null, cors: null, bytes: 1, sha256: "good" },
   ), /bytes=2, want 1/);
+});
+
+test("browser request gates reject missing runtime and current fetches", async () => {
+  await assert.rejects(
+    createBrowserRequestGate(10).waitForRuntime(),
+    /campaign runtime request was not observed within 10ms/,
+  );
+  await assert.rejects(
+    createBrowserRequestGate(10).waitForCurrent(),
+    /current channel request 1 was not observed within 10ms/,
+  );
+  const failed = createBrowserRequestGate(1000);
+  failed.fail(new Error("page crashed"));
+  await assert.rejects(failed.waitForCurrent(), /page crashed/);
 });
 
 function enabledBundleFixture(root) {
@@ -184,6 +199,50 @@ test("expired channel rejects tampered digest and missing theme inventory", () =
     assert.throws(
       () => inspectEnabledBundle(root, "2026-10-31", fixture.expiredPath, "2026-11-01"),
       /expired channel theme themes\/araihu\.css is absent from v0\.1\.2 inventory/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("toggle binding rejects sprite URL declared as asset mode", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "ahairu-enabled-canary-"));
+  try {
+    const fixture = enabledBundleFixture(root);
+    const current = structuredClone(fixture.current);
+    current.campaign.toggle.enabledIcon.mode = "asset";
+    delete current.campaign.toggle.enabledIcon.spriteSymbol;
+    current.digest = computeChannelDigest(current);
+    writeFileSync(path.join(root, "releases", "current.json"), JSON.stringify(current));
+    assert.throws(
+      () => inspectEnabledBundle(root, "2026-10-31"),
+      /enabledMode="asset", want "sprite"/,
+    );
+
+    const campaignsPath = path.join(root, "releases", "v0.1.2", "campaigns.json");
+    const campaigns = JSON.parse(readFileSync(campaignsPath, "utf8"));
+    campaigns.campaigns[0].toggle.enabledIcon.mode = "asset";
+    writeFileSync(campaignsPath, JSON.stringify(campaigns));
+    assert.throws(
+      () => inspectEnabledBundle(root, "2026-10-31"),
+      /toggle-enabled ui-hi-16-solid-sparkles asset mode requires its discrete UI asset path/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("toggle binding rejects brand namespace drift", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "ahairu-enabled-canary-"));
+  try {
+    enabledBundleFixture(root);
+    const catalogPath = path.join(root, "releases", "v0.1.2", "catalog.json");
+    const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
+    catalog.assets.find(({ canonicalName }) => canonicalName === "ui-hi-16-solid-sparkles").namespace = "brand";
+    writeFileSync(catalogPath, JSON.stringify(catalog));
+    assert.throws(
+      () => inspectEnabledBundle(root, "2026-10-31"),
+      /toggle-enabled ui-hi-16-solid-sparkles requires namespace ui/,
     );
   } finally {
     rmSync(root, { recursive: true, force: true });

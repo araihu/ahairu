@@ -168,14 +168,18 @@ function validateCampaignIdentity(root, channel, campaignCheckDate, label) {
   const expected = {
     theme: active.theme,
     enabledIcon: active.toggle?.enabledIcon?.asset,
+    enabledMode: active.toggle?.enabledIcon?.mode,
     disabledIcon: active.toggle?.disabledIcon?.asset,
+    disabledMode: active.toggle?.disabledIcon?.mode,
     logo: active.brand?.logo,
     icon: active.brand?.icon,
   };
   const actual = {
     theme: channel.theme.id,
     enabledIcon: channel.campaign.toggle?.enabledIcon?.id,
+    enabledMode: channel.campaign.toggle?.enabledIcon?.mode,
     disabledIcon: channel.campaign.toggle?.disabledIcon?.id,
+    disabledMode: channel.campaign.toggle?.disabledIcon?.mode,
     logo: channel.campaign.brand?.logo?.id,
     icon: channel.campaign.brand?.icon?.id,
   };
@@ -251,10 +255,24 @@ function validateResolvedMembership(root, channel, inventory, boundAssets, label
     }
     const icon = asset.kind === "toggle-enabled" ?
       channel.campaign.toggle.enabledIcon : channel.campaign.toggle.disabledIcon;
+    const resolvedRelative = asset.pathname.slice(`/assets/releases/${channel.release}/`.length);
+    if (member.namespace !== "ui") {
+      fail(`${label} ${asset.kind} ${asset.id} requires namespace ui`);
+    }
+    if (!member.path.startsWith("icons/ui/") || member.path === "icons/ui/sprite.svg") {
+      fail(`${label} ${asset.kind} ${asset.id} catalog member is not a discrete UI icon`);
+    }
+    if (icon.mode === "sprite" && resolvedRelative !== "icons/ui/sprite.svg") {
+      fail(`${label} ${asset.kind} ${asset.id} sprite mode requires icons/ui/sprite.svg`);
+    }
+    if (icon.mode === "asset" &&
+        (resolvedRelative !== member.path || resolvedRelative === "icons/ui/sprite.svg")) {
+      fail(`${label} ${asset.kind} ${asset.id} asset mode requires its discrete UI asset path`);
+    }
     const memberEntry = requireInventoryEntry(inventory, member.path, channel.release, `${label} ${asset.kind} catalog asset`);
     if (member.artwork !== "icon" || member.sha256 !== memberEntry.sha256 ||
         (icon.mode === "sprite" && member.spriteSymbol !== icon.spriteSymbol) ||
-        (icon.mode === "asset" && member.path !== asset.pathname.slice(`/assets/releases/${channel.release}/`.length))) {
+        (icon.mode === "asset" && member.path !== resolvedRelative)) {
       fail(`${label} ${asset.kind} ${asset.id} does not match ${channel.release} catalog`);
     }
   }
@@ -673,63 +691,137 @@ function deferred() {
   return { promise, resolve };
 }
 
+export function createBrowserRequestGate(timeout) {
+  if (!Number.isInteger(timeout) || timeout < 1) fail("browser request gate timeout must be a positive integer");
+  let runtimeObserved = false;
+  let fulfilledCurrentRequests = 0;
+  let terminalError = null;
+  const waiters = [];
+
+  function settle() {
+    for (let index = waiters.length - 1; index >= 0; index -= 1) {
+      const waiter = waiters[index];
+      if (terminalError || waiter.ready()) {
+        waiters.splice(index, 1);
+        clearTimeout(waiter.timer);
+        if (terminalError) waiter.reject(terminalError);
+        else waiter.resolve();
+      }
+    }
+  }
+
+  function wait(ready, label) {
+    if (terminalError) return Promise.reject(terminalError);
+    if (ready()) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const waiter = { ready, resolve, reject, timer: null };
+      waiter.timer = setTimeout(() => {
+        const index = waiters.indexOf(waiter);
+        if (index !== -1) waiters.splice(index, 1);
+        reject(new Error(`${label} was not observed within ${timeout}ms`));
+      }, timeout);
+      waiters.push(waiter);
+    });
+  }
+
+  return {
+    observeRuntime() {
+      runtimeObserved = true;
+      settle();
+    },
+    fulfillCurrent() {
+      fulfilledCurrentRequests += 1;
+      settle();
+    },
+    waitForRuntime() {
+      return wait(() => runtimeObserved, "campaign runtime request");
+    },
+    waitForCurrent(count = 1) {
+      if (!Number.isInteger(count) || count < 1) fail("current channel request count must be a positive integer");
+      return wait(() => fulfilledCurrentRequests >= count, `current channel request ${count}`);
+    },
+    fail(error) {
+      if (!terminalError) {
+        terminalError = error instanceof Error ? error : new Error(String(error));
+        settle();
+      }
+    },
+  };
+}
+
 async function openProxiedContext(browser, baseURL, {
   preference = null,
   reducedMotion = "no-preference",
   holdCampaignRuntime = false,
+  timeout,
 } = {}) {
   const context = await browser.newContext({ reducedMotion, serviceWorkers: "block" });
+  context.setDefaultTimeout(timeout);
+  context.setDefaultNavigationTimeout(timeout);
   const unexpected = [];
   let useExpiredChannel = false;
   let runtimeHeld = false;
-  const runtimeObserved = deferred();
   const runtimeRelease = deferred();
-  let fulfilledCurrentRequests = 0;
-  const currentWaiters = [];
+  const requestGate = createBrowserRequestGate(timeout);
+  context.on("close", () => requestGate.fail(new Error("browser context closed before canary request completed")));
   await context.addInitScript(eventInitScript, preference);
   await context.route(/^https?:\/\//, async (route) => {
-    const request = route.request();
-    const remote = new URL(request.url());
-    if (remote.origin !== canonicalOrigin) {
-      unexpected.push(request.url());
-      await route.abort("blockedbyclient");
-      return;
-    }
-    const isCurrent = remote.pathname === currentChannelPath;
-    const isRuntime = remote.pathname === campaignRuntimePath;
-    if (isRuntime) {
-      runtimeObserved.resolve();
-      if (holdCampaignRuntime && !runtimeHeld) {
-        runtimeHeld = true;
-        await runtimeRelease.promise;
+    try {
+      const request = route.request();
+      const remote = new URL(request.url());
+      if (remote.origin !== canonicalOrigin) {
+        unexpected.push(request.url());
+        const error = new Error(`browser request escaped canonical origin: ${remote.origin}`);
+        requestGate.fail(error);
+        await route.abort("blockedbyclient");
+        return;
       }
-    }
-    const override = useExpiredChannel && isCurrent ? expiredChannelPath : "";
-    const headers = { ...request.headers() };
-    delete headers.host;
-    const response = await route.fetch({
-      url: canonicalProxyURL(request.url(), baseURL, override),
-      headers,
-      maxRedirects: 0,
-    });
-    await route.fulfill({ response });
-    if (isCurrent) {
-      fulfilledCurrentRequests += 1;
-      for (let index = currentWaiters.length - 1; index >= 0; index -= 1) {
-        if (fulfilledCurrentRequests >= currentWaiters[index].count) {
-          currentWaiters.splice(index, 1)[0].resolve();
+      const isCurrent = remote.pathname === currentChannelPath;
+      const isRuntime = remote.pathname === campaignRuntimePath;
+      if (isRuntime) {
+        requestGate.observeRuntime();
+        if (holdCampaignRuntime && !runtimeHeld) {
+          runtimeHeld = true;
+          await runtimeRelease.promise;
         }
+      }
+      const override = useExpiredChannel && isCurrent ? expiredChannelPath : "";
+      const headers = { ...request.headers() };
+      delete headers.host;
+      const response = await route.fetch({
+        url: canonicalProxyURL(request.url(), baseURL, override),
+        headers,
+        maxRedirects: 0,
+      });
+      await route.fulfill({ response });
+      if (isCurrent) requestGate.fulfillCurrent();
+    } catch (error) {
+      requestGate.fail(error);
+      try {
+        await route.abort("failed");
+      } catch (_) {
+        // Route may already be completed; request gate carries the failure.
       }
     }
   });
   return {
     context,
+    watchPage(page) {
+      page.on("close", () => requestGate.fail(new Error("browser page closed before canary request completed")));
+      page.on("crash", () => requestGate.fail(new Error("browser page crashed before canary request completed")));
+      page.on("requestfailed", (request) => {
+        const url = new URL(request.url());
+        if (url.origin === canonicalOrigin &&
+            (url.pathname === campaignRuntimePath || url.pathname === currentChannelPath)) {
+          requestGate.fail(new Error(`${url.pathname} request failed: ${request.failure()?.errorText || "unknown error"}`));
+        }
+      });
+    },
     waitForCampaignRuntimeHold() {
-      return runtimeObserved.promise;
+      return requestGate.waitForRuntime();
     },
     waitForCurrentChannel(count = 1) {
-      if (fulfilledCurrentRequests >= count) return Promise.resolve();
-      return new Promise((resolve) => currentWaiters.push({ count, resolve }));
+      return requestGate.waitForCurrent(count);
     },
     releaseCampaignRuntime() {
       runtimeRelease.resolve();
@@ -752,17 +844,23 @@ async function waitForAutomaticBootstrap(page, proxy, expectedSource, requestCou
     requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
-async function runBrowserCanary(baseURL, contract, ssrExpected) {
+async function newCanaryPage(proxy) {
+  const page = await proxy.context.newPage();
+  proxy.watchPage(page);
+  return page;
+}
+
+async function runBrowserCanary(baseURL, contract, ssrExpected, timeout) {
   const browserPath = await puppeteerExecutablePath();
   if (!browserPath || !existsSync(browserPath)) {
     fail("Puppeteer Chromium is unavailable; run npm ci before the browser canary");
   }
   const browser = await chromium.launch({ headless: true, executablePath: browserPath });
   try {
-    const first = await openProxiedContext(browser, baseURL, { holdCampaignRuntime: true });
+    const first = await openProxiedContext(browser, baseURL, { holdCampaignRuntime: true, timeout });
     let baseline;
     try {
-      const page = await first.context.newPage();
+      const page = await newCanaryPage(first);
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "commit" });
       await first.waitForCampaignRuntimeHold();
       await page.locator('[data-asset-brand="logo"]').waitFor({ state: "attached" });
@@ -784,9 +882,10 @@ async function runBrowserCanary(baseURL, contract, ssrExpected) {
 
     const preferred = await openProxiedContext(browser, baseURL, {
       preference: { theme: "canary-preference" },
+      timeout,
     });
     try {
-      const page = await preferred.context.newPage();
+      const page = await newCanaryPage(preferred);
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
       await waitForAutomaticBootstrap(page, preferred, "preference");
       const state = await captureBrowserState(page);
@@ -797,9 +896,9 @@ async function runBrowserCanary(baseURL, contract, ssrExpected) {
       await preferred.context.close();
     }
 
-    const toggle = await openProxiedContext(browser, baseURL);
+    const toggle = await openProxiedContext(browser, baseURL, { timeout });
     try {
-      const page = await toggle.context.newPage();
+      const page = await newCanaryPage(toggle);
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
       await waitForAutomaticBootstrap(page, toggle, "campaign");
       await page.locator("[data-campaign-toggle]").click();
@@ -828,9 +927,9 @@ async function runBrowserCanary(baseURL, contract, ssrExpected) {
       await toggle.context.close();
     }
 
-    const reduced = await openProxiedContext(browser, baseURL, { reducedMotion: "reduce" });
+    const reduced = await openProxiedContext(browser, baseURL, { reducedMotion: "reduce", timeout });
     try {
-      const page = await reduced.context.newPage();
+      const page = await newCanaryPage(reduced);
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
       await waitForAutomaticBootstrap(page, reduced, "campaign");
       const state = await captureBrowserState(page);
@@ -848,9 +947,9 @@ async function runBrowserCanary(baseURL, contract, ssrExpected) {
     }
 
     if (contract.expired) {
-      const expiry = await openProxiedContext(browser, baseURL);
+      const expiry = await openProxiedContext(browser, baseURL, { timeout });
       try {
-        const page = await expiry.context.newPage();
+        const page = await newCanaryPage(expiry);
         await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
         await waitForAutomaticBootstrap(page, expiry, "campaign");
         expiry.useExpiredChannel();
@@ -1012,7 +1111,7 @@ export async function runCanary() {
       }
     }
     await probeResolvedAssets(baseURL, contract);
-    await runBrowserCanary(baseURL, contract, ssrExpected);
+    await runBrowserCanary(baseURL, contract, ssrExpected, timeout);
     event({
       event: "canary-pass",
       campaignCheckDate: contract.campaignCheckDate,
