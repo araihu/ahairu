@@ -7,7 +7,7 @@ on:
   pull_request:
   repository_dispatch:
     types:
-      - assets-release-promoted
+      - araihu-assets-released
 
 permissions:
   contents: read
@@ -29,7 +29,7 @@ jobs:
       - name: Verify generated templ output is current
         run: templ generate && git diff --exit-code -- 'site/*_templ.go'
       - name: Verify source contracts without protected Assets credentials
-        run: go test ./... -count=1 && npm run test:routes
+        run: go test ./... -count=1 && python3 scripts/prepare_asset_bundle_test.py && npm run test:routes
 
   accepted-assets:
     needs: source
@@ -58,65 +58,27 @@ jobs:
         if: github.event_name == 'repository_dispatch'
         env:
           ASSETS_GITHUB_TOKEN: ${{ steps.assets-token.outputs.token }}
-          ASSETS_RELEASE_URL: ${{ github.event.client_payload.assets_release_url }}
-          ASSETS_RELEASE_ID: ${{ github.event.client_payload.assets_release_id }}
-          ASSETS_RELEASE_SHA256: ${{ github.event.client_payload.assets_release_sha256 }}
-          ASSETS_CHANNEL_URL: ${{ github.event.client_payload.assets_channel_url }}
-          ASSETS_CHANNEL_ID: ${{ github.event.client_payload.assets_channel_id }}
-          ASSETS_CHANNEL_SHA256: ${{ github.event.client_payload.assets_channel_sha256 }}
+          DISPATCH_EVENT_TYPE: ${{ github.event.action }}
+          ASSETS_HANDOFF_JSON: ${{ toJSON(github.event.client_payload) }}
           ACCEPTED_ASSETS: ${{ runner.temp }}/accepted-assets.json
           ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
         run: |
-          node - <<'NODE'
-          const fs = require("node:fs");
-          const values = {
-            releaseURL: process.env.ASSETS_RELEASE_URL,
-            releaseID: process.env.ASSETS_RELEASE_ID,
-            releaseSHA256: process.env.ASSETS_RELEASE_SHA256,
-            channelURL: process.env.ASSETS_CHANNEL_URL,
-            channelID: process.env.ASSETS_CHANNEL_ID,
-            channelSHA256: process.env.ASSETS_CHANNEL_SHA256,
-          };
-          for (const [name, value] of Object.entries(values)) {
-            if (!value || /[\r\n]/.test(value)) throw new Error(`missing or invalid dispatch payload ${name}`);
-          }
-          fs.writeFileSync(process.env.ACCEPTED_ASSETS, `${JSON.stringify(values)}\n`, { mode: 0o600 });
-          NODE
+          test "$DISPATCH_EVENT_TYPE" = araihu-assets-released
           python3 scripts/prepare_asset_bundle.py \
-            --release-url "$ASSETS_RELEASE_URL" --release-id "$ASSETS_RELEASE_ID" --release-sha256 "$ASSETS_RELEASE_SHA256" \
-            --channel-url "$ASSETS_CHANNEL_URL" --channel-id "$ASSETS_CHANNEL_ID" --channel-sha256 "$ASSETS_CHANNEL_SHA256" \
+            --handoff-json "$ASSETS_HANDOFF_JSON" \
+            --accepted-output "$ACCEPTED_ASSETS" \
             --output "$ASSET_BUNDLE"
       - name: Materialize accepted immutable Assets bundle from main promotion variables
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           ASSETS_GITHUB_TOKEN: ${{ steps.assets-token.outputs.token }}
-          ASSETS_RELEASE_URL: ${{ vars.ASSETS_RELEASE_URL }}
-          ASSETS_RELEASE_ID: ${{ vars.ASSETS_RELEASE_ID }}
-          ASSETS_RELEASE_SHA256: ${{ vars.ASSETS_RELEASE_SHA256 }}
-          ASSETS_CHANNEL_URL: ${{ vars.ASSETS_CHANNEL_URL }}
-          ASSETS_CHANNEL_ID: ${{ vars.ASSETS_CHANNEL_ID }}
-          ASSETS_CHANNEL_SHA256: ${{ vars.ASSETS_CHANNEL_SHA256 }}
+          ASSETS_HANDOFF_JSON: ${{ vars.ASSETS_RELEASE_HANDOFF_JSON }}
           ACCEPTED_ASSETS: ${{ runner.temp }}/accepted-assets.json
           ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
         run: |
-          node - <<'NODE'
-          const fs = require("node:fs");
-          const values = {
-            releaseURL: process.env.ASSETS_RELEASE_URL,
-            releaseID: process.env.ASSETS_RELEASE_ID,
-            releaseSHA256: process.env.ASSETS_RELEASE_SHA256,
-            channelURL: process.env.ASSETS_CHANNEL_URL,
-            channelID: process.env.ASSETS_CHANNEL_ID,
-            channelSHA256: process.env.ASSETS_CHANNEL_SHA256,
-          };
-          for (const [name, value] of Object.entries(values)) {
-            if (!value || /[\r\n]/.test(value)) throw new Error(`missing or invalid main promotion variable ${name}`);
-          }
-          fs.writeFileSync(process.env.ACCEPTED_ASSETS, `${JSON.stringify(values)}\n`, { mode: 0o600 });
-          NODE
           python3 scripts/prepare_asset_bundle.py \
-            --release-url "$ASSETS_RELEASE_URL" --release-id "$ASSETS_RELEASE_ID" --release-sha256 "$ASSETS_RELEASE_SHA256" \
-            --channel-url "$ASSETS_CHANNEL_URL" --channel-id "$ASSETS_CHANNEL_ID" --channel-sha256 "$ASSETS_CHANNEL_SHA256" \
+            --handoff-json "$ASSETS_HANDOFF_JSON" \
+            --accepted-output "$ACCEPTED_ASSETS" \
             --output "$ASSET_BUNDLE"
       - name: Verify complete assembled Worker version
         env:

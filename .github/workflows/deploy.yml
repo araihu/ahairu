@@ -52,23 +52,9 @@ jobs:
           ACCEPTED_ASSETS: ${{ runner.temp }}/accepted-assets/accepted-assets.json
           ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
         run: |
-          node - <<'NODE'
-          const fs = require("node:fs");
-          const { spawnSync } = require("node:child_process");
-          const accepted = JSON.parse(fs.readFileSync(process.env.ACCEPTED_ASSETS, "utf8"));
-          const args = [
-            "scripts/prepare_asset_bundle.py",
-            "--release-url", accepted.releaseURL,
-            "--release-id", accepted.releaseID,
-            "--release-sha256", accepted.releaseSHA256,
-            "--channel-url", accepted.channelURL,
-            "--channel-id", accepted.channelID,
-            "--channel-sha256", accepted.channelSHA256,
-            "--output", process.env.ASSET_BUNDLE,
-          ];
-          const result = spawnSync("python3", args, { stdio: "inherit", env: process.env });
-          process.exit(result.status ?? 1);
-          NODE
+          python3 scripts/prepare_asset_bundle.py \
+            --handoff-file "$ACCEPTED_ASSETS" \
+            --output "$ASSET_BUNDLE"
       - name: Assemble and validate exact Worker bundle
         env:
           ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle

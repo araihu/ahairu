@@ -23,3 +23,12 @@ They cannot execute GitHub's expression engine, GitHub App permission issuance,
 artifact API, or protected-environment deployment. Add an isolated GitHub
 workflow fixture/reusable-workflow harness when one can exercise those paths
 without production credentials.
+
+## Retired Assets flat repository variables
+
+Status: migration open. `ASSETS_RELEASE_URL`, `ASSETS_RELEASE_ID`,
+`ASSETS_RELEASE_SHA256`, `ASSETS_CHANNEL_URL`, `ASSETS_CHANNEL_ID`, and
+`ASSETS_CHANNEL_SHA256` cannot represent a cumulative `release_artifacts`
+handoff and are no longer consumed. Operators using main-push promotion must
+migrate to one `ASSETS_RELEASE_HANDOFF_JSON` value matching the documented
+`araihu-assets-released` payload before removing the retired variables.

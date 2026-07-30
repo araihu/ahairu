@@ -58,21 +58,28 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"if: github.event_name == 'repository_dispatch'",
 		"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
 		"permission-actions: read",
-		"missing or invalid dispatch payload",
-		"missing or invalid main promotion variable",
+		"- araihu-assets-released",
+		"DISPATCH_EVENT_TYPE: ${{ github.event.action }}",
+		"ASSETS_HANDOFF_JSON: ${{ toJSON(github.event.client_payload) }}",
+		"ASSETS_HANDOFF_JSON: ${{ vars.ASSETS_RELEASE_HANDOFF_JSON }}",
+		"--handoff-json \"$ASSETS_HANDOFF_JSON\"",
+		"--accepted-output \"$ACCEPTED_ASSETS\"",
 	} {
 		if !strings.Contains(ci, want) {
 			t.Errorf("CI misses %q", want)
 		}
 	}
-	if strings.Contains(ci, "client_payload.assets_release_url || vars") || strings.Contains(ci, "client_payload.assets_channel_url || vars") {
+	if strings.Contains(ci, "assets-release-promoted") || strings.Contains(ci, "assets_release_") || strings.Contains(ci, "assets_channel_") {
+		t.Error("CI retains the obsolete flat Assets dispatch schema")
+	}
+	if strings.Contains(ci, "client_payload.assets_") || strings.Contains(ci, "|| vars") {
 		t.Error("CI allows repository variables to fill a dispatch payload")
 	}
-	if got := strings.Count(ci, "github.event.client_payload.assets_"); got != 6 {
-		t.Errorf("CI has %d dispatch asset fields, want 6", got)
+	if got := strings.Count(ci, "github.event.client_payload"); got != 1 {
+		t.Errorf("CI has %d dispatch payload references, want exactly one full handoff", got)
 	}
-	if got := strings.Count(ci, "vars.ASSETS_"); got != 6 {
-		t.Errorf("CI has %d main-promotion asset variables, want 6", got)
+	if got := strings.Count(ci, "vars.ASSETS_"); got != 1 {
+		t.Errorf("CI has %d main-promotion variables, want one full handoff JSON", got)
 	}
 	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Contains(ci, "permission-contents:") {
 		t.Error("CI Assets token does not request only Actions read")
@@ -107,13 +114,12 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	ci := readWorkflow(t, "ci.yml")
 	for _, want := range []string{
-		"github.event.client_payload.assets_release_url",
-		"github.event.client_payload.assets_release_id",
-		"github.event.client_payload.assets_release_sha256",
-		"github.event.client_payload.assets_channel_url",
-		"github.event.client_payload.assets_channel_id",
-		"github.event.client_payload.assets_channel_sha256",
+		"araihu-assets-released",
+		"toJSON(github.event.client_payload)",
+		"ASSETS_RELEASE_HANDOFF_JSON",
 		"scripts/prepare_asset_bundle.py",
+		"--handoff-json",
+		"--accepted-output",
 		"npm run check",
 		"name: accepted-assets",
 	} {
@@ -126,6 +132,7 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 		"run-id: ${{ github.event.workflow_run.id }}",
 		"name: accepted-assets",
 		"scripts/prepare_asset_bundle.py",
+		"--handoff-file \"$ACCEPTED_ASSETS\"",
 		"npm run check",
 		"wrangler versions upload",
 		"wrangler versions deploy",
@@ -143,6 +150,9 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 				t.Errorf("%s retains forbidden secret %q", workflow.name, forbidden)
 			}
 		}
+	}
+	if strings.Contains(deploy, "accepted.releaseURL") || strings.Contains(deploy, "accepted.channelURL") {
+		t.Error("deploy retains the obsolete flat accepted-assets schema")
 	}
 }
 

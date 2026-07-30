@@ -54,38 +54,50 @@ Current baseline provenance: Arai Hû Assets `v0.1.1`, Goshtoso `v0.1.1`.
 
 ## Assets release and delivery contract
 
-Each accepted Assets promotion supplies two immutable GitHub archives and their
-SHA-256 values: one release archive and one channel archive. The release archive
-contains exactly one `releases/vMAJOR.MINOR.PATCH/` root, including
-`release.json`, `catalog.json`, `themes.json`, `campaigns.json`, `checksums.txt`,
-and the release inventory. The channel archive contains exactly
-`campaign/v1.js`, `releases/latest.json`, `releases/default.json`, and
-`releases/current.json`. Symlinks, special files, absolute paths, traversal, and
+Assets dispatches only `araihu-assets-released`. Its `client_payload` is one
+exact JSON handoff: `assets_repository` (`araihu/assets`), 40-character lowercase
+`assets_revision`, nonempty `release_artifacts`, `runtime_release`,
+`channel_artifact_id`, `channel_artifact_url`, `channel_artifact_sha256`,
+`candidate_bundle_digest`, `resolution_date`, `state_ref`, and `state_path`.
+Every `release_artifacts` element has only `release`, `release_url`, and
+`release_sha256`. Release tags are strict `v`-prefixed SemVer and each URL must
+be exactly
+`https://github.com/araihu/assets/releases/download/<tag>/araihu-assets-<tag>.tar.gz`.
+`runtime_release` must occur in that array. The channel URL must be exactly the
+matching `https://github.com/araihu/assets/actions/runs/<positive-run-id>/artifacts/<positive-id>`
+HTML URL; Ahairu validates it, then constructs the trusted GitHub API ZIP URL
+from its ID locally. The candidate digest is canonical `sha256:<lowercase-hex>`;
+the downloadable release and channel archive hashes are verified before use.
+
+Each release archive contains exactly its declared
+`releases/vMAJOR.MINOR.PATCH/` root, including `release.json` and
+`checksums.txt`. Ahairu extracts every declared release into one cumulative,
+immutable bundle. The channel archive contains exactly `campaign/v1.js`,
+`releases/latest.json`, `releases/default.json`, and `releases/current.json`.
+Symlinks, special files, absolute paths, traversal, duplicate paths, and
 unexpected roots are rejected before extraction.
 
-For local parity, obtain the accepted immutable URLs, IDs, and SHA-256 values,
-then materialize a new bundle before running the full gate. Set
-`ASSETS_GITHUB_TOKEN` only when the selected Assets repository requires it; do
-not put it in shell history or source control.
+For local parity, save the complete handoff JSON, then materialize a new bundle
+before running the full gate. Set `ASSETS_GITHUB_TOKEN` only when the selected
+Assets repository requires it; do not put it in shell history or source control.
 
 ```sh
 python3 scripts/prepare_asset_bundle.py \
-  --release-url "$ASSETS_RELEASE_URL" --release-id "$ASSETS_RELEASE_ID" --release-sha256 "$ASSETS_RELEASE_SHA256" \
-  --channel-url "$ASSETS_CHANNEL_URL" --channel-id "$ASSETS_CHANNEL_ID" --channel-sha256 "$ASSETS_CHANNEL_SHA256" \
+  --handoff-file /absolute/path/to/assets-handoff.json \
   --output .asset-bundle
 ASSET_BUNDLE="$PWD/.asset-bundle" npm run check
 ```
 
-Assets may dispatch `assets-release-promoted` to this repository with
-`assets_release_url`, `assets_release_id`, `assets_release_sha256`,
-`assets_channel_url`, `assets_channel_id`, and `assets_channel_sha256`. CI mints
-a short-lived GitHub App token limited to the `araihu/assets` repository, checks
-the complete bundle, and hands one accepted-state artifact to deploy. Normal
-`main` CI uses the same six promoted repository variables in uppercase. Deploy
-downloads that handoff, reacquires and verifies both archives, then runs the
-same full check before `wrangler deploy` in the protected `production`
-environment. Cloudflare credentials are only `CLOUDFLARE_API_TOKEN` and
-`CLOUDFLARE_ACCOUNT_ID` there; Assets never owns a Cloudflare secret.
+CI mints a short-lived GitHub App token limited to `araihu/assets`, validates
+the whole dispatch handoff, checks the complete bundle, then hands the exact
+normalized JSON artifact to deploy. Deploy validates it again, reacquires and
+hash-verifies every archive, then runs the same full check before `wrangler`
+deploy in protected `production`. Dispatch never reads repository variables.
+For a `main` push, CI may use only one documented repository variable,
+`ASSETS_RELEASE_HANDOFF_JSON`, containing that same complete JSON object; it
+never accepts the retired six flat variables. Cloudflare credentials are only
+`CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` there; Assets never owns a
+Cloudflare secret.
 
 Release documents publish the immutable catalog, theme manifest and CSS, and
 campaign manifest/runtime together. Consumers may cache versioned files for a
