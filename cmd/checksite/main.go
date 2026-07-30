@@ -419,6 +419,28 @@ func requireCampaignCanary(document htmlDocument, page site.Page) error {
 	if logoHooks != wantLogoHooks || iconHooks != 1 {
 		return fmt.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", logoHooks, iconHooks, wantLogoHooks)
 	}
+	if len(document.campaignToggles) != 1 {
+		return fmt.Errorf("campaign toggle count = %d, want 1", len(document.campaignToggles))
+	}
+	toggle := document.campaignToggles[0]
+	if toggle.element.name != "button" {
+		return fmt.Errorf("campaign toggle must be button")
+	}
+	if _, hidden := toggle.element.attributes["hidden"]; !hidden {
+		return fmt.Errorf("campaign toggle must have hidden attribute")
+	}
+	if toggle.element.attributes["type"] != "button" {
+		return fmt.Errorf("campaign toggle type must be button")
+	}
+	if toggle.element.attributes["aria-pressed"] != "false" {
+		return fmt.Errorf("campaign toggle aria-pressed must be false")
+	}
+	if toggle.iconChildren != 1 {
+		return fmt.Errorf("campaign toggle icon children = %d, want 1", toggle.iconChildren)
+	}
+	if strings.TrimSpace(toggle.element.attributes["aria-label"]) == "" && strings.TrimSpace(toggle.srOnlyText) == "" {
+		return fmt.Errorf("campaign toggle must have an accessible name")
+	}
 	return nil
 }
 
@@ -690,23 +712,30 @@ func exactLocalFile(root, resource string) (string, error) {
 }
 
 type htmlDocument struct {
-	language       string
-	htmlAttributes map[string]string
-	titles         []string
-	metas          []htmlElement
-	links          []htmlElement
-	scripts        []htmlElement
-	images         []htmlElement
-	brandHooks     []htmlElement
-	jsonLD         []string
-	resources      []htmlResource
-	nextPosition   int
+	language        string
+	htmlAttributes  map[string]string
+	titles          []string
+	metas           []htmlElement
+	links           []htmlElement
+	scripts         []htmlElement
+	images          []htmlElement
+	brandHooks      []htmlElement
+	campaignToggles []campaignToggle
+	jsonLD          []string
+	resources       []htmlResource
+	nextPosition    int
 }
 
 type htmlElement struct {
 	name       string
 	attributes map[string]string
 	position   int
+}
+
+type campaignToggle struct {
+	element      htmlElement
+	iconChildren int
+	srOnlyText   string
 }
 
 type htmlResource struct {
@@ -748,6 +777,13 @@ func collectHTML(node *html.Node, document *htmlDocument) error {
 		if attributes["data-asset-brand"] != "" {
 			document.brandHooks = append(document.brandHooks, element)
 		}
+		if _, toggle := attributes["data-campaign-toggle"]; toggle {
+			campaignToggle, err := parseCampaignToggle(node, element)
+			if err != nil {
+				return err
+			}
+			document.campaignToggles = append(document.campaignToggles, campaignToggle)
+		}
 		switch name {
 		case "html":
 			if document.language != "" {
@@ -784,6 +820,35 @@ func collectHTML(node *html.Node, document *htmlDocument) error {
 		}
 	}
 	return nil
+}
+
+func parseCampaignToggle(node *html.Node, element htmlElement) (campaignToggle, error) {
+	toggle := campaignToggle{element: element}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type != html.ElementNode {
+			continue
+		}
+		attributes, err := nodeAttributes(child.Attr)
+		if err != nil {
+			return campaignToggle{}, fmt.Errorf("<%s>: %w", strings.ToLower(child.Data), err)
+		}
+		if _, icon := attributes["data-campaign-toggle-icon"]; icon {
+			toggle.iconChildren++
+		}
+		if hasClass(attributes["class"], "sr-only") {
+			toggle.srOnlyText += nodeText(child)
+		}
+	}
+	return toggle, nil
+}
+
+func hasClass(value, want string) bool {
+	for _, class := range strings.Fields(value) {
+		if class == want {
+			return true
+		}
+	}
+	return false
 }
 
 func appendResource(document *htmlDocument, resource, kind string) {

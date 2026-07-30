@@ -86,6 +86,65 @@ func TestCheckRejectsCampaignCanaryContractViolations(t *testing.T) {
 			},
 			want: "campaign brand hooks",
 		},
+		{
+			name: "campaign toggle count",
+			mutate: func(document string) string {
+				const toggle = `<button class="ahairu-campaign-toggle" type="button" hidden data-campaign-toggle aria-pressed="false"><span data-campaign-toggle-icon aria-hidden="true"></span> <span class="sr-only">Use the standard Arai Hû appearance</span></button>`
+				return strings.Replace(document, toggle, toggle+toggle, 1)
+			},
+			want: "campaign toggle count",
+		},
+		{
+			name: "campaign toggle hidden",
+			mutate: func(document string) string {
+				return strings.Replace(document, ` hidden data-campaign-toggle`, ` data-campaign-toggle`, 1)
+			},
+			want: "campaign toggle must have hidden attribute",
+		},
+		{
+			name: "campaign toggle element",
+			mutate: func(document string) string {
+				document = strings.Replace(document, `<button class="ahairu-campaign-toggle"`, `<div class="ahairu-campaign-toggle"`, 1)
+				return strings.Replace(document, `</button>`, `</div>`, 1)
+			},
+			want: "campaign toggle must be button",
+		},
+		{
+			name: "campaign toggle type",
+			mutate: func(document string) string {
+				return strings.Replace(document, `type="button" hidden data-campaign-toggle`, `type="submit" hidden data-campaign-toggle`, 1)
+			},
+			want: "campaign toggle type must be button",
+		},
+		{
+			name: "campaign toggle pressed state",
+			mutate: func(document string) string {
+				return strings.Replace(document, `data-campaign-toggle aria-pressed="false"`, `data-campaign-toggle aria-pressed="true"`, 1)
+			},
+			want: "campaign toggle aria-pressed must be false",
+		},
+		{
+			name: "campaign toggle icon child",
+			mutate: func(document string) string {
+				return strings.Replace(document, `<span data-campaign-toggle-icon aria-hidden="true"></span>`, ``, 1)
+			},
+			want: "campaign toggle icon children",
+		},
+		{
+			name: "campaign toggle exact icon child count",
+			mutate: func(document string) string {
+				const icon = `<span data-campaign-toggle-icon aria-hidden="true"></span>`
+				return strings.Replace(document, icon, icon+icon, 1)
+			},
+			want: "campaign toggle icon children",
+		},
+		{
+			name: "campaign toggle accessible name",
+			mutate: func(document string) string {
+				return strings.Replace(document, `>Use the standard Arai Hû appearance</span>`, `></span>`, 1)
+			},
+			want: "campaign toggle must have an accessible name",
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
