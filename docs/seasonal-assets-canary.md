@@ -26,8 +26,10 @@ ASSET_BUNDLE=/absolute/path/to/verified-assets \
 Optional expiry coverage takes a second default channel document for the same
 retained release set and a date on which its campaign manifest has no enabled
 campaign. The harness strictly recomputes this document's channel digest,
-binds its theme to the complete release inventory, and probes that immutable
-theme directly before browser execution.
+binds its theme to `themes.json` and the complete release inventory, and probes
+that immutable theme directly before browser execution. Active theme, brand,
+and toggle IDs are likewise bound to `themes.json`/`catalog.json`, their
+inventory entries, and declared sprite symbols.
 
 ```sh
 ASSET_BUNDLE=/absolute/path/to/verified-assets \
