@@ -5,26 +5,41 @@ function fail(message) {
   throw new Error(`deployed Worker version: ${message}`);
 }
 
-function versionIDs(versions) {
-  if (!Array.isArray(versions)) fail("versions list is not an array");
-  return new Set(versions.map((version) => version?.id).filter((id) => typeof id === "string" && id.length > 0));
+function versionID(value, source) {
+  if (typeof value !== "string" || value.length === 0) {
+    fail(`${source} has no version ID`);
+  }
+  return value;
 }
 
-export function selectJustDeployedVersion({ before, deployment, after }) {
-  const beforeIDs = versionIDs(before);
-  const afterIDs = versionIDs(after);
+export function captureUploadedVersion(output) {
+  if (typeof output !== "string") fail("Wrangler upload output is not text");
+  const entries = output.split("\n").filter((line) => line.trim().length > 0).map((line, index) => {
+    try {
+      return JSON.parse(line);
+    } catch {
+      fail(`Wrangler upload output line ${index + 1} is not JSON`);
+    }
+  });
+  const uploads = entries.filter((entry) => entry?.type === "version-upload" && entry.version === 1);
+  if (uploads.length !== 1) fail("Wrangler upload output must contain exactly one version-upload result");
+  return versionID(uploads[0].version_id, "version-upload result");
+}
+
+export function selectJustDeployedVersion({ uploadedVersion, deployment }) {
+  const id = versionID(uploadedVersion, "captured uploaded version");
   if (!deployment || !Array.isArray(deployment.versions)) {
     fail("latest deployment has no versions");
   }
   const active = deployment.versions.filter(
     (version) => version && version.percentage === 100 && typeof version.version_id === "string" && version.version_id.length > 0,
   );
-  if (active.length !== 1 || deployment.versions.length !== 1) {
+  if (active.length !== 1) {
     fail("latest deployment must serve exactly one version at 100%");
   }
-  const id = active[0].version_id;
-  if (beforeIDs.has(id)) fail(`${id} was already present before deploy`);
-  if (!afterIDs.has(id)) fail(`${id} is absent from versions listed after deploy`);
+  if (active[0].version_id !== id) {
+    fail(`latest deployment does not serve captured uploaded version ${id} at 100%`);
+  }
   return id;
 }
 
@@ -32,19 +47,26 @@ function readJSON(path) {
   return JSON.parse(fs.readFileSync(path, "utf8"));
 }
 
-if (import.meta.main) {
-  const paths = Object.fromEntries(process.argv.slice(2).reduce((pairs, value, index, values) => {
+function pathsFromArguments(args) {
+  return Object.fromEntries(args.reduce((pairs, value, index, values) => {
     if (value.startsWith("--") && values[index + 1]) pairs.push([value.slice(2), values[index + 1]]);
     return pairs;
   }, []));
-  for (const name of ["before", "deployment", "after"]) {
-    if (!paths[name]) fail(`missing --${name}`);
+}
+
+if (import.meta.main) {
+  const paths = pathsFromArguments(process.argv.slice(2));
+  if (paths.upload) {
+    process.stdout.write(`${captureUploadedVersion(fs.readFileSync(paths.upload, "utf8"))}\n`);
+  } else {
+    for (const name of ["uploaded-version", "deployment"]) {
+      if (!paths[name]) fail(`missing --${name}`);
+    }
+    const id = selectJustDeployedVersion({
+      uploadedVersion: paths["uploaded-version"],
+      deployment: readJSON(paths.deployment),
+    });
+    fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Deployed Worker version: ${id}\n`);
+    process.stdout.write(`${id}\n`);
   }
-  const id = selectJustDeployedVersion({
-    before: readJSON(paths.before),
-    deployment: readJSON(paths.deployment),
-    after: readJSON(paths.after),
-  });
-  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Deployed Worker version: ${id}\n`);
-  process.stdout.write(`${id}\n`);
 }

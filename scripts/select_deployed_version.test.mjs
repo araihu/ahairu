@@ -1,31 +1,42 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { selectJustDeployedVersion } from "./select_deployed_version.mjs";
+import { captureUploadedVersion, selectJustDeployedVersion } from "./select_deployed_version.mjs";
 
-const before = [{ id: "old-first" }, { id: "old-second" }];
-const after = [{ id: "old-first" }, { id: "new-version" }, { id: "old-second" }];
+const uploadedA = "11111111-1111-4111-8111-111111111111";
+const uploadedB = "22222222-2222-4222-8222-222222222222";
 
-test("selects only latest deployment's new 100% version, never versions list ordering", () => {
+test("captures exactly Wrangler's version-upload ID from machine-readable output", () => {
+  assert.equal(captureUploadedVersion([
+    JSON.stringify({ type: "version-upload", version: 1, version_id: uploadedA }),
+    JSON.stringify({ type: "version-deploy", version: 1, version_id: uploadedB }),
+  ].join("\n")), uploadedA);
+});
+
+test("rejects machine-readable output with multiple uploaded versions", () => {
+  assert.throws(() => captureUploadedVersion([
+    JSON.stringify({ type: "version-upload", version: 1, version_id: uploadedA }),
+    JSON.stringify({ type: "version-upload", version: 1, version_id: uploadedB }),
+  ].join("\n")), /exactly one version-upload/);
+});
+
+test("accepts only captured upload as the sole active version", () => {
   assert.equal(selectJustDeployedVersion({
-    before,
-    after,
-    deployment: { versions: [{ version_id: "new-version", percentage: 100 }] },
-  }), "new-version");
+    uploadedVersion: uploadedA,
+    deployment: { versions: [{ version_id: uploadedA, percentage: 100 }] },
+  }), uploadedA);
 });
 
 test("rejects a split deployment", () => {
   assert.throws(() => selectJustDeployedVersion({
-    before,
-    after,
-    deployment: { versions: [{ version_id: "new-version", percentage: 50 }, { version_id: "old-first", percentage: 50 }] },
+    uploadedVersion: uploadedA,
+    deployment: { versions: [{ version_id: uploadedA, percentage: 50 }, { version_id: uploadedB, percentage: 50 }] },
   }), /exactly one version at 100%/);
 });
 
-test("rejects a deployment that did not create a new version", () => {
+test("rejects concurrent version B even when B is solely active", () => {
   assert.throws(() => selectJustDeployedVersion({
-    before,
-    after,
-    deployment: { versions: [{ version_id: "old-first", percentage: 100 }] },
-  }), /already present before deploy/);
+    uploadedVersion: uploadedA,
+    deployment: { versions: [{ version_id: uploadedB, percentage: 100 }] },
+  }), /does not serve captured uploaded version/);
 });

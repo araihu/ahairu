@@ -81,9 +81,12 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	deploy := readWorkflow(t, "deploy.yml")
 	for _, want := range []string{
 		"permission-actions: read",
+		"WRANGLER_OUTPUT_FILE_PATH=\"$RUNNER_TEMP/wrangler-version-upload.jsonl\"",
+		"wrangler versions upload",
+		"wrangler versions deploy --version-id \"$UPLOADED_VERSION\" --percentage 100 --yes",
 		"wrangler deployments status --json",
-		"worker-versions-before.json",
-		"worker-versions-after.json",
+		"--upload \"$RUNNER_TEMP/wrangler-version-upload.jsonl\"",
+		"--uploaded-version \"$UPLOADED_VERSION\"",
 		"scripts/select_deployed_version.mjs",
 		"set -o pipefail",
 	} {
@@ -91,8 +94,10 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 			t.Errorf("deploy misses %q", want)
 		}
 	}
-	if strings.Contains(deploy, "versions[0]") {
-		t.Error("deploy chooses a Worker version by list ordering")
+	for _, forbidden := range []string{"wrangler deploy ", "wrangler versions list", "worker-versions-before.json", "worker-versions-after.json"} {
+		if strings.Contains(deploy, forbidden) {
+			t.Errorf("deploy retains ambiguous Worker version inference %q", forbidden)
+		}
 	}
 	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Contains(deploy, "permission-contents:") {
 		t.Error("deploy Assets token does not request only Actions read")
@@ -122,7 +127,8 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 		"name: accepted-assets",
 		"scripts/prepare_asset_bundle.py",
 		"npm run check",
-		"wrangler deploy",
+		"wrangler versions upload",
+		"wrangler versions deploy",
 		"CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
 	} {
 		if !strings.Contains(deploy, want) {

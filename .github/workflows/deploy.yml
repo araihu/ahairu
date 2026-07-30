@@ -79,11 +79,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -o pipefail
-          npm exec -- wrangler versions list --json > "$RUNNER_TEMP/worker-versions-before.json"
-          npm exec -- wrangler deploy 2>&1 | tee "$RUNNER_TEMP/wrangler-deploy.log"
+          WRANGLER_OUTPUT_FILE_PATH="$RUNNER_TEMP/wrangler-version-upload.jsonl" npm exec -- wrangler versions upload
+          UPLOADED_VERSION="$(node scripts/select_deployed_version.mjs --upload "$RUNNER_TEMP/wrangler-version-upload.jsonl")"
+          npm exec -- wrangler versions deploy --version-id "$UPLOADED_VERSION" --percentage 100 --yes
           npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-deployment.json"
-          npm exec -- wrangler versions list --json > "$RUNNER_TEMP/worker-versions-after.json"
           node scripts/select_deployed_version.mjs \
-            --before "$RUNNER_TEMP/worker-versions-before.json" \
-            --deployment "$RUNNER_TEMP/worker-deployment.json" \
-            --after "$RUNNER_TEMP/worker-versions-after.json"
+            --uploaded-version "$UPLOADED_VERSION" \
+            --deployment "$RUNNER_TEMP/worker-deployment.json"
