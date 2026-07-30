@@ -9,6 +9,47 @@
 
 No production deployment, promotion, tag, or push occurred.
 
+## Reproducible local HTTP canary
+
+The executable canary builds only the supplied bundle, starts exactly one local
+Wrangler session, conditionally waits for `/assets/releases/current`, then
+checks every documented GET and HEAD route. It derives expected GET bytes and
+SHA-256 values from the just-built `public/` tree, so it rejects a stale route,
+header, body, or release mapping rather than relying on this historical table.
+It also requires every HEAD response body to be empty.
+
+`ASSET_BUNDLE` must be an absolute path to the accepted, verified Assets
+bundle. `CANARY_PORT` is an optional loopback port; `CANARY_TIMEOUT_MS` is an
+optional conditional-ready timeout (default 30000 ms). This is not `npm run
+check`: it does not run Go, browser, or deploy dry-run suites.
+
+```sh
+npm ci
+ASSET_BUNDLE=/absolute/path/to/verified-assets \
+  CANARY_PORT=8788 \
+  node scripts/seasonal_assets_canary.mjs | tee /private/tmp/ahairu-seasonal-canary.ndjson
+node --test scripts/seasonal_assets_canary.test.mjs
+```
+
+Each transcript line is one JSON object. Retain it with the accepted-bundle
+provenance and the pre-production record.
+
+```json
+{"event":"session-start","pid":12345,"host":"127.0.0.1","port":8788,"routes":12}
+{"event":"session-ready","pid":12345,"baseURL":"http://127.0.0.1:8788"}
+{"event":"probe","method":"GET","route":"/assets/releases/current","status":200,"type":"application/json; charset=utf-8","cache":"public, max-age=60, must-revalidate","cors":"*","bytes":288,"sha256":"..."}
+{"event":"probe","method":"HEAD","route":"/assets/releases/current","status":200,"type":"application/json; charset=utf-8","cache":"public, max-age=60, must-revalidate","cors":"*","bytes":0,"sha256":"e3b0..."}
+{"event":"canary-pass","releases":["v0.1.1"]}
+{"event":"session-stop","pid":12345,"reason":"complete","exitCode":143,"signal":null}
+```
+
+`session-stop` is emitted from normal completion, failure cleanup, and
+`SIGINT`/`SIGTERM` handling. A `canary-fail` line precedes a non-zero exit.
+The route set is the three channel documents, campaign runtime, `release.json`
+and `catalog.json` for every retained immutable release, four canonical pages,
+and the two documented 404s. Each record captures status, Content-Type,
+Cache-Control, CORS, body bytes, and SHA-256.
+
 ## Complete local gate
 
 Executed once, in this order:
@@ -47,11 +88,11 @@ body hashes are SHA-256; HEAD bodies were empty. `CORS=*` means
 | `/not-a-page` | `404`, `text/plain;charset=UTF-8`, no cache header, `9`, `e3ebaa16dd9d9b9fc107c42183fb6cf9d22927e1af03dbbdfa0ccc38e4e4ac31` | `404`, no type/cache | — |
 | `/assets/missing.svg` | `404`, no type/cache, `0`, `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855` | `404`, no type/cache | — |
 
-Only immutable release `v0.1.1` was present. Required second-release probe
-`/assets/releases/v0.1.0/release.json` returned `404` for both GET and HEAD;
-GET had an empty body hash `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-Its cache header was `public, max-age=31536000, immutable` because its pathname
-matches the immutable-release route rule.
+Only immutable release `v0.1.1` was present. Historical release `v0.1.0` was
+never deployed through this Worker; it is acceptable debt not to retrofit it
+into the local canary bundle. That exception applies only to a release that was
+never live. It does not permit removal of any immutable release already
+published to consumers.
 
 ## Browser evidence and open canary debt
 
@@ -71,15 +112,27 @@ The supplied accepted channel is `source: default`; its only campaign is
 disabled. It therefore cannot exercise active campaign apply, saved-preference
 precedence, opt-out/reload persistence, campaign CSS/image failure fallback, or
 expiry restoration in Ahairu's live browser without altering the verified
-bundle. That alteration would invalidate canary evidence. The Assets runtime
-source suite was also run locally: 40/40 passed, including those scenarios and
-the reduced-motion lifecycle hook, but it uses its deterministic runtime
-fixture rather than Ahairu's live Chromium harness.
+bundle. That alteration would invalidate canary evidence.
 
-**Handoff condition:** do not treat this as a completed enabled-campaign canary.
-Before production, supply an accepted bundle retaining two immutable releases
-and a time-bounded enabled campaign channel, then repeat the live browser
-scenarios above against that unmodified bundle.
+Assets runtime evidence, separate from this Worker harness: checkout
+`/private/tmp/araihu-assets-seasonal-channels-spec`, revision
+`410c3f3b7f4686199b8dda2c41ccacdb6147759f`; command
+`node --test /private/tmp/araihu-assets-seasonal-channels-spec/runtime/campaign/v1.test.js`
+passed `40/40`. It uses a deterministic runtime fixture, not Ahairu's live
+Chromium harness.
+
+**Enabled-campaign pre-production gate (blocking):** do not treat this as a
+completed enabled-campaign canary. Before an enabled campaign reaches
+production, supply an accepted bundle with two retained immutable releases and
+a time-bounded enabled `current` campaign, then run the HTTP preflight with its
+explicit structural gates and repeat live browser scenarios against that exact,
+unmodified bundle:
+
+```sh
+ASSET_BUNDLE=/absolute/path/to/verified-assets \
+  CANARY_REQUIRE_TWO_RELEASES=1 CANARY_REQUIRE_ENABLED_CAMPAIGN=1 \
+  node scripts/seasonal_assets_canary.mjs
+```
 
 ## Rollback
 
@@ -96,5 +149,7 @@ scenarios above against that unmodified bundle.
 
 3. Re-run GET and HEAD probes for the channels, runtime, retained immutable
    releases, and canonical pages. A corrective deployment or rollback is
-   expected to converge within 60 seconds; keep the prior healthy version as
-   the rollback target until those probes agree with its recorded hashes.
+   **expected** to converge within 60 seconds. This is an unmeasured production
+   expectation pending deployment, not a proven SLO or canary result. Keep the
+   prior healthy version as rollback target until probes agree with recorded
+   hashes.

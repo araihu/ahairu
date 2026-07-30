@@ -9,6 +9,8 @@
     "build": "templ generate && go run ./cmd/ahairu build --asset-bundle \"$ASSET_BUNDLE\"",
     "test:metadata": "go test ./site -run 'Metadata|StructuredData|Sitemap|Manifest' -count=1",
     "test:routes": "node --test src/worker.test.js",
+    "test:canary": "node --test scripts/seasonal_assets_canary.test.mjs",
+    "canary:seasonal-assets": "node scripts/seasonal_assets_canary.mjs",
     "test:workflow": "node --test scripts/select_deployed_version.test.mjs && python3 scripts/prepare_asset_bundle_test.py && go test ./cmd/checksite -run TestWorkflow -count=1",
     "test:visual": "node --test test/browser/site.test.js",
     "test:worker": "npm run test:routes",
