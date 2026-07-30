@@ -10,11 +10,12 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import urllib.parse
 import zipfile
 
 
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
-IDENTIFIER = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}\Z")
+ARTIFACT_ID = re.compile(r"[1-9][0-9]*\Z")
 RELEASE = re.compile(r"v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\Z")
 CHANNEL_FILES = {
     "campaign/v1.js",
@@ -31,9 +32,10 @@ def fail(message):
 def safe_member(name):
     if not name or "\\" in name or name.startswith("/"):
         fail(f"unsafe archive path {name!r}")
-    parts = pathlib.PurePosixPath(name).parts
-    if any(part in {"", ".", ".."} for part in parts):
+    raw_parts = name.split("/")
+    if any(part in {"", ".", ".."} for part in raw_parts):
         fail(f"unsafe archive path {name!r}")
+    parts = pathlib.PurePosixPath(name).parts
     return parts
 
 
@@ -130,13 +132,25 @@ def download(url, destination, token):
     subprocess.run(command, check=True)
 
 
+def require_assets_artifact_url(url, identifier):
+    if not ARTIFACT_ID.fullmatch(identifier):
+        fail("asset artifact ID is invalid")
+    parsed = urllib.parse.urlsplit(url)
+    expected_path = f"/repos/araihu/assets/actions/artifacts/{identifier}/zip"
+    if (
+        parsed.scheme != "https"
+        or parsed.netloc != "api.github.com"
+        or parsed.path != expected_path
+        or parsed.query
+        or parsed.fragment
+    ):
+        fail("asset URL must be the matching araihu/assets artifact ZIP endpoint")
+
+
 def verified_download(url, identifier, expected, temporary, token):
-    if not IDENTIFIER.fullmatch(identifier):
-        fail("asset identifier is invalid")
+    require_assets_artifact_url(url, identifier)
     if not SHA256.fullmatch(expected):
         fail("asset SHA-256 is invalid")
-    if not url.startswith("https://github.com/") and not url.startswith("https://api.github.com/"):
-        fail("asset URL must be an HTTPS GitHub URL")
     archive = temporary / identifier
     download(url, archive, token)
     with archive.open("rb") as contents:

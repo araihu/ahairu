@@ -52,6 +52,53 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 	assertPinnedActions(t, "deploy.yml", deploy)
 }
 
+func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
+	ci := readWorkflow(t, "ci.yml")
+	for _, want := range []string{
+		"if: github.event_name == 'repository_dispatch'",
+		"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
+		"permission-actions: read",
+		"missing or invalid dispatch payload",
+		"missing or invalid main promotion variable",
+	} {
+		if !strings.Contains(ci, want) {
+			t.Errorf("CI misses %q", want)
+		}
+	}
+	if strings.Contains(ci, "client_payload.assets_release_url || vars") || strings.Contains(ci, "client_payload.assets_channel_url || vars") {
+		t.Error("CI allows repository variables to fill a dispatch payload")
+	}
+	if got := strings.Count(ci, "github.event.client_payload.assets_"); got != 6 {
+		t.Errorf("CI has %d dispatch asset fields, want 6", got)
+	}
+	if got := strings.Count(ci, "vars.ASSETS_"); got != 6 {
+		t.Errorf("CI has %d main-promotion asset variables, want 6", got)
+	}
+	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Contains(ci, "permission-contents:") {
+		t.Error("CI Assets token does not request only Actions read")
+	}
+
+	deploy := readWorkflow(t, "deploy.yml")
+	for _, want := range []string{
+		"permission-actions: read",
+		"wrangler deployments status --json",
+		"worker-versions-before.json",
+		"worker-versions-after.json",
+		"scripts/select_deployed_version.mjs",
+		"set -o pipefail",
+	} {
+		if !strings.Contains(deploy, want) {
+			t.Errorf("deploy misses %q", want)
+		}
+	}
+	if strings.Contains(deploy, "versions[0]") {
+		t.Error("deploy chooses a Worker version by list ordering")
+	}
+	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Contains(deploy, "permission-contents:") {
+		t.Error("deploy Assets token does not request only Actions read")
+	}
+}
+
 func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	ci := readWorkflow(t, "ci.yml")
 	for _, want := range []string{

@@ -43,6 +43,7 @@ jobs:
           private-key: ${{ secrets.ASSETS_APP_PRIVATE_KEY }}
           owner: araihu
           repositories: assets
+          permission-actions: read
       - run: npm ci
       - run: go install github.com/a-h/templ/cmd/templ@v0.3.1020
       - name: Reacquire exact accepted assets and verify hashes before extraction
@@ -77,12 +78,12 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npm exec -- wrangler deploy
-          npm exec -- wrangler versions list --json > "$RUNNER_TEMP/worker-versions.json"
-          node - <<'NODE'
-          const fs = require("node:fs");
-          const versions = JSON.parse(fs.readFileSync(`${process.env.RUNNER_TEMP}/worker-versions.json`, "utf8"));
-          const version = versions[0]?.id;
-          if (!version) throw new Error("Wrangler did not return a Worker version");
-          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `Deployed Worker version: ${version}\n`);
-          NODE
+          set -o pipefail
+          npm exec -- wrangler versions list --json > "$RUNNER_TEMP/worker-versions-before.json"
+          npm exec -- wrangler deploy 2>&1 | tee "$RUNNER_TEMP/wrangler-deploy.log"
+          npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-deployment.json"
+          npm exec -- wrangler versions list --json > "$RUNNER_TEMP/worker-versions-after.json"
+          node scripts/select_deployed_version.mjs \
+            --before "$RUNNER_TEMP/worker-versions-before.json" \
+            --deployment "$RUNNER_TEMP/worker-deployment.json" \
+            --after "$RUNNER_TEMP/worker-versions-after.json"
