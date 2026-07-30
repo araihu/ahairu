@@ -33,7 +33,9 @@ jobs:
 
   accepted-assets:
     needs: source
-    if: github.event_name == 'repository_dispatch' || github.ref == 'refs/heads/main'
+    if: >-
+      github.event_name == 'repository_dispatch' ||
+      (github.ref == 'refs/heads/main' && vars.ASSETS_RELEASE_HANDOFF_JSON != '')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
