@@ -112,8 +112,8 @@ func TestCatalogUsesPinnedReleaseAndPublicPrefix(t *testing.T) {
 	if got := BrandCatalogSHA256; got != "d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af" {
 		t.Fatalf("catalog hash = %q", got)
 	}
-	if BrandAssetsReleaseCandidateCommit != "613335f60877d3cc6affd04c51a31ce7fa0e433c" {
-		t.Fatalf("release candidate commit = %q", BrandAssetsReleaseCandidateCommit)
+	if BrandAssetsRelease != "v0.1.0" {
+		t.Fatalf("assets release = %q", BrandAssetsRelease)
 	}
 	if BrandIconsGeneratorCommit != "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854" {
 		t.Fatalf("icon generator commit = %q", BrandIconsGeneratorCommit)

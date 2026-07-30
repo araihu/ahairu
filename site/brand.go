@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	BrandAssetsPublicPrefix           = "/assets/araihu/v0.1.0/"
-	BrandAssetsReleaseCandidateCommit = "613335f60877d3cc6affd04c51a31ce7fa0e433c"
-	BrandIconsGeneratorCommit         = "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854"
-	BrandCatalogSHA256                = "d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af"
-	BrandChecksumsSHA256              = "2d83421b3a95c75f68c88af7d5618034b4189d42adf3f2e39b2c4c048c553d5d"
-	BrandSpriteSHA256                 = "e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45"
+	BrandAssetsPublicPrefix   = "/assets/araihu/v0.1.0/"
+	BrandAssetsRelease        = "v0.1.0"
+	BrandIconsGeneratorCommit = "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854"
+	BrandCatalogSHA256        = "d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af"
+	BrandChecksumsSHA256      = "2d83421b3a95c75f68c88af7d5618034b4189d42adf3f2e39b2c4c048c553d5d"
+	BrandSpriteSHA256         = "e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45"
 )
 
 //go:embed brand.css
