@@ -1,4 +1,103 @@
-# Seasonal assets local canary — 2026-07-30
+# Seasonal assets local canary
+
+## Enabled campaign browser gate
+
+The executable gate accepts only an absolute `ASSET_BUNDLE` containing at
+least two checksum-verified immutable releases and a `current` channel resolved
+to an enabled campaign. `CANARY_CAMPAIGN_CHECK_DATE` is required. It checks
+that the effective campaign identity is active inside the selected release's
+inclusive `campaigns.json` interval and that theme, toggle IDs, and tinted
+brand IDs agree.
+
+Channel schema v1 does not carry its resolver input date, and that date is not
+covered by the channel digest. The check date is therefore consistency
+evidence only. This harness does not claim it is the exact date used by Assets
+to produce the accepted channel.
+
+```sh
+npm ci
+ASSET_BUNDLE=/absolute/path/to/verified-assets \
+  CANARY_CAMPAIGN_CHECK_DATE=2026-10-31 \
+  CANARY_PORT=8788 \
+  node scripts/seasonal_assets_canary.mjs \
+  | tee /private/tmp/ahairu-enabled-seasonal-canary.ndjson
+```
+
+Optional expiry coverage takes a second default channel document for the same
+retained release set and a date on which its campaign manifest has no enabled
+campaign. The harness strictly recomputes this document's channel digest,
+binds its theme to `themes.json` and the complete release inventory, and probes
+that immutable theme directly before browser execution. Active theme, brand,
+and toggle IDs are likewise bound to `themes.json`/`catalog.json`, their
+inventory entries, manifest-declared render modes, UI namespace, and declared
+sprite symbols. Sprite mode must use `icons/ui/sprite.svg`; asset mode must use
+the catalog member's discrete `icons/ui/` path.
+
+```sh
+ASSET_BUNDLE=/absolute/path/to/verified-assets \
+  CANARY_CAMPAIGN_CHECK_DATE=2026-10-31 \
+  CANARY_EXPIRED_CHANNEL=/absolute/path/to/expired-current.json \
+  CANARY_EXPIRED_CHECK_DATE=2026-11-01 \
+  node scripts/seasonal_assets_canary.mjs
+```
+
+One local Wrangler process serves the whole run. Playwright keeps every
+navigation and subresource URL at canonical `https://araihu.com`; request
+interception proxies those requests to that Wrangler process. Requests to any
+other HTTP origin are blocked and fail the canary. The expiry document is
+copied into generated `public/` before Wrangler starts, then its canonical
+`current` request is mapped to that local Wrangler route for the final refresh.
+No remote canary adapter or relaxed runtime origin rule exists.
+
+`CANARY_TIMEOUT_MS` (default 30000) bounds Wrangler readiness, the held runtime
+request, every expected `current` request, and Playwright waits. Missing runtime
+or channel fetches fail explicitly. Page close/crash, context close, intercepted
+request failure, and proxy failure reject pending request gates immediately.
+
+Browser scenarios:
+
+- immutable SSR theme and local brand URLs captured while the deferred runtime
+  script response is held, before campaign code executes or starts a refresh;
+- first apply: exact theme, source, campaign ID, active toggle, tinted logo and
+  icon, sparkles toggle, anonymous CORS, and active stylesheet;
+- explicit preference before deferred runtime execution;
+- opt-out, persisted reload, and re-enable with campaign-specific storage;
+- reduced-motion lifecycle detail;
+- expiry refresh and baseline restoration when both expiry inputs are present.
+
+First navigation and opt-out reload wait for the runtime's automatic deferred
+bootstrap. They never call `AraiHuCampaign.refresh()`. The only manual refresh
+is the expiry scenario after interception switches `current` to the locally
+served default document.
+
+Before opening Chromium, direct local GET probes verify the resolved theme,
+brand assets, and both toggle resources against the immutable `release.json`
+inventory SHA-256 and byte size. The optional default theme receives the same
+probe. NDJSON `channel-evidence`,
+`resolved-asset-probe`, `browser-state`, and `canary-pass` records repeat the
+campaign check date, release, source, effective campaign, and recomputed channel
+digest. The check date is not presented as channel provenance.
+
+```json
+{"event":"channel-evidence","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"]}
+{"event":"resolved-asset-probe","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","kind":"brand-logo","id":"araihu-logo-tinted-transparent-optical","url":"https://araihu.com/assets/releases/v0.1.2/...","status":200,"bytes":1234,"sha256":"..."}
+{"event":"browser-state","scenario":"ssr-baseline","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","theme":"araihu","themeSource":"default","activeCampaign":null,"toggleHidden":true,"togglePressed":"false","reducedMotion":false}
+{"event":"browser-state","scenario":"first-apply","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","theme":"araihu-halloween","themeSource":"campaign","activeCampaign":"halloween-2026","toggleHidden":false,"togglePressed":"true","reducedMotion":false}
+{"event":"canary-pass","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"],"expiry":true}
+```
+
+Focused harness tests:
+
+```sh
+node --test scripts/seasonal_assets_canary.test.mjs
+```
+
+Current v0.1.1 evidence cannot satisfy this gate: it contains one immutable
+release and resolves `current` to `source=default` with its campaign disabled.
+Keep that fail-closed result until a real accepted v0.1.2 two-release bundle
+exists. Do not synthesize or edit a release to claim enabled-campaign evidence.
+
+## Recorded v0.1.1 baseline — 2026-07-30
 
 ## Scope and input
 
@@ -9,10 +108,10 @@
 
 No production deployment, promotion, tag, or push occurred.
 
-## Reproducible local HTTP canary
+## Reproducible local HTTP baseline
 
-The executable canary builds only the supplied bundle, starts exactly one local
-Wrangler session, conditionally waits for `/assets/releases/current`, then
+The earlier executable baseline built only the supplied bundle, started
+exactly one local Wrangler session, waited for `/assets/releases/current`, then
 checks every documented GET and HEAD route. It derives expected GET bytes and
 SHA-256 values from the just-built `public/` tree, so it rejects a stale route,
 header, body, or release mapping rather than relying on this historical table.
@@ -20,8 +119,9 @@ It also requires every HEAD response body to be empty.
 
 `ASSET_BUNDLE` must be an absolute path to the accepted, verified Assets
 bundle. `CANARY_PORT` is an optional loopback port; `CANARY_TIMEOUT_MS` is an
-optional conditional-ready timeout (default 30000 ms). This is not `npm run
-check`: it does not run Go, browser, or deploy dry-run suites.
+optional conditional-ready timeout (default 30000 ms). The current executable
+also requires the enabled campaign inputs documented above; this command is a
+historical transcript recipe, not a current passing gate.
 
 ```sh
 npm ci
@@ -121,18 +221,9 @@ Assets runtime evidence, separate from this Worker harness: checkout
 passed `40/40`. It uses a deterministic runtime fixture, not Ahairu's live
 Chromium harness.
 
-**Enabled-campaign pre-production gate (blocking):** do not treat this as a
-completed enabled-campaign canary. Before an enabled campaign reaches
-production, supply an accepted bundle with two retained immutable releases and
-a time-bounded enabled `current` campaign, then run the HTTP preflight with its
-explicit structural gates and repeat live browser scenarios against that exact,
-unmodified bundle:
-
-```sh
-ASSET_BUNDLE=/absolute/path/to/verified-assets \
-  CANARY_REQUIRE_TWO_RELEASES=1 CANARY_REQUIRE_ENABLED_CAMPAIGN=1 \
-  node scripts/seasonal_assets_canary.mjs
-```
+The enabled gate above now implements these previously missing live browser
+scenarios. Its execution remains blocked only by the absent real v0.1.2 input,
+not by missing Ahairu harness code.
 
 ## Rollback
 
