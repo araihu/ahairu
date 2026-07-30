@@ -47,8 +47,8 @@ No remote canary adapter or relaxed runtime origin rule exists.
 
 Browser scenarios:
 
-- immutable SSR theme and local brand URLs captured while the first automatic
-  channel request is held, before runtime can mutate enrolled hooks;
+- immutable SSR theme and local brand URLs captured while the deferred runtime
+  script response is held, before campaign code executes or starts a refresh;
 - first apply: exact theme, source, campaign ID, active toggle, tinted logo and
   icon, sparkles toggle, anonymous CORS, and active stylesheet;
 - explicit preference before deferred runtime execution;
