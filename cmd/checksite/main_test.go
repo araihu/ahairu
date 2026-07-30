@@ -1,7 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"image"
 	"image/color"
@@ -358,6 +362,84 @@ func TestCheckRejectsAdversarialDiscoveryDocuments(t *testing.T) {
 	}
 }
 
+func TestCheckRejectsInvalidAssetReleaseBundle(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(t *testing.T, root string)
+		want   string
+	}{
+		{
+			name: "missing current channel",
+			mutate: func(t *testing.T, root string) {
+				if err := os.Remove(filepath.Join(root, "assets", "releases", "current.json")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "current.json",
+		},
+		{
+			name: "missing current runtime",
+			mutate: func(t *testing.T, root string) {
+				if err := os.Remove(filepath.Join(root, "assets", "campaign", "v1.js")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "campaign/v1.js",
+		},
+		{
+			name: "missing immutable release document",
+			mutate: func(t *testing.T, root string) {
+				if err := os.Remove(filepath.Join(root, "assets", "releases", "v0.1.1", "release.json")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "release.json",
+		},
+		{
+			name: "invalid release checksums",
+			mutate: func(t *testing.T, root string) {
+				writeFile(t, filepath.Join(root, "assets", "releases", "v0.1.1", "checksums.txt"), []byte("not a checksum\n"))
+			},
+			want: "checksums",
+		},
+		{
+			name: "relative channel URL",
+			mutate: func(t *testing.T, root string) {
+				writeReleaseChannel(t, root, "current", "/assets/releases/v0.1.1/themes/base.css")
+			},
+			want: "absolute same-origin URL",
+		},
+		{
+			name: "invalid SemVer directory",
+			mutate: func(t *testing.T, root string) {
+				if err := os.Rename(filepath.Join(root, "assets", "releases", "v0.1.1"), filepath.Join(root, "assets", "releases", "v0.1.01")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "outside known layout",
+		},
+		{
+			name: "missing retained inventory file",
+			mutate: func(t *testing.T, root string) {
+				if err := os.Remove(filepath.Join(root, "assets", "releases", "v0.1.1", "themes", "base.css")); err != nil {
+					t.Fatal(err)
+				}
+			},
+			want: "inventory misses file",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			root := writeValidPublic(t)
+			test.mutate(t, root)
+			if err := Check(root); err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("Check() error = %v, want %q", err, test.want)
+			}
+		})
+	}
+}
+
 func writeValidPublic(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
@@ -383,7 +465,105 @@ func writeValidPublic(t *testing.T) string {
 		}
 		writeFile(t, filepath.Join(root, page.Meta.Path, "index.html"), []byte(output.String()))
 	}
+	writeAssetReleaseBundle(t, root)
 	return root
+}
+
+func writeAssetReleaseBundle(t *testing.T, root string) {
+	t.Helper()
+	releaseRoot := filepath.Join(root, "assets", "releases", "v0.1.1")
+	files := map[string][]byte{
+		"catalog.json":    []byte(`{"schemaVersion":1}`),
+		"themes.json":     []byte(`{"schemaVersion":1}`),
+		"campaigns.json":  []byte(`{"schemaVersion":1,"campaigns":[]}`),
+		"campaign/v1.js":  []byte("(() => {})()\n"),
+		"themes/base.css": []byte("body{}\n"),
+	}
+	ordered := []string{"catalog.json", "themes.json", "campaigns.json", "campaign/v1.js", "themes/base.css"}
+	type inventoryFile struct {
+		Path   string `json:"path"`
+		SHA256 string `json:"sha256"`
+		Size   int64  `json:"size"`
+	}
+	inventory := make([]inventoryFile, 0, len(ordered))
+	for _, name := range ordered {
+		contents := files[name]
+		writeFile(t, filepath.Join(releaseRoot, filepath.FromSlash(name)), contents)
+		sum := sha256.Sum256(contents)
+		inventory = append(inventory, inventoryFile{Path: name, SHA256: hex.EncodeToString(sum[:]), Size: int64(len(contents))})
+	}
+	document := struct {
+		SchemaVersion    int             `json:"schemaVersion"`
+		Release          string          `json:"release"`
+		IdentityRevision int             `json:"identityRevision"`
+		RuntimeVersion   int             `json:"runtimeVersion"`
+		CatalogSHA256    string          `json:"catalogSha256"`
+		ThemesSHA256     string          `json:"themesSha256"`
+		CampaignsSHA256  string          `json:"campaignsSha256"`
+		Files            []inventoryFile `json:"files"`
+	}{SchemaVersion: 1, Release: "v0.1.1", IdentityRevision: 11, RuntimeVersion: 1, Files: inventory}
+	for _, item := range inventory {
+		switch item.Path {
+		case "catalog.json":
+			document.CatalogSHA256 = item.SHA256
+		case "themes.json":
+			document.ThemesSHA256 = item.SHA256
+		case "campaigns.json":
+			document.CampaignsSHA256 = item.SHA256
+		}
+	}
+	releaseJSON, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, filepath.Join(releaseRoot, "release.json"), releaseJSON)
+	checksumNames := append([]string{"release.json"}, ordered...)
+	checksums := make([]string, 0, len(checksumNames))
+	for _, name := range checksumNames {
+		contents, err := os.ReadFile(filepath.Join(releaseRoot, filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum := sha256.Sum256(contents)
+		checksums = append(checksums, hex.EncodeToString(sum[:])+"  "+name)
+	}
+	writeFile(t, filepath.Join(releaseRoot, "checksums.txt"), []byte(strings.Join(checksums, "\n")+"\n"))
+	writeFile(t, filepath.Join(root, "assets", "campaign", "v1.js"), files["campaign/v1.js"])
+	for _, channel := range []string{"latest", "default", "current"} {
+		writeReleaseChannel(t, root, channel, "https://araihu.com/assets/releases/v0.1.1/themes/base.css")
+	}
+}
+
+func writeReleaseChannel(t *testing.T, root, channel, cssURL string) {
+	t.Helper()
+	type theme struct {
+		ID     string `json:"id"`
+		CSSURL string `json:"cssUrl"`
+	}
+	value := struct {
+		SchemaVersion  int    `json:"schemaVersion"`
+		RuntimeVersion int    `json:"runtimeVersion"`
+		Release        string `json:"release"`
+		Source         string `json:"source"`
+		Theme          theme  `json:"theme"`
+		Digest         string `json:"digest"`
+	}{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.1.1", Source: "default", Theme: theme{ID: "base", CSSURL: cssURL}}
+	payload := canonicalJSON(t, value)
+	sum := sha256.Sum256(payload)
+	value.Digest = hex.EncodeToString(sum[:])
+	writeFile(t, filepath.Join(root, "assets", "releases", channel+".json"), canonicalJSON(t, value))
+}
+
+func canonicalJSON(t *testing.T, value any) []byte {
+	t.Helper()
+	var output bytes.Buffer
+	encoder := json.NewEncoder(&output)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(value); err != nil {
+		t.Fatal(err)
+	}
+	return output.Bytes()
 }
 
 func writeFile(t *testing.T, path string, data []byte) {

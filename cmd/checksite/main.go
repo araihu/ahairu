@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/araihu/ahairu/internal/assetbundle"
 	"github.com/araihu/ahairu/site"
 	"golang.org/x/net/html"
 )
@@ -39,6 +41,9 @@ func main() {
 
 // Check verifies every generated public page against its typed source model.
 func Check(root string) error {
+	if err := checkAssetBundle(root); err != nil {
+		return err
+	}
 	if err := checkRobots(root); err != nil {
 		return err
 	}
@@ -54,6 +59,91 @@ func Check(root string) error {
 		if err := checkPage(root, page, routes); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func checkAssetBundle(root string) error {
+	source := assetBundleTree{source: os.DirFS(filepath.Join(root, "assets"))}
+	if _, err := assetbundle.Validate(source); err != nil {
+		return fmt.Errorf("asset release bundle: %w", err)
+	}
+	for _, name := range []string{"latest", "default", "current"} {
+		data, err := fs.ReadFile(source, "releases/"+name+".json")
+		if err != nil {
+			return fmt.Errorf("read asset release channel %q: %w", name, err)
+		}
+		if err := checkChannelURLs(data); err != nil {
+			return fmt.Errorf("asset release channel %q: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// assetBundleTree presents the release subtree to the shared bundle validator
+// without treating unrelated site assets as bundle inputs.
+type assetBundleTree struct{ source fs.FS }
+
+func (tree assetBundleTree) Open(name string) (fs.File, error) {
+	if name != "." && name != "campaign" && name != "releases" && !strings.HasPrefix(name, "campaign/") && !strings.HasPrefix(name, "releases/") {
+		return nil, fs.ErrNotExist
+	}
+	return tree.source.Open(name)
+}
+
+func (tree assetBundleTree) ReadDir(name string) ([]fs.DirEntry, error) {
+	entries, err := fs.ReadDir(tree.source, name)
+	if err != nil || name != "." {
+		return entries, err
+	}
+	filtered := make([]fs.DirEntry, 0, 2)
+	for _, entry := range entries {
+		if entry.Name() == "campaign" || entry.Name() == "releases" {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered, nil
+}
+
+func checkChannelURLs(data []byte) error {
+	var document any
+	if err := json.Unmarshal(data, &document); err != nil {
+		return err
+	}
+	return checkURLs(document)
+}
+
+func checkURLs(value any) error {
+	switch value := value.(type) {
+	case map[string]any:
+		for name, child := range value {
+			if name == "url" || name == "cssUrl" {
+				urlValue, ok := child.(string)
+				if !ok {
+					return fmt.Errorf("%s is not a string URL", name)
+				}
+				if err := requireAbsoluteSameOriginURL(urlValue); err != nil {
+					return err
+				}
+			}
+			if err := checkURLs(child); err != nil {
+				return err
+			}
+		}
+	case []any:
+		for _, child := range value {
+			if err := checkURLs(child); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func requireAbsoluteSameOriginURL(value string) error {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme != "https" || parsed.Host != "araihu.com" || parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.RawPath != "" {
+		return fmt.Errorf("%q must be an absolute same-origin URL", value)
 	}
 	return nil
 }

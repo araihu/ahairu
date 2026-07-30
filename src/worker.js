@@ -7,6 +7,11 @@ const canonicalPages = new Map([
   ["/es/brand/", "/es/brand/index.html"],
   ["/es/license/", "/es/license/index.html"],
 ]);
+const releaseChannels = new Map([
+  ["/assets/releases/latest", "/assets/releases/latest.json"],
+  ["/assets/releases/default", "/assets/releases/default.json"],
+  ["/assets/releases/current", "/assets/releases/current.json"],
+]);
 
 function assetRequest(request, pathname) {
   const url = new URL(request.url);
@@ -48,6 +53,25 @@ function withVary(response, value) {
   }
   headers.set("Vary", vary.join(", "));
 
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+function withAssetHeaders(response, pathname) {
+  const headers = new Headers(response.headers);
+  if (releaseChannels.has(pathname)) {
+    headers.set("Content-Type", "application/json; charset=utf-8");
+    headers.set("Cache-Control", "public, max-age=60, must-revalidate");
+  } else if (/^\/assets\/releases\/v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?\//.test(pathname)) {
+    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  }
+  if (pathname.startsWith("/assets/releases/") || pathname.startsWith("/assets/campaign/")) {
+    headers.set("Access-Control-Allow-Origin", "*");
+    headers.set("Cross-Origin-Resource-Policy", "cross-origin");
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
@@ -123,9 +147,19 @@ export default {
       return redirect(request.url, `${url.pathname}/`);
     }
 
+    const releaseChannel = releaseChannels.get(url.pathname);
+    if (releaseChannel && (request.method === "GET" || request.method === "HEAD")) {
+      const response = await env.ASSETS.fetch(assetRequest(request, releaseChannel));
+      return withAssetHeaders(response, url.pathname);
+    }
+
     if (!url.pathname.includes(".")) {
       return new Response(request.method === "HEAD" ? null : "Not found", { status: 404 });
     }
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    if (request.method === "GET" || request.method === "HEAD") {
+      return withAssetHeaders(response, url.pathname);
+    }
+    return response;
   },
 };
