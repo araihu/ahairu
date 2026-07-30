@@ -11,6 +11,7 @@ import { executablePath as puppeteerExecutablePath } from "puppeteer";
 const host = "127.0.0.1";
 const canonicalOrigin = "https://araihu.com";
 const currentChannelPath = "/assets/releases/current";
+const campaignRuntimePath = "/assets/campaign/v1.js";
 const expiredChannelPath = "/assets/releases/canary-expired.json";
 const emptySHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 const releaseName = /^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
@@ -632,14 +633,14 @@ function deferred() {
 async function openProxiedContext(browser, baseURL, {
   preference = null,
   reducedMotion = "no-preference",
-  holdCurrentChannel = false,
+  holdCampaignRuntime = false,
 } = {}) {
   const context = await browser.newContext({ reducedMotion, serviceWorkers: "block" });
   const unexpected = [];
   let useExpiredChannel = false;
-  let held = false;
-  const currentObserved = deferred();
-  const currentRelease = deferred();
+  let runtimeHeld = false;
+  const runtimeObserved = deferred();
+  const runtimeRelease = deferred();
   let fulfilledCurrentRequests = 0;
   const currentWaiters = [];
   await context.addInitScript(eventInitScript, preference);
@@ -652,11 +653,12 @@ async function openProxiedContext(browser, baseURL, {
       return;
     }
     const isCurrent = remote.pathname === currentChannelPath;
-    if (isCurrent) {
-      currentObserved.resolve();
-      if (holdCurrentChannel && !held) {
-        held = true;
-        await currentRelease.promise;
+    const isRuntime = remote.pathname === campaignRuntimePath;
+    if (isRuntime) {
+      runtimeObserved.resolve();
+      if (holdCampaignRuntime && !runtimeHeld) {
+        runtimeHeld = true;
+        await runtimeRelease.promise;
       }
     }
     const override = useExpiredChannel && isCurrent ? expiredChannelPath : "";
@@ -679,15 +681,15 @@ async function openProxiedContext(browser, baseURL, {
   });
   return {
     context,
-    waitForCurrentChannelHold() {
-      return currentObserved.promise;
+    waitForCampaignRuntimeHold() {
+      return runtimeObserved.promise;
     },
     waitForCurrentChannel(count = 1) {
       if (fulfilledCurrentRequests >= count) return Promise.resolve();
       return new Promise((resolve) => currentWaiters.push({ count, resolve }));
     },
-    releaseCurrentChannel() {
-      currentRelease.resolve();
+    releaseCampaignRuntime() {
+      runtimeRelease.resolve();
     },
     useExpiredChannel() {
       useExpiredChannel = true;
@@ -714,23 +716,26 @@ async function runBrowserCanary(baseURL, contract, ssrExpected) {
   }
   const browser = await chromium.launch({ headless: true, executablePath: browserPath });
   try {
-    const first = await openProxiedContext(browser, baseURL, { holdCurrentChannel: true });
+    const first = await openProxiedContext(browser, baseURL, { holdCampaignRuntime: true });
     let baseline;
     try {
       const page = await first.context.newPage();
-      await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
-      await first.waitForCurrentChannelHold();
+      await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "commit" });
+      await first.waitForCampaignRuntimeHold();
+      await page.locator('[data-asset-brand="logo"]').waitFor({ state: "attached" });
+      await page.locator("[data-campaign-toggle]").waitFor({ state: "attached" });
       const ssrState = await captureBrowserState(page);
       baseline = snapshotSSRBaseline(ssrState, ssrExpected);
       transcriptState("ssr-baseline", contract, ssrState);
-      first.releaseCurrentChannel();
+      first.releaseCampaignRuntime();
+      await page.waitForLoadState("domcontentloaded");
       await waitForAutomaticBootstrap(page, first, "campaign");
       const state = await captureBrowserState(page);
       assertAppliedState(state, contract.current);
       transcriptState("first-apply", contract, state);
       first.assertLocalOnly();
     } finally {
-      first.releaseCurrentChannel();
+      first.releaseCampaignRuntime();
       await first.context.close();
     }
 
