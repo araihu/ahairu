@@ -531,7 +531,7 @@ async function waitForRuntime(page) {
 }
 
 async function runBrowserCanary(baseURL, contract) {
-  const browserPath = puppeteerExecutablePath();
+  const browserPath = await puppeteerExecutablePath();
   if (!browserPath || !existsSync(browserPath)) {
     fail("Puppeteer Chromium is unavailable; run npm ci before the browser canary");
   }
