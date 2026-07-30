@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -8,7 +8,9 @@ import {
   assertCapture,
   buildProbeSpecs,
   canonicalProxyURL,
+  computeChannelDigest,
   inspectEnabledBundle,
+  snapshotSSRBaseline,
 } from "./seasonal_assets_canary.mjs";
 
 function write(root, name, value = name) {
@@ -66,6 +68,7 @@ function enabledBundleFixture(root) {
     ["brand/araihu/logo/tinted-transparent-optical.svg", 12],
     ["icons/brand/araihu-icon-tinted-transparent-optical.svg", 13],
     ["icons/ui/sprite.svg", 14],
+    ["themes/araihu.css", 15],
   ];
   write(root, "releases/v0.1.1/release.json", JSON.stringify({ release: "v0.1.1", files: [] }));
   write(root, "releases/v0.1.1/campaigns.json", JSON.stringify({ schemaVersion: 1, campaigns: [] }));
@@ -105,8 +108,9 @@ function enabledBundleFixture(root) {
         icon: { id: campaign.brand.icon, url: `${prefix}${assets[2][0]}` },
       },
     },
-    digest: "a".repeat(64),
+    digest: "",
   };
+  current.digest = computeChannelDigest(current);
   write(root, "releases/current.json", JSON.stringify(current));
   const expired = {
     schemaVersion: 1,
@@ -114,13 +118,14 @@ function enabledBundleFixture(root) {
     release,
     source: "default",
     theme: { id: "araihu", cssUrl: `${prefix}themes/araihu.css` },
-    digest: "b".repeat(64),
+    digest: "",
   };
+  expired.digest = computeChannelDigest(expired);
   write(root, "expired.json", JSON.stringify(expired));
   return { current, expiredPath: path.join(root, "expired.json") };
 }
 
-test("enabled browser gate records exact campaign resolution and direct assets", () => {
+test("enabled browser gate checks campaign identity and all direct assets", () => {
   const root = mkdtempSync(path.join(os.tmpdir(), "ahairu-enabled-canary-"));
   try {
     const fixture = enabledBundleFixture(root);
@@ -130,10 +135,67 @@ test("enabled browser gate records exact campaign resolution and direct assets",
     assert.equal(contract.assets.length, 5);
     assert.equal(contract.assets.find(({ kind }) => kind === "toggle-enabled").id, "ui-hi-16-solid-sparkles");
     assert.equal(contract.expired.source, "default");
-    assert.equal(contract.expired.resolutionDate, "2026-11-01");
+    assert.equal(contract.campaignCheckDate, "2026-10-31");
+    assert.equal(contract.expired.campaignCheckDate, "2026-11-01");
+    assert.equal(contract.expired.assets.length, 1);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+test("expired channel rejects tampered digest and missing theme inventory", () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), "ahairu-enabled-canary-"));
+  try {
+    const fixture = enabledBundleFixture(root);
+    const expired = JSON.parse(readFileSync(fixture.expiredPath, "utf8"));
+    expired.digest = "f".repeat(64);
+    writeFileSync(fixture.expiredPath, JSON.stringify(expired));
+    assert.throws(
+      () => inspectEnabledBundle(root, "2026-10-31", fixture.expiredPath, "2026-11-01"),
+      /expired channel digest=.*recomputed=/,
+    );
+
+    expired.digest = computeChannelDigest(expired);
+    writeFileSync(fixture.expiredPath, JSON.stringify(expired));
+    const releasePath = path.join(root, "releases", "v0.1.2", "release.json");
+    const release = JSON.parse(readFileSync(releasePath, "utf8"));
+    release.files = release.files.filter(({ path: assetPath }) => assetPath !== "themes/araihu.css");
+    writeFileSync(releasePath, JSON.stringify(release));
+    assert.throws(
+      () => inspectEnabledBundle(root, "2026-10-31", fixture.expiredPath, "2026-11-01"),
+      /expired channel theme themes\/araihu\.css is absent from v0\.1\.2 inventory/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("SSR baseline snapshot cannot be poisoned by later runtime brand mutation", () => {
+  const expected = {
+    theme: "araihu",
+    source: "default",
+    campaign: null,
+    logo: "https://araihu.com/assets/releases/v0.1.1/brand/araihu/logo/tinted-transparent-optical.svg",
+    logoCrossOrigin: null,
+    icon: "https://araihu.com/assets/releases/v0.1.1/platform/web/araihu/favicon.svg",
+    iconCrossOrigin: null,
+    toggleHidden: true,
+    togglePressed: "false",
+  };
+  const state = {
+    ...expected,
+    href: "https://araihu.com/brand/",
+    events: [],
+  };
+  const baseline = snapshotSSRBaseline(state, expected);
+  const poisoned = {
+    ...state,
+    source: "campaign",
+    campaign: "halloween-2026",
+    logo: "https://araihu.com/assets/releases/v0.1.2/brand/araihu/logo/tinted-transparent-optical.svg",
+  };
+  assert.equal(baseline.logo, expected.logo);
+  assert.throws(() => snapshotSSRBaseline(poisoned, expected), /SSR baseline source="campaign"/);
 });
 
 test("enabled browser gate rejects incomplete release history", () => {

@@ -52,6 +52,64 @@ function discoverReleases(root) {
     .sort();
 }
 
+function requireOnlyKeys(value, keys, label) {
+  if (!value || typeof value !== "object" || Array.isArray(value) ||
+      Object.keys(value).sort().join("\n") !== [...keys].sort().join("\n")) {
+    fail(`${label} has invalid fields`);
+  }
+}
+
+function canonicalAsset(asset, label) {
+  requireOnlyKeys(asset, ["id", "url"], label);
+  return { id: asset.id, url: asset.url };
+}
+
+function canonicalIcon(icon, label) {
+  const keys = icon?.mode === "sprite" ? ["id", "mode", "url", "spriteSymbol"] : ["id", "mode", "url"];
+  requireOnlyKeys(icon, keys, label);
+  const canonical = { id: icon.id, mode: icon.mode, url: icon.url };
+  if (icon.mode === "sprite") canonical.spriteSymbol = icon.spriteSymbol;
+  return canonical;
+}
+
+function canonicalChannelDocument(channel, label) {
+  const keys = channel?.source === "campaign" ?
+    ["schemaVersion", "runtimeVersion", "release", "source", "theme", "campaign", "digest"] :
+    ["schemaVersion", "runtimeVersion", "release", "source", "theme", "digest"];
+  requireOnlyKeys(channel, keys, label);
+  requireOnlyKeys(channel.theme, ["id", "cssUrl"], `${label} theme`);
+  const canonical = {
+    schemaVersion: channel.schemaVersion,
+    runtimeVersion: channel.runtimeVersion,
+    release: channel.release,
+    source: channel.source,
+    theme: { id: channel.theme.id, cssUrl: channel.theme.cssUrl },
+  };
+  if (channel.source === "campaign") {
+    requireOnlyKeys(channel.campaign, ["id", "toggle", "brand"], `${label} campaign`);
+    requireOnlyKeys(channel.campaign.toggle, ["enabledIcon", "disabledIcon"], `${label} toggle`);
+    requireOnlyKeys(channel.campaign.brand, ["logo", "icon"], `${label} brand`);
+    canonical.campaign = {
+      id: channel.campaign.id,
+      toggle: {
+        enabledIcon: canonicalIcon(channel.campaign.toggle.enabledIcon, `${label} enabled icon`),
+        disabledIcon: canonicalIcon(channel.campaign.toggle.disabledIcon, `${label} disabled icon`),
+      },
+      brand: {
+        logo: canonicalAsset(channel.campaign.brand.logo, `${label} brand logo`),
+        icon: canonicalAsset(channel.campaign.brand.icon, `${label} brand icon`),
+      },
+    };
+  }
+  canonical.digest = "";
+  return canonical;
+}
+
+export function computeChannelDigest(channel, label = "channel") {
+  const canonical = canonicalChannelDocument(channel, label);
+  return sha256(`${JSON.stringify(canonical, null, 2)}\n`);
+}
+
 function validateChannelIdentity(channel, label) {
   if (!channel || channel.schemaVersion !== 1 || channel.runtimeVersion !== 1 ||
       !releaseName.test(channel.release || "") ||
@@ -62,6 +120,10 @@ function validateChannelIdentity(channel, label) {
   }
   if ((channel.source === "campaign") !== Boolean(channel.campaign)) {
     fail(`${label} has inconsistent campaign metadata`);
+  }
+  const computed = computeChannelDigest(channel, label);
+  if (computed !== channel.digest) {
+    fail(`${label} digest=${channel.digest}, recomputed=${computed}`);
   }
 }
 
@@ -80,12 +142,12 @@ function validateCanonicalReleaseURL(raw, release, label) {
   return url;
 }
 
-function activeCampaign(manifest, resolutionDate) {
+function activeCampaign(manifest, campaignCheckDate) {
   return manifest.campaigns.find((campaign) =>
-    campaign.enabled && campaign.startsOn <= resolutionDate && resolutionDate <= campaign.endsOn);
+    campaign.enabled && campaign.startsOn <= campaignCheckDate && campaignCheckDate <= campaign.endsOn);
 }
 
-function validateCampaignResolution(root, channel, resolutionDate, label) {
+function validateCampaignIdentity(root, channel, campaignCheckDate, label) {
   const releaseRoot = path.join(root, "releases", channel.release);
   if (!existsSync(releaseRoot) || !statSync(releaseRoot).isDirectory()) {
     fail(`${label} points outside retained release ${channel.release}`);
@@ -94,13 +156,13 @@ function validateCampaignResolution(root, channel, resolutionDate, label) {
   if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.campaigns)) {
     fail(`${label} campaigns manifest has invalid schema`);
   }
-  const active = activeCampaign(manifest, resolutionDate);
+  const active = activeCampaign(manifest, campaignCheckDate);
   if (channel.source === "default") {
-    if (active) fail(`${label} source=default but ${active.id} is active on ${resolutionDate}`);
+    if (active) fail(`${label} source=default but ${active.id} is active on check date ${campaignCheckDate}`);
     return;
   }
   if (!active || active.id !== channel.campaign.id) {
-    fail(`${label} campaign ${channel.campaign.id} is not active on ${resolutionDate}`);
+    fail(`${label} campaign ${channel.campaign.id} is not active on check date ${campaignCheckDate}`);
   }
   const expected = {
     theme: active.theme,
@@ -152,12 +214,29 @@ function inventoryFor(root, release) {
   return new Map(document.files.map((entry) => [entry.path, entry]));
 }
 
+function bindResolvedAssetsToInventory(root, channel, label) {
+  const assets = resolvedAssets(channel);
+  const inventory = inventoryFor(root, channel.release);
+  for (const asset of assets) {
+    const url = validateCanonicalReleaseURL(asset.url, channel.release, `${label} ${asset.kind} URL`);
+    const relative = url.pathname.slice(`/assets/releases/${channel.release}/`.length);
+    const entry = inventory.get(relative);
+    if (!entry || !sha256Hex.test(entry.sha256 || "") || !Number.isInteger(entry.size) || entry.size < 0) {
+      fail(`${label} ${asset.kind} ${relative} is absent from ${channel.release} inventory`);
+    }
+    asset.pathname = url.pathname;
+    asset.sha256 = entry.sha256;
+    asset.bytes = entry.size;
+  }
+  return assets;
+}
+
 /**
  * Inspect the exact accepted input before building. Full checksum/schema
  * verification remains authoritative in the Go assembler invoked by runBuild.
  */
-export function inspectEnabledBundle(assetBundle, resolutionDate, expiredInput, expiredResolutionDate) {
-  const resolvedOn = validateDate(resolutionDate, "CANARY_RESOLUTION_DATE");
+export function inspectEnabledBundle(assetBundle, campaignCheckDate, expiredInput, expiredCheckDate) {
+  const checkedOn = validateDate(campaignCheckDate, "CANARY_CAMPAIGN_CHECK_DATE");
   const releases = discoverReleases(assetBundle);
   if (releases.length < 2) {
     fail("enabled browser canary needs at least two retained immutable releases in ASSET_BUNDLE");
@@ -165,38 +244,25 @@ export function inspectEnabledBundle(assetBundle, resolutionDate, expiredInput, 
   const current = readJSON(path.join(assetBundle, "releases", "current.json"), "current channel");
   validateChannelIdentity(current, "current channel");
   if (current.source !== "campaign") fail("enabled browser canary needs current channel source=campaign");
-  validateCampaignResolution(assetBundle, current, resolvedOn, "current channel");
-
-  const assets = resolvedAssets(current);
-  const inventory = inventoryFor(assetBundle, current.release);
-  for (const asset of assets) {
-    const url = validateCanonicalReleaseURL(asset.url, current.release, `${asset.kind} URL`);
-    const relative = url.pathname.slice(`/assets/releases/${current.release}/`.length);
-    const entry = inventory.get(relative);
-    if (!entry || !sha256Hex.test(entry.sha256 || "") || !Number.isInteger(entry.size)) {
-      fail(`${asset.kind} ${relative} is absent from ${current.release} inventory`);
-    }
-    asset.pathname = url.pathname;
-    asset.sha256 = entry.sha256;
-    asset.bytes = entry.size;
-  }
+  validateCampaignIdentity(assetBundle, current, checkedOn, "current channel");
+  const assets = bindResolvedAssetsToInventory(assetBundle, current, "current channel");
 
   let expired = null;
-  if (expiredInput || expiredResolutionDate) {
+  if (expiredInput || expiredCheckDate) {
     if (!expiredInput || !path.isAbsolute(expiredInput) || !existsSync(expiredInput) || !statSync(expiredInput).isFile()) {
       fail("CANARY_EXPIRED_CHANNEL must name an existing absolute channel JSON file");
     }
-    const expiredOn = validateDate(expiredResolutionDate, "CANARY_EXPIRED_RESOLUTION_DATE");
+    const expiredOn = validateDate(expiredCheckDate, "CANARY_EXPIRED_CHECK_DATE");
     expired = readJSON(expiredInput, "expired channel");
     validateChannelIdentity(expired, "expired channel");
     if (expired.source !== "default") fail("expired channel must resolve source=default");
-    validateCanonicalReleaseURL(expired.theme.cssUrl, expired.release, "expired theme URL");
-    validateCampaignResolution(assetBundle, expired, expiredOn, "expired channel");
-    expired.resolutionDate = expiredOn;
+    validateCampaignIdentity(assetBundle, expired, expiredOn, "expired channel");
+    expired.assets = bindResolvedAssetsToInventory(assetBundle, expired, "expired channel");
+    expired.campaignCheckDate = expiredOn;
     expired.input = expiredInput;
   }
 
-  return { resolutionDate: resolvedOn, releases, current, assets, expired };
+  return { campaignCheckDate: checkedOn, releases, current, assets, expired };
 }
 
 export function canonicalProxyURL(rawURL, baseURL, pathnameOverride = "") {
@@ -312,30 +378,42 @@ export function assertCapture(capture, expected) {
 }
 
 async function probeResolvedAssets(baseURL, contract) {
-  for (const asset of contract.assets) {
-    const response = await fetch(`${baseURL}${asset.pathname}`, { redirect: "manual" });
-    const body = Buffer.from(await response.arrayBuffer());
-    const capture = {
-      event: "resolved-asset-probe",
-      resolutionDate: contract.resolutionDate,
-      release: contract.current.release,
-      source: contract.current.source,
-      campaign: contract.current.campaign.id,
-      digest: contract.current.digest,
-      kind: asset.kind,
-      id: asset.id,
-      url: asset.url,
-      status: response.status,
-      type: response.headers.get("content-type"),
-      cache: response.headers.get("cache-control"),
-      cors: response.headers.get("access-control-allow-origin"),
-      bytes: body.byteLength,
-      sha256: sha256(body),
-    };
-    if (capture.status !== 200 || capture.bytes !== asset.bytes || capture.sha256 !== asset.sha256) {
-      fail(`${asset.kind} direct probe does not match ${contract.current.release} inventory`);
+  const channels = [
+    { channel: contract.current, assets: contract.assets, campaignCheckDate: contract.campaignCheckDate },
+  ];
+  if (contract.expired) {
+    channels.push({
+      channel: contract.expired,
+      assets: contract.expired.assets,
+      campaignCheckDate: contract.expired.campaignCheckDate,
+    });
+  }
+  for (const evidence of channels) {
+    for (const asset of evidence.assets) {
+      const response = await fetch(`${baseURL}${asset.pathname}`, { redirect: "manual" });
+      const body = Buffer.from(await response.arrayBuffer());
+      const capture = {
+        event: "resolved-asset-probe",
+        campaignCheckDate: evidence.campaignCheckDate,
+        release: evidence.channel.release,
+        source: evidence.channel.source,
+        campaign: evidence.channel.campaign?.id || null,
+        digest: evidence.channel.digest,
+        kind: asset.kind,
+        id: asset.id,
+        url: asset.url,
+        status: response.status,
+        type: response.headers.get("content-type"),
+        cache: response.headers.get("cache-control"),
+        cors: response.headers.get("access-control-allow-origin"),
+        bytes: body.byteLength,
+        sha256: sha256(body),
+      };
+      if (capture.status !== 200 || capture.bytes !== asset.bytes || capture.sha256 !== asset.sha256) {
+        fail(`${asset.kind} direct probe does not match ${evidence.channel.release} inventory`);
+      }
+      event(capture);
     }
-    event(capture);
   }
 }
 
@@ -395,6 +473,57 @@ async function captureBrowserState(page) {
   });
 }
 
+function tagAttribute(tag, name) {
+  const match = tag.match(new RegExp(`\\s${name}="([^"]*)"`));
+  return match ? match[1] : null;
+}
+
+function requireTag(html, expression, label) {
+  const match = html.match(expression);
+  if (!match) fail(`built /brand/ misses ${label}`);
+  return match[0];
+}
+
+function expectedSSRBaseline(publicRoot) {
+  const html = readFileSync(path.join(publicRoot, "brand", "index.html"), "utf8");
+  const root = requireTag(html, /<html\b[^>]*>/, "root element");
+  const logo = requireTag(html, /<img\b[^>]*data-asset-brand="logo"[^>]*>/, "SSR brand logo");
+  const icon = requireTag(html, /<link\b[^>]*data-asset-brand="icon"[^>]*>/, "SSR brand icon");
+  const toggle = requireTag(html, /<button\b[^>]*data-campaign-toggle(?:\s|>)[^>]*>/, "SSR campaign toggle");
+  return {
+    theme: tagAttribute(root, "data-theme"),
+    source: tagAttribute(root, "data-theme-source"),
+    campaign: null,
+    logo: new URL(tagAttribute(logo, "src"), `${canonicalOrigin}/brand/`).href,
+    logoCrossOrigin: tagAttribute(logo, "crossorigin"),
+    icon: new URL(tagAttribute(icon, "href"), `${canonicalOrigin}/brand/`).href,
+    iconCrossOrigin: tagAttribute(icon, "crossorigin"),
+    toggleHidden: /\shidden(?:\s|>)/.test(toggle),
+    togglePressed: tagAttribute(toggle, "aria-pressed"),
+  };
+}
+
+export function snapshotSSRBaseline(state, expected) {
+  assertCanonicalPage(state);
+  for (const field of [
+    "theme", "source", "campaign", "logo", "logoCrossOrigin", "icon", "iconCrossOrigin",
+    "toggleHidden", "togglePressed",
+  ]) {
+    if (state[field] !== expected[field]) {
+      fail(`SSR baseline ${field}=${JSON.stringify(state[field])}, want ${JSON.stringify(expected[field])}`);
+    }
+  }
+  if (state.events.length !== 0) fail("SSR baseline was captured after campaign lifecycle mutation");
+  return Object.freeze({
+    theme: state.theme,
+    source: state.source,
+    logo: state.logo,
+    logoCrossOrigin: state.logoCrossOrigin,
+    icon: state.icon,
+    iconCrossOrigin: state.iconCrossOrigin,
+  });
+}
+
 function assertCanonicalPage(state) {
   if (!state.href.startsWith(`${canonicalOrigin}/`)) {
     fail(`browser navigation lost canonical origin: ${state.href}`);
@@ -442,6 +571,7 @@ function assertPreferenceState(state, baseline) {
   assertCanonicalPage(state);
   if (state.theme !== "canary-preference" || state.source !== "preference" || state.campaign !== null ||
       !state.toggleHidden || state.logo !== baseline.logo || state.icon !== baseline.icon ||
+      state.logoCrossOrigin !== baseline.logoCrossOrigin || state.iconCrossOrigin !== baseline.iconCrossOrigin ||
       state.events.some((entry) => entry.type === "araihu:campaign:applied")) {
     fail("explicit preference did not retain baseline presentation");
   }
@@ -453,7 +583,8 @@ function assertOptOutState(state, channel, baseline) {
   if (state.theme !== baseline.theme || state.source !== "campaign-opt-out" ||
       state.campaign !== channel.campaign.id || state.toggleHidden ||
       state.togglePressed !== "false" || state.logo !== baseline.logo ||
-      state.icon !== baseline.icon || state.storage[key] !== "1") {
+      state.icon !== baseline.icon || state.logoCrossOrigin !== baseline.logoCrossOrigin ||
+      state.iconCrossOrigin !== baseline.iconCrossOrigin || state.storage[key] !== "1") {
     fail("campaign opt-out did not restore and persist baseline presentation");
   }
   assertToggleIcon(state, channel.campaign.toggle.disabledIcon);
@@ -463,6 +594,7 @@ function assertExpiredState(state, expired, baseline) {
   assertCanonicalPage(state);
   if (state.theme !== baseline.theme || state.source !== baseline.source || state.campaign !== null ||
       !state.toggleHidden || state.logo !== baseline.logo || state.icon !== baseline.icon ||
+      state.logoCrossOrigin !== baseline.logoCrossOrigin || state.iconCrossOrigin !== baseline.iconCrossOrigin ||
       !state.events.some((entry) =>
         entry.type === "araihu:campaign:restored" && entry.detail?.code === "campaign-inactive")) {
     fail(`expired ${expired.release} channel did not restore baseline presentation`);
@@ -473,7 +605,7 @@ function transcriptState(scenario, contract, state, extra = {}) {
   event({
     event: "browser-state",
     scenario,
-    resolutionDate: contract.resolutionDate,
+    campaignCheckDate: contract.campaignCheckDate,
     release: contract.current.release,
     source: contract.current.source,
     campaign: contract.current.campaign.id,
@@ -491,10 +623,25 @@ function transcriptState(scenario, contract, state, extra = {}) {
   });
 }
 
-async function openProxiedContext(browser, baseURL, { preference = null, reducedMotion = "no-preference" } = {}) {
+function deferred() {
+  let resolve;
+  const promise = new Promise((done) => { resolve = done; });
+  return { promise, resolve };
+}
+
+async function openProxiedContext(browser, baseURL, {
+  preference = null,
+  reducedMotion = "no-preference",
+  holdCurrentChannel = false,
+} = {}) {
   const context = await browser.newContext({ reducedMotion, serviceWorkers: "block" });
   const unexpected = [];
   let useExpiredChannel = false;
+  let held = false;
+  const currentObserved = deferred();
+  const currentRelease = deferred();
+  let fulfilledCurrentRequests = 0;
+  const currentWaiters = [];
   await context.addInitScript(eventInitScript, preference);
   await context.route(/^https?:\/\//, async (route) => {
     const request = route.request();
@@ -504,7 +651,15 @@ async function openProxiedContext(browser, baseURL, { preference = null, reduced
       await route.abort("blockedbyclient");
       return;
     }
-    const override = useExpiredChannel && remote.pathname === currentChannelPath ? expiredChannelPath : "";
+    const isCurrent = remote.pathname === currentChannelPath;
+    if (isCurrent) {
+      currentObserved.resolve();
+      if (holdCurrentChannel && !held) {
+        held = true;
+        await currentRelease.promise;
+      }
+    }
+    const override = useExpiredChannel && isCurrent ? expiredChannelPath : "";
     const headers = { ...request.headers() };
     delete headers.host;
     const response = await route.fetch({
@@ -513,9 +668,27 @@ async function openProxiedContext(browser, baseURL, { preference = null, reduced
       maxRedirects: 0,
     });
     await route.fulfill({ response });
+    if (isCurrent) {
+      fulfilledCurrentRequests += 1;
+      for (let index = currentWaiters.length - 1; index >= 0; index -= 1) {
+        if (fulfilledCurrentRequests >= currentWaiters[index].count) {
+          currentWaiters.splice(index, 1)[0].resolve();
+        }
+      }
+    }
   });
   return {
     context,
+    waitForCurrentChannelHold() {
+      return currentObserved.promise;
+    },
+    waitForCurrentChannel(count = 1) {
+      if (fulfilledCurrentRequests >= count) return Promise.resolve();
+      return new Promise((resolve) => currentWaiters.push({ count, resolve }));
+    },
+    releaseCurrentChannel() {
+      currentRelease.resolve();
+    },
     useExpiredChannel() {
       useExpiredChannel = true;
     },
@@ -525,41 +698,50 @@ async function openProxiedContext(browser, baseURL, { preference = null, reduced
   };
 }
 
-async function waitForRuntime(page) {
-  await page.waitForFunction(() => window.AraiHuCampaign?.version === 1);
-  await page.evaluate(() => window.AraiHuCampaign.refresh());
+async function waitForAutomaticBootstrap(page, proxy, expectedSource, requestCount = 1) {
+  await proxy.waitForCurrentChannel(requestCount);
+  await page.waitForFunction((source) =>
+    window.AraiHuCampaign?.version === 1 && document.documentElement.dataset.themeSource === source,
+  expectedSource);
+  await page.evaluate(() => new Promise((resolve) =>
+    requestAnimationFrame(() => requestAnimationFrame(resolve))));
 }
 
-async function runBrowserCanary(baseURL, contract) {
+async function runBrowserCanary(baseURL, contract, ssrExpected) {
   const browserPath = await puppeteerExecutablePath();
   if (!browserPath || !existsSync(browserPath)) {
     fail("Puppeteer Chromium is unavailable; run npm ci before the browser canary");
   }
   const browser = await chromium.launch({ headless: true, executablePath: browserPath });
   try {
-    const first = await openProxiedContext(browser, baseURL);
+    const first = await openProxiedContext(browser, baseURL, { holdCurrentChannel: true });
+    let baseline;
     try {
       const page = await first.context.newPage();
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
-      await waitForRuntime(page);
+      await first.waitForCurrentChannelHold();
+      const ssrState = await captureBrowserState(page);
+      baseline = snapshotSSRBaseline(ssrState, ssrExpected);
+      transcriptState("ssr-baseline", contract, ssrState);
+      first.releaseCurrentChannel();
+      await waitForAutomaticBootstrap(page, first, "campaign");
       const state = await captureBrowserState(page);
       assertAppliedState(state, contract.current);
       transcriptState("first-apply", contract, state);
       first.assertLocalOnly();
     } finally {
+      first.releaseCurrentChannel();
       await first.context.close();
     }
 
     const preferred = await openProxiedContext(browser, baseURL, {
       preference: { theme: "canary-preference" },
     });
-    let baseline;
     try {
       const page = await preferred.context.newPage();
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
-      await waitForRuntime(page);
+      await waitForAutomaticBootstrap(page, preferred, "preference");
       const state = await captureBrowserState(page);
-      baseline = { theme: "araihu", source: "default", logo: state.logo, icon: state.icon };
       assertPreferenceState(state, baseline);
       transcriptState("explicit-preference", contract, state);
       preferred.assertLocalOnly();
@@ -571,7 +753,7 @@ async function runBrowserCanary(baseURL, contract) {
     try {
       const page = await toggle.context.newPage();
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
-      await waitForRuntime(page);
+      await waitForAutomaticBootstrap(page, toggle, "campaign");
       await page.locator("[data-campaign-toggle]").click();
       await page.waitForFunction(() => document.documentElement.dataset.themeSource === "campaign-opt-out");
       let state = await captureBrowserState(page);
@@ -579,7 +761,7 @@ async function runBrowserCanary(baseURL, contract) {
       transcriptState("opt-out", contract, state);
 
       await page.reload({ waitUntil: "domcontentloaded" });
-      await waitForRuntime(page);
+      await waitForAutomaticBootstrap(page, toggle, "campaign-opt-out", 2);
       state = await captureBrowserState(page);
       assertOptOutState(state, contract.current, baseline);
       transcriptState("opt-out-reload", contract, state);
@@ -602,7 +784,7 @@ async function runBrowserCanary(baseURL, contract) {
     try {
       const page = await reduced.context.newPage();
       await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
-      await waitForRuntime(page);
+      await waitForAutomaticBootstrap(page, reduced, "campaign");
       const state = await captureBrowserState(page);
       assertAppliedState(state, contract.current);
       const lifecycle = state.events.filter((entry) =>
@@ -622,13 +804,13 @@ async function runBrowserCanary(baseURL, contract) {
       try {
         const page = await expiry.context.newPage();
         await page.goto(`${canonicalOrigin}/brand/`, { waitUntil: "domcontentloaded" });
-        await waitForRuntime(page);
+        await waitForAutomaticBootstrap(page, expiry, "campaign");
         expiry.useExpiredChannel();
         await page.evaluate(() => window.AraiHuCampaign.refresh());
         const state = await captureBrowserState(page);
         assertExpiredState(state, contract.expired, baseline);
         transcriptState("expiry-refresh", contract, state, {
-          expiredResolutionDate: contract.expired.resolutionDate,
+          expiredCampaignCheckDate: contract.expired.campaignCheckDate,
           expiredRelease: contract.expired.release,
           expiredSource: contract.expired.source,
           expiredDigest: contract.expired.digest,
@@ -641,7 +823,7 @@ async function runBrowserCanary(baseURL, contract) {
       event({
         event: "scenario-skip",
         scenario: "expiry-refresh",
-        reason: "CANARY_EXPIRED_CHANNEL and CANARY_EXPIRED_RESOLUTION_DATE not supplied",
+        reason: "CANARY_EXPIRED_CHANNEL and CANARY_EXPIRED_CHECK_DATE not supplied",
       });
     }
   } finally {
@@ -726,15 +908,16 @@ export async function runCanary() {
   }
   const contract = inspectEnabledBundle(
     assetBundle,
-    process.env.CANARY_RESOLUTION_DATE,
+    process.env.CANARY_CAMPAIGN_CHECK_DATE,
     process.env.CANARY_EXPIRED_CHANNEL,
-    process.env.CANARY_EXPIRED_RESOLUTION_DATE,
+    process.env.CANARY_EXPIRED_CHECK_DATE,
   );
   const port = configuredPort(process.env.CANARY_PORT);
   const timeout = configuredTimeout(process.env.CANARY_TIMEOUT_MS);
   runBuild(assetBundle);
   const publicRoot = path.join(process.cwd(), "public");
   const { specs, releases } = buildProbeSpecs(publicRoot);
+  const ssrExpected = expectedSSRBaseline(publicRoot);
   const builtCurrent = readJSON(path.join(publicRoot, "assets", "releases", "current.json"), "built current channel");
   if (builtCurrent.release !== contract.current.release || builtCurrent.digest !== contract.current.digest ||
       builtCurrent.source !== contract.current.source || builtCurrent.campaign?.id !== contract.current.campaign.id) {
@@ -746,8 +929,8 @@ export async function runCanary() {
     copyFileSync(contract.expired.input, expiredFixture);
   }
   event({
-    event: "resolution",
-    resolutionDate: contract.resolutionDate,
+    event: "channel-evidence",
+    campaignCheckDate: contract.campaignCheckDate,
     release: contract.current.release,
     source: contract.current.source,
     campaign: contract.current.campaign.id,
@@ -781,10 +964,10 @@ export async function runCanary() {
       }
     }
     await probeResolvedAssets(baseURL, contract);
-    await runBrowserCanary(baseURL, contract);
+    await runBrowserCanary(baseURL, contract, ssrExpected);
     event({
       event: "canary-pass",
-      resolutionDate: contract.resolutionDate,
+      campaignCheckDate: contract.campaignCheckDate,
       release: contract.current.release,
       source: contract.current.source,
       campaign: contract.current.campaign.id,
