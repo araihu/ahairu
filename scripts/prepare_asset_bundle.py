@@ -8,6 +8,7 @@ import json
 import os
 import pathlib
 import re
+import struct
 import subprocess
 import sys
 import tarfile
@@ -21,10 +22,11 @@ GIT_REVISION = re.compile(r"[0-9a-f]{40}\Z")
 POSITIVE_ID = re.compile(r"[1-9][0-9]*\Z")
 SEMVER = re.compile(
     r"v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
-    r"(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]+)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]+))*)?"
+    r"(?:-(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9][0-9]*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?"
     r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\Z"
 )
-DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
+STATE_REF = "automation/araihu-assets-state"
+STATE_PATH = ".automation/araihu-assets/accepted-channel-v1.json"
 CHANNEL_FILES = {
     "campaign/v1.js",
     "releases/latest.json",
@@ -72,28 +74,15 @@ def require_semver(value, name):
 
 
 def require_state_ref(value):
-    value = require_string(value, "state_ref")
-    if (
-        not re.fullmatch(r"refs/(?:heads|tags)/[A-Za-z0-9][A-Za-z0-9._/-]*", value)
-        or "//" in value
-        or ".." in value
-        or value.endswith(("/", ".", ".lock"))
-    ):
+    if value != STATE_REF:
         fail("state_ref is invalid")
-    return value
+    return STATE_REF
 
 
 def require_state_path(value):
-    value = require_string(value, "state_path")
-    parts = value.split("/")
-    if (
-        value.startswith("/")
-        or "\\" in value
-        or any(part in {"", ".", ".."} for part in parts)
-        or not all(re.fullmatch(r"[A-Za-z0-9.][A-Za-z0-9._-]*", part) for part in parts)
-    ):
+    if value != STATE_PATH:
         fail("state_path is invalid")
-    return value
+    return STATE_PATH
 
 
 def release_url(release):
@@ -104,10 +93,14 @@ def channel_api_url(identifier):
     return f"https://api.github.com/repos/araihu/assets/actions/artifacts/{identifier}/zip"
 
 
+def require_channel_artifact_id(value):
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        fail("channel_artifact_id is invalid")
+    return value
+
+
 def require_channel_artifact_url(url, identifier):
     url = require_string(url, "channel_artifact_url")
-    if not POSITIVE_ID.fullmatch(identifier):
-        fail("channel_artifact_id is invalid")
     expected = f"https://github.com/araihu/assets/actions/runs/[1-9][0-9]*/artifacts/{identifier}"
     if not re.fullmatch(expected, url):
         fail("channel_artifact_url must be the matching araihu/assets Actions HTML artifact URL")
@@ -147,13 +140,9 @@ def validate_handoff(payload):
     runtime_release = require_semver(payload["runtime_release"], "runtime_release")
     if runtime_release not in releases:
         fail("runtime_release is not present in release_artifacts")
-    identifier = require_string(payload["channel_artifact_id"], "channel_artifact_id")
-    if not POSITIVE_ID.fullmatch(identifier):
-        fail("channel_artifact_id is invalid")
+    identifier = require_channel_artifact_id(payload["channel_artifact_id"])
     require_channel_artifact_url(payload["channel_artifact_url"], identifier)
-    digest = require_string(payload["candidate_bundle_digest"], "candidate_bundle_digest")
-    if not DIGEST.fullmatch(digest):
-        fail("candidate_bundle_digest is invalid")
+    digest = require_sha256(payload["candidate_bundle_digest"], "candidate_bundle_digest")
     resolution_date = require_string(payload["resolution_date"], "resolution_date")
     try:
         if datetime.date.fromisoformat(resolution_date).isoformat() != resolution_date:
@@ -235,48 +224,111 @@ def read_archive(path):
     fail("archive must be ZIP or tar")
 
 
-def extract(path, destination, kind, expected_release=None):
-    seen = set()
-    files = set()
-    release_roots = set()
-    for name, directory, contents in read_archive(path):
-        if name in seen:
-            fail(f"archive repeats path {name!r}")
-        seen.add(name)
-        parts = safe_member(name)
-        if kind == "release":
-            if parts[0] != "releases" or (len(parts) == 1 and not directory):
-                fail(f"unexpected archive root {name!r} for immutable release")
-            if len(parts) >= 2:
-                if not SEMVER.fullmatch(parts[1]):
-                    fail(f"unexpected archive root {name!r} for immutable release")
-                release_roots.add(parts[1])
-            if not directory and len(parts) < 3:
-                fail(f"unexpected archive root {name!r} for immutable release")
-        elif name not in CHANNEL_FILES and not directory:
-            fail(f"unexpected archive root {name!r} for channel")
-        elif parts[0] not in {"campaign", "releases"}:
-            fail(f"unexpected archive root {name!r} for channel")
-        target = destination.joinpath(*parts)
-        if directory:
-            target.mkdir(parents=True, exist_ok=True)
+def strict_json(data, name):
+    def no_duplicates(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:
+                fail(f"{name} has duplicate JSON field {key!r}")
+            result[key] = value
+        return result
+
+    try:
+        value = json.loads(data, object_pairs_hook=no_duplicates)
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        fail(f"{name} is invalid JSON: {error}")
+    if not isinstance(value, dict):
+        fail(f"{name} is not a JSON object")
+    return value
+
+
+def parse_checksums(data):
+    try:
+        source = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        fail(f"checksums.txt is not UTF-8: {error}")
+    if not source.endswith("\n"):
+        fail("checksums.txt is not newline terminated")
+    entries = {}
+    for line in source[:-1].split("\n"):
+        digest, separator, name = line.partition("  ")
+        if not separator or not SHA256.fullmatch(digest) or not name or name in entries:
+            fail(f"checksums.txt has invalid entry {line!r}")
+        safe_member(name)
+        entries[name] = digest
+    return entries
+
+
+def validate_flat_release(files, expected_release):
+    if "release.json" not in files or "checksums.txt" not in files:
+        fail("immutable release archive misses release metadata")
+    release = strict_json(files["release.json"], "release.json")
+    if release.get("release") != expected_release:
+        fail("immutable release archive does not match its handoff release")
+    checksums = parse_checksums(files["checksums.txt"])
+    expected_files = set(files) - {"checksums.txt"}
+    if set(checksums) != expected_files:
+        fail("checksums.txt does not cover exactly the immutable release archive")
+    for name, data in files.items():
+        if name == "checksums.txt":
             continue
+        actual = hashlib.sha256(data).hexdigest()
+        if checksums[name] != actual:
+            fail(f"checksums.txt digest mismatch for {name!r}")
+
+
+def archive_files(path, kind, expected_release=None):
+    files = {}
+    for name, directory, contents in read_archive(path):
+        if directory:
+            if kind == "release":
+                fail(f"immutable release archive has directory {name!r}")
+            continue
+        if name in files:
+            fail(f"archive repeats path {name!r}")
+        if kind == "release":
+            if name.startswith("releases/"):
+                fail(f"immutable release archive must have flat root, got {name!r}")
+        elif name not in CHANNEL_FILES:
+            fail(f"unexpected archive root {name!r} for channel")
+        files[name] = contents
+    if kind == "release":
+        validate_flat_release(files, expected_release)
+    elif set(files) != CHANNEL_FILES:
+        fail("channel archive must contain campaign/v1.js and all three channel documents")
+    return files
+
+
+def extract(path, destination, kind, expected_release=None):
+    files = archive_files(path, kind, expected_release)
+    targets = {}
+    for name, contents in files.items():
+        target = destination / "releases" / expected_release / name if kind == "release" else destination.joinpath(*safe_member(name))
         if target.exists():
             fail(f"archive would overwrite {name!r}")
+        targets[name] = (target, contents)
+    for name, (target, contents) in targets.items():
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("xb") as output:
             output.write(contents)
-        files.add(name)
-    if kind == "release":
-        if len(release_roots) != 1:
-            fail("immutable release archive must contain exactly one release root")
-        release = next(iter(release_roots))
-        if release != expected_release:
-            fail("immutable release archive does not match its handoff release")
-        if f"releases/{release}/release.json" not in files or f"releases/{release}/checksums.txt" not in files:
-            fail("immutable release archive misses release metadata")
-    elif files != CHANNEL_FILES:
-        fail("channel archive must contain campaign/v1.js and all three channel documents")
+
+
+def channel_bundle_digest(root):
+    digest = hashlib.sha256()
+    digest.update(b"araihu-channel-bundle-v1\0")
+    for name in ("campaign/v1.js", "releases/latest.json", "releases/default.json", "releases/current.json"):
+        data = (root / name).read_bytes()
+        encoded = name.encode("utf-8")
+        digest.update(struct.pack(">Q", len(encoded)))
+        digest.update(encoded)
+        digest.update(struct.pack(">Q", len(data)))
+        digest.update(data)
+    return digest.hexdigest()
+
+
+def validate_channel_bundle_digest(root, expected):
+    if channel_bundle_digest(root) != expected:
+        fail("candidate_bundle_digest does not match canonical channel bundle")
 
 
 def download(url, destination, token):
@@ -343,6 +395,7 @@ def main():
             token,
         )
         extract(channel, staged, "channel")
+        validate_channel_bundle_digest(staged, handoff["candidate_bundle_digest"])
         os.replace(staged, args.output)
     if args.accepted_output:
         write_handoff(args.accepted_output, handoff)

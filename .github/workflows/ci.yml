@@ -52,6 +52,7 @@ jobs:
           owner: araihu
           repositories: assets
           permission-actions: read
+          permission-contents: read
       - run: npm ci
       - run: go install github.com/a-h/templ/cmd/templ@v0.3.1020
       - name: Materialize accepted immutable Assets bundle from promotion dispatch

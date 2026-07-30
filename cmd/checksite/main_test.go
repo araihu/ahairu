@@ -81,8 +81,8 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	if got := strings.Count(ci, "vars.ASSETS_"); got != 1 {
 		t.Errorf("CI has %d main-promotion variables, want one full handoff JSON", got)
 	}
-	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Contains(ci, "permission-contents:") {
-		t.Error("CI Assets token does not request only Actions read")
+	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Count(ci, "permission-contents: read") != 1 {
+		t.Error("CI Assets token does not request least Actions and Contents read")
 	}
 
 	deploy := readWorkflow(t, "deploy.yml")
@@ -96,6 +96,15 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"--uploaded-version \"$UPLOADED_VERSION\"",
 		"scripts/select_deployed_version.mjs",
 		"set -o pipefail",
+		"permission-contents: read",
+		"permission-contents: write",
+		"scripts/accepted_assets_state.py",
+		"AHAIRU_REPOSITORY: araihu/ahairu",
+		"STATE_REF: automation/araihu-assets-state",
+		"STATE_PATH: .automation/araihu-assets/accepted-channel-v1.json",
+		"wrangler deployments status --json",
+		"Create dedicated accepted-state ref failed",
+		"Write accepted state conflicted or failed",
 	} {
 		if !strings.Contains(deploy, want) {
 			t.Errorf("deploy misses %q", want)
@@ -106,8 +115,14 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 			t.Errorf("deploy retains ambiguous Worker version inference %q", forbidden)
 		}
 	}
-	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Contains(deploy, "permission-contents:") {
-		t.Error("deploy Assets token does not request only Actions read")
+	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Count(deploy, "permission-contents: read") != 1 || strings.Count(deploy, "permission-contents: write") != 1 {
+		t.Error("deploy tokens do not use least Assets read and post-promotion Ahairu write permissions")
+	}
+	if strings.Index(deploy, "wrangler deployments status --json") > strings.Index(deploy, "Mint post-promotion state token") || strings.Index(deploy, "Mint post-promotion state token") > strings.Index(deploy, "Durably accept verified deployed Assets channel") {
+		t.Error("accepted state must be written only after deployed Worker version is verified active")
+	}
+	if strings.Contains(deploy, "refs/heads/main") || strings.Contains(deploy, "contents/.github/") {
+		t.Error("deploy state write must never target main or a mutable workflow path")
 	}
 }
 

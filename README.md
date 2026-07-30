@@ -65,14 +65,19 @@ be exactly
 `https://github.com/araihu/assets/releases/download/<tag>/araihu-assets-<tag>.tar.gz`.
 `runtime_release` must occur in that array. The channel URL must be exactly the
 matching `https://github.com/araihu/assets/actions/runs/<positive-run-id>/artifacts/<positive-id>`
-HTML URL; Ahairu validates it, then constructs the trusted GitHub API ZIP URL
-from its ID locally. The candidate digest is canonical `sha256:<lowercase-hex>`;
-the downloadable release and channel archive hashes are verified before use.
+HTML URL, and `channel_artifact_id` is a positive JSON number; Ahairu validates
+both, then constructs the trusted GitHub API ZIP URL from that number locally.
+The candidate digest is bare lowercase SHA-256 hex, calculated by the Assets
+`araihu-channel-bundle-v1` codec over, in order, `campaign/v1.js`,
+`releases/latest.json`, `releases/default.json`, and `releases/current.json`.
+`state_ref` and `state_path` are fixed to `automation/araihu-assets-state` and
+`.automation/araihu-assets/accepted-channel-v1.json`.
 
-Each release archive contains exactly its declared
-`releases/vMAJOR.MINOR.PATCH/` root, including `release.json` and
-`checksums.txt`. Ahairu extracts every declared release into one cumulative,
-immutable bundle. The channel archive contains exactly `campaign/v1.js`,
+Each Assets release tarball has a flat root. Ahairu rejects wrapped roots,
+requires `release.json.release` to equal the dispatched tag, verifies that
+`checksums.txt` covers exactly every archived file except itself, then stages
+the archive under `releases/vMAJOR.MINOR.PATCH/` in the cumulative immutable
+bundle. The channel archive contains exactly `campaign/v1.js`,
 `releases/latest.json`, `releases/default.json`, and `releases/current.json`.
 Symlinks, special files, absolute paths, traversal, duplicate paths, and
 unexpected roots are rejected before extraction.
@@ -88,11 +93,15 @@ python3 scripts/prepare_asset_bundle.py \
 ASSET_BUNDLE="$PWD/.asset-bundle" npm run check
 ```
 
-CI mints a short-lived GitHub App token limited to `araihu/assets`, validates
-the whole dispatch handoff, checks the complete bundle, then hands the exact
-normalized JSON artifact to deploy. Deploy validates it again, reacquires and
-hash-verifies every archive, then runs the same full check before `wrangler`
-deploy in protected `production`. Dispatch never reads repository variables.
+CI mints a short-lived GitHub App token limited to `araihu/assets` with only
+`contents: read` and `actions: read`, validates the whole dispatch handoff,
+checks the complete bundle, then hands the exact normalized JSON artifact to
+deploy. Deploy validates it again, reacquires and hash-verifies every archive,
+then runs the same full check before `wrangler` deploy in protected
+`production`. Only after the uploaded Worker version is verified active does a
+separate Ahairu-scoped `contents: write` token create or update the dedicated
+accepted-state ref with optimistic Contents API collision checks; it never
+writes `main`. Dispatch never reads repository variables.
 For a `main` push, CI may use only one documented repository variable,
 `ASSETS_RELEASE_HANDOFF_JSON`, containing that same complete JSON object; it
 never accepts the retired six flat variables. Cloudflare credentials are only
