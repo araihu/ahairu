@@ -166,13 +166,24 @@ async function openCheckedPage(pathname, options = {}) {
 
 async function waitForStableRender(page) {
   await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.all(
-      [...document.images].map((image) => (image.complete ? image.decode().catch(() => {}) : new Promise((resolve) => {
+    const deadlineMS = 10_000;
+    const deadline = (message) => new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(message)), deadlineMS);
+    });
+
+    await Promise.race([
+      document.fonts.ready,
+      deadline("fonts did not settle within 10 seconds"),
+    ]);
+
+    const images = [...document.images];
+    await Promise.race([
+      Promise.all(images.map((image) => (image.complete ? image.decode().catch(() => {}) : new Promise((resolve) => {
         image.addEventListener("load", resolve, { once: true });
         image.addEventListener("error", resolve, { once: true });
-      }))),
-    );
+      })))),
+      deadline(`images did not settle within 10 seconds: ${images.filter((image) => !image.complete).map((image) => image.currentSrc || image.src).join(", ")}`),
+    ]);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
 }
