@@ -39,7 +39,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := string(html)
-	if !strings.Contains(page, "Independent software") || !strings.Contains(page, "/assets/styles.css") {
+	if !strings.Contains(page, "Open software for building") || !strings.Contains(page, "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
 	}
 	for _, landmark := range []string{
