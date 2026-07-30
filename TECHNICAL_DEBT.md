@@ -32,3 +32,13 @@ Status: migration open. `ASSETS_RELEASE_URL`, `ASSETS_RELEASE_ID`,
 handoff and are no longer consumed. Operators using main-push promotion must
 migrate to one `ASSETS_RELEASE_HANDOFF_JSON` value matching the documented
 `araihu-assets-released` payload before removing the retired variables.
+
+## Embedded fallback release promotion
+
+Status: open. The site currently embeds and validates immutable `v0.1.1`
+brand paths for its no-JavaScript fallback. Promoting a newer runtime release
+as the default channel must first regenerate those embedded paths (and their
+generated tests/catalog metadata), or the assembled bundle will correctly fail
+its completeness check. Until that updater lands, newer releases remain
+published and available as immutable fallback assets without changing the
+runtime default.
