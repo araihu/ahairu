@@ -1,4 +1,77 @@
-# Seasonal assets local canary — 2026-07-30
+# Seasonal assets local canary
+
+## Enabled campaign browser gate
+
+The executable gate accepts only an absolute `ASSET_BUNDLE` containing at
+least two checksum-verified immutable releases and a `current` channel resolved
+to an enabled campaign. `CANARY_RESOLUTION_DATE` is required and must be the
+exact date-only input used to resolve that channel. The gate compares it to the
+selected release's `campaigns.json`, including inclusive start/end dates,
+theme, toggle IDs, and tinted brand IDs.
+
+```sh
+npm ci
+ASSET_BUNDLE=/absolute/path/to/verified-assets \
+  CANARY_RESOLUTION_DATE=2026-10-31 \
+  CANARY_PORT=8788 \
+  node scripts/seasonal_assets_canary.mjs \
+  | tee /private/tmp/ahairu-enabled-seasonal-canary.ndjson
+```
+
+Optional expiry coverage takes a second channel document produced from the
+same retained release set on an inactive resolution date:
+
+```sh
+ASSET_BUNDLE=/absolute/path/to/verified-assets \
+  CANARY_RESOLUTION_DATE=2026-10-31 \
+  CANARY_EXPIRED_CHANNEL=/absolute/path/to/expired-current.json \
+  CANARY_EXPIRED_RESOLUTION_DATE=2026-11-01 \
+  node scripts/seasonal_assets_canary.mjs
+```
+
+One local Wrangler process serves the whole run. Playwright keeps every
+navigation and subresource URL at canonical `https://araihu.com`; request
+interception proxies those requests to that Wrangler process. Requests to any
+other HTTP origin are blocked and fail the canary. The expiry document is
+copied into generated `public/` before Wrangler starts, then its canonical
+`current` request is mapped to that local Wrangler route for the final refresh.
+No remote canary adapter or relaxed runtime origin rule exists.
+
+Browser scenarios:
+
+- first apply: exact theme, source, campaign ID, active toggle, tinted logo and
+  icon, sparkles toggle, anonymous CORS, and active stylesheet;
+- explicit preference before deferred runtime execution;
+- opt-out, persisted reload, and re-enable with campaign-specific storage;
+- reduced-motion lifecycle detail;
+- expiry refresh and baseline restoration when both expiry inputs are present.
+
+Before opening Chromium, direct local GET probes verify the resolved theme,
+brand assets, and both toggle resources against the immutable `release.json`
+inventory SHA-256 and byte size. NDJSON `resolution`,
+`resolved-asset-probe`, `browser-state`, and `canary-pass` records repeat the
+resolution date, release, source, campaign, and channel digest needed to bind
+evidence to one channel decision.
+
+```json
+{"event":"resolution","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"]}
+{"event":"resolved-asset-probe","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","kind":"brand-logo","id":"araihu-logo-tinted-transparent-optical","url":"https://araihu.com/assets/releases/v0.1.2/...","status":200,"bytes":1234,"sha256":"..."}
+{"event":"browser-state","scenario":"first-apply","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","theme":"araihu-halloween","themeSource":"campaign","activeCampaign":"halloween-2026","toggleHidden":false,"togglePressed":"true","reducedMotion":false}
+{"event":"canary-pass","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"],"expiry":true}
+```
+
+Focused harness tests:
+
+```sh
+node --test scripts/seasonal_assets_canary.test.mjs
+```
+
+Current v0.1.1 evidence cannot satisfy this gate: it contains one immutable
+release and resolves `current` to `source=default` with its campaign disabled.
+Keep that fail-closed result until a real accepted v0.1.2 two-release bundle
+exists. Do not synthesize or edit a release to claim enabled-campaign evidence.
+
+## Recorded v0.1.1 baseline — 2026-07-30
 
 ## Scope and input
 
@@ -9,10 +82,10 @@
 
 No production deployment, promotion, tag, or push occurred.
 
-## Reproducible local HTTP canary
+## Reproducible local HTTP baseline
 
-The executable canary builds only the supplied bundle, starts exactly one local
-Wrangler session, conditionally waits for `/assets/releases/current`, then
+The earlier executable baseline built only the supplied bundle, started
+exactly one local Wrangler session, waited for `/assets/releases/current`, then
 checks every documented GET and HEAD route. It derives expected GET bytes and
 SHA-256 values from the just-built `public/` tree, so it rejects a stale route,
 header, body, or release mapping rather than relying on this historical table.
@@ -20,8 +93,9 @@ It also requires every HEAD response body to be empty.
 
 `ASSET_BUNDLE` must be an absolute path to the accepted, verified Assets
 bundle. `CANARY_PORT` is an optional loopback port; `CANARY_TIMEOUT_MS` is an
-optional conditional-ready timeout (default 30000 ms). This is not `npm run
-check`: it does not run Go, browser, or deploy dry-run suites.
+optional conditional-ready timeout (default 30000 ms). The current executable
+also requires the enabled campaign inputs documented above; this command is a
+historical transcript recipe, not a current passing gate.
 
 ```sh
 npm ci
@@ -121,18 +195,9 @@ Assets runtime evidence, separate from this Worker harness: checkout
 passed `40/40`. It uses a deterministic runtime fixture, not Ahairu's live
 Chromium harness.
 
-**Enabled-campaign pre-production gate (blocking):** do not treat this as a
-completed enabled-campaign canary. Before an enabled campaign reaches
-production, supply an accepted bundle with two retained immutable releases and
-a time-bounded enabled `current` campaign, then run the HTTP preflight with its
-explicit structural gates and repeat live browser scenarios against that exact,
-unmodified bundle:
-
-```sh
-ASSET_BUNDLE=/absolute/path/to/verified-assets \
-  CANARY_REQUIRE_TWO_RELEASES=1 CANARY_REQUIRE_ENABLED_CAMPAIGN=1 \
-  node scripts/seasonal_assets_canary.mjs
-```
+The enabled gate above now implements these previously missing live browser
+scenarios. Its execution remains blocked only by the absent real v0.1.2 input,
+not by missing Ahairu harness code.
 
 ## Rollback
 
