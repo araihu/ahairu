@@ -4,28 +4,36 @@
 
 The executable gate accepts only an absolute `ASSET_BUNDLE` containing at
 least two checksum-verified immutable releases and a `current` channel resolved
-to an enabled campaign. `CANARY_RESOLUTION_DATE` is required and must be the
-exact date-only input used to resolve that channel. The gate compares it to the
-selected release's `campaigns.json`, including inclusive start/end dates,
-theme, toggle IDs, and tinted brand IDs.
+to an enabled campaign. `CANARY_CAMPAIGN_CHECK_DATE` is required. It checks
+that the effective campaign identity is active inside the selected release's
+inclusive `campaigns.json` interval and that theme, toggle IDs, and tinted
+brand IDs agree.
+
+Channel schema v1 does not carry its resolver input date, and that date is not
+covered by the channel digest. The check date is therefore consistency
+evidence only. This harness does not claim it is the exact date used by Assets
+to produce the accepted channel.
 
 ```sh
 npm ci
 ASSET_BUNDLE=/absolute/path/to/verified-assets \
-  CANARY_RESOLUTION_DATE=2026-10-31 \
+  CANARY_CAMPAIGN_CHECK_DATE=2026-10-31 \
   CANARY_PORT=8788 \
   node scripts/seasonal_assets_canary.mjs \
   | tee /private/tmp/ahairu-enabled-seasonal-canary.ndjson
 ```
 
-Optional expiry coverage takes a second channel document produced from the
-same retained release set on an inactive resolution date:
+Optional expiry coverage takes a second default channel document for the same
+retained release set and a date on which its campaign manifest has no enabled
+campaign. The harness strictly recomputes this document's channel digest,
+binds its theme to the complete release inventory, and probes that immutable
+theme directly before browser execution.
 
 ```sh
 ASSET_BUNDLE=/absolute/path/to/verified-assets \
-  CANARY_RESOLUTION_DATE=2026-10-31 \
+  CANARY_CAMPAIGN_CHECK_DATE=2026-10-31 \
   CANARY_EXPIRED_CHANNEL=/absolute/path/to/expired-current.json \
-  CANARY_EXPIRED_RESOLUTION_DATE=2026-11-01 \
+  CANARY_EXPIRED_CHECK_DATE=2026-11-01 \
   node scripts/seasonal_assets_canary.mjs
 ```
 
@@ -39,6 +47,8 @@ No remote canary adapter or relaxed runtime origin rule exists.
 
 Browser scenarios:
 
+- immutable SSR theme and local brand URLs captured while the first automatic
+  channel request is held, before runtime can mutate enrolled hooks;
 - first apply: exact theme, source, campaign ID, active toggle, tinted logo and
   icon, sparkles toggle, anonymous CORS, and active stylesheet;
 - explicit preference before deferred runtime execution;
@@ -46,18 +56,25 @@ Browser scenarios:
 - reduced-motion lifecycle detail;
 - expiry refresh and baseline restoration when both expiry inputs are present.
 
+First navigation and opt-out reload wait for the runtime's automatic deferred
+bootstrap. They never call `AraiHuCampaign.refresh()`. The only manual refresh
+is the expiry scenario after interception switches `current` to the locally
+served default document.
+
 Before opening Chromium, direct local GET probes verify the resolved theme,
 brand assets, and both toggle resources against the immutable `release.json`
-inventory SHA-256 and byte size. NDJSON `resolution`,
+inventory SHA-256 and byte size. The optional default theme receives the same
+probe. NDJSON `channel-evidence`,
 `resolved-asset-probe`, `browser-state`, and `canary-pass` records repeat the
-resolution date, release, source, campaign, and channel digest needed to bind
-evidence to one channel decision.
+campaign check date, release, source, effective campaign, and recomputed channel
+digest. The check date is not presented as channel provenance.
 
 ```json
-{"event":"resolution","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"]}
-{"event":"resolved-asset-probe","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","kind":"brand-logo","id":"araihu-logo-tinted-transparent-optical","url":"https://araihu.com/assets/releases/v0.1.2/...","status":200,"bytes":1234,"sha256":"..."}
-{"event":"browser-state","scenario":"first-apply","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","theme":"araihu-halloween","themeSource":"campaign","activeCampaign":"halloween-2026","toggleHidden":false,"togglePressed":"true","reducedMotion":false}
-{"event":"canary-pass","resolutionDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"],"expiry":true}
+{"event":"channel-evidence","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"]}
+{"event":"resolved-asset-probe","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","kind":"brand-logo","id":"araihu-logo-tinted-transparent-optical","url":"https://araihu.com/assets/releases/v0.1.2/...","status":200,"bytes":1234,"sha256":"..."}
+{"event":"browser-state","scenario":"ssr-baseline","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","theme":"araihu","themeSource":"default","activeCampaign":null,"toggleHidden":true,"togglePressed":"false","reducedMotion":false}
+{"event":"browser-state","scenario":"first-apply","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","theme":"araihu-halloween","themeSource":"campaign","activeCampaign":"halloween-2026","toggleHidden":false,"togglePressed":"true","reducedMotion":false}
+{"event":"canary-pass","campaignCheckDate":"2026-10-31","release":"v0.1.2","source":"campaign","campaign":"halloween-2026","digest":"...","releases":["v0.1.1","v0.1.2"],"expiry":true}
 ```
 
 Focused harness tests:
