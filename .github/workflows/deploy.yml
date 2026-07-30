@@ -152,4 +152,8 @@ jobs:
           update_status=$(curl --silent --show-error --output "${RUNNER_TEMP}/accepted-state-updated.json" --write-out '%{http_code}' \
             --request PUT "${headers[@]}" --data-binary "@$update_payload" \
             "${GITHUB_API_URL}/repos/${AHAIRU_REPOSITORY}/contents/${STATE_PATH}")
-          test "$update_status" = 200 || { echo "Write accepted state conflicted or failed (HTTP $update_status)" >&2; exit 1; }
+          if [[ -z "$state_sha" ]]; then
+            test "$update_status" = 201 || { echo "Create accepted state conflicted or failed (HTTP $update_status)" >&2; exit 1; }
+          else
+            test "$update_status" = 200 || { echo "Update accepted state conflicted or failed (HTTP $update_status)" >&2; exit 1; }
+          fi

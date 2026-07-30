@@ -29,7 +29,7 @@ jobs:
       - name: Verify generated templ output is current
         run: templ generate && git diff --exit-code -- 'site/*_templ.go'
       - name: Verify source contracts without protected Assets credentials
-        run: go test ./... -count=1 && python3 scripts/prepare_asset_bundle_test.py && npm run test:routes
+        run: go test ./... -count=1 && npm run test:workflow && npm run test:routes
 
   accepted-assets:
     needs: source

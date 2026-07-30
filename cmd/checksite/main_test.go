@@ -64,6 +64,7 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"ASSETS_HANDOFF_JSON: ${{ vars.ASSETS_RELEASE_HANDOFF_JSON }}",
 		"--handoff-json \"$ASSETS_HANDOFF_JSON\"",
 		"--accepted-output \"$ACCEPTED_ASSETS\"",
+		"npm run test:workflow",
 	} {
 		if !strings.Contains(ci, want) {
 			t.Errorf("CI misses %q", want)
@@ -104,7 +105,11 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"STATE_PATH: .automation/araihu-assets/accepted-channel-v1.json",
 		"wrangler deployments status --json",
 		"Create dedicated accepted-state ref failed",
-		"Write accepted state conflicted or failed",
+		"Create accepted state conflicted or failed",
+		"Update accepted state conflicted or failed",
+		"if [[ -z \"$state_sha\" ]]; then",
+		"test \"$update_status\" = 201",
+		"test \"$update_status\" = 200",
 	} {
 		if !strings.Contains(deploy, want) {
 			t.Errorf("deploy misses %q", want)
@@ -123,6 +128,12 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	}
 	if strings.Contains(deploy, "refs/heads/main") || strings.Contains(deploy, "contents/.github/") {
 		t.Error("deploy state write must never target main or a mutable workflow path")
+	}
+	createBranch := strings.Index(deploy, "if [[ -z \"$state_sha\" ]]; then")
+	createStatus := strings.Index(deploy, "test \"$update_status\" = 201")
+	updateBranch := strings.Index(deploy, "else\n            test \"$update_status\" = 200")
+	if createBranch < 0 || createStatus < createBranch || updateBranch < createStatus {
+		t.Error("accepted-state Contents PUT must require 201 for creates and 200 for updates")
 	}
 }
 
