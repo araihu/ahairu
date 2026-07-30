@@ -22,8 +22,8 @@ const canonicalOrigin = "https://araihu.com"
 const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 const (
-	faviconURL               = "/assets/araihu/v0.1.0/platform/web/araihu/favicon.svg"
-	appleTouchIconURL        = "/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png"
+	faviconURL               = site.BrandAssetsPublicPrefix + "platform/web/araihu/favicon.svg"
+	appleTouchIconURL        = site.BrandAssetsPublicPrefix + "platform/web/araihu/apple-touch-icon-180.png"
 	manifestURL              = "/site.webmanifest"
 	themeColor               = "#07111f"
 	campaignRuntimeIntegrity = "sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n"
@@ -189,10 +189,10 @@ func checkManifest(root string) error {
 		return fmt.Errorf("manifest has %d icons, want 4", len(manifest.Icons))
 	}
 	expectedIcons := map[string]struct{ sizes, purpose string }{
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-192.png":          {sizes: "192x192"},
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-512.png":          {sizes: "512x512"},
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-maskable-192.png": {sizes: "192x192", purpose: "maskable"},
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-maskable-512.png": {sizes: "512x512", purpose: "maskable"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-192.png":          {sizes: "192x192"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-512.png":          {sizes: "512x512"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-maskable-192.png": {sizes: "192x192", purpose: "maskable"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-maskable-512.png": {sizes: "512x512", purpose: "maskable"},
 	}
 	for _, icon := range manifest.Icons {
 		expected, ok := expectedIcons[icon.Source]

@@ -181,10 +181,6 @@ func buildAt(output string, bundle fs.FS) error {
 	if err := assetbundle.Assemble(context.Background(), bundle, root); err != nil {
 		return fmt.Errorf("assemble verified asset bundle: %w", err)
 	}
-	releaseDir := filepath.Join(assetsDirectory, "araihu", "v0.1.0")
-	if err := site.CopyBundledBrandAssets(releaseDir); err != nil {
-		return fmt.Errorf("copy Arai Hû assets v0.1.0: %w", err)
-	}
 	if err := site.CopyBundledSocialImages(filepath.Join(output, "public", "social")); err != nil {
 		return fmt.Errorf("copy social previews: %w", err)
 	}

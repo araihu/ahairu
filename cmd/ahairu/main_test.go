@@ -75,11 +75,11 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		}
 	}
 	for _, asset := range []string{
-		"/assets/araihu/v0.1.0/icons/brand/araihu-icon-adaptive-transparent-optical.svg",
-		"/assets/araihu/v0.1.0/icons/brand/goshtoso-icon-adaptive-transparent-optical.svg",
-		"/assets/araihu/v0.1.0/icons/brand/manja-icon-adaptive-transparent-optical.svg",
-		"/assets/araihu/v0.1.0/icons/brand/paje-icon-adaptive-transparent-optical.svg",
-		"/assets/araihu/v0.1.0/icons/brand/x9-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/araihu-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/goshtoso-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/manja-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/paje-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/x9-icon-adaptive-transparent-optical.svg",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
@@ -103,8 +103,8 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("Arai Hû theme missing or empty: %v", err)
 	}
-	for _, name := range []string{"catalog.json", "checksums.txt", "NOTICE", "icons/brand/sprite.svg", "platform/web/araihu/favicon.svg"} {
-		if info, err := os.Stat(filepath.Join("public", "assets", "araihu", "v0.1.0", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
+	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "checksums.txt"} {
+		if info, err := os.Stat(filepath.Join("public", "assets", "releases", "v0.1.1", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
 			t.Errorf("brand release asset %s missing or empty: %v", name, err)
 		}
 	}

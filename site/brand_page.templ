@@ -128,10 +128,10 @@ templ BrandPageBody(page Page) {
 				RootAttrs: templ.Attributes{"role": "region", "aria-labelledby": "integration-title"},
 			}) {
 				<div class="component-example">
-					@icon.Icon(icon.Config{SpriteURL: brandicons.SpriteURL, Symbol: brandicons.IconAraihuIconMonochromeTransparentOptical, Label: "Arai Hû", RootClass: "brand-component-icon"})
+					@icon.Icon(icon.Config{SpriteURL: BrandAssetsPublicPrefix + "icons/brand/sprite.svg", Symbol: brandicons.IconAraihuIconMonochromeTransparentOptical, Label: "Arai Hû", RootClass: "brand-component-icon"})
 					<pre tabindex="0"><code>{ page.Brand.IntegrationCode }</code></pre>
 				</div>
-				<p class="artifact-links"><a href={ BrandAssetsPublicPrefix + "catalog.json" }>catalog.json</a> · <a href={ BrandAssetsPublicPrefix + "checksums.txt" }>checksums.txt</a> · <a href={ BrandAssetsPublicPrefix + "icons/brand/sprite.svg" }>sprite.svg</a> · Goshtoso</p>
+				<p class="artifact-links"><a href={ BrandAssetsPublicPrefix + "release.json" }>release.json</a> · <a href={ BrandAssetsPublicPrefix + "catalog.json" }>catalog.json</a> · <a href={ BrandAssetsPublicPrefix + "themes.json" }>themes.json</a> · <a href={ BrandAssetsPublicPrefix + "campaigns.json" }>campaigns.json</a> · <a href={ BrandAssetsPublicPrefix + "checksums.txt" }>checksums.txt</a> · <a href={ BrandAssetsPublicPrefix + "icons/brand/sprite.svg" }>sprite.svg</a> · Goshtoso</p>
 			}
 			@panel.Panel(panel.Config{
 				Appearance: panel.AppearanceOutlined,
@@ -147,5 +147,5 @@ templ BrandPageBody(page Page) {
 }
 
 templ BrandPanelHeading(id, title, body string) {
-	<div class="panel-heading"><p class="bench-label">Release v0.1.0</p><h2 id={ id }>{ title }</h2><p>{ body }</p></div>
+	<div class="panel-heading"><p class="bench-label">Release v0.1.1</p><h2 id={ id }>{ title }</h2><p>{ body }</p></div>
 }

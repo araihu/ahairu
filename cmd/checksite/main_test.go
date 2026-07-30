@@ -11,8 +11,10 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 
@@ -239,7 +241,7 @@ func TestCheckRejectsMissingLocalDocumentResources(t *testing.T) {
 func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
 	root := writeValidPublic(t)
 	mutatePage(t, root, "/en/", func(document string) string {
-		return strings.Replace(document, "</body>", `<a href="/assets/araihu/v0.1.0/NOTICE" download>NOTICE</a>`+"</body>", 1)
+		return strings.Replace(document, "</body>", `<a href="/assets/releases/v0.1.1/NOTICE" download>NOTICE</a>`+"</body>", 1)
 	})
 	if err := Check(root); err != nil {
 		t.Fatal(err)
@@ -248,8 +250,8 @@ func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
 
 func TestCheckRejectsExistingDotlessScriptAndImage(t *testing.T) {
 	for name, element := range map[string]string{
-		"script": `<script src="/assets/araihu/v0.1.0/NOTICE"></script>`,
-		"image":  `<img src="/assets/araihu/v0.1.0/NOTICE" alt="" width="1" height="1">`,
+		"script": `<script src="/assets/releases/v0.1.1/NOTICE"></script>`,
+		"image":  `<img src="/assets/releases/v0.1.1/NOTICE" alt="" width="1" height="1">`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := writeValidPublic(t)
@@ -265,7 +267,7 @@ func TestCheckRejectsExistingDotlessScriptAndImage(t *testing.T) {
 
 func TestCheckRejectsMissingDotlessAssetAndUnknownExtensionlessPage(t *testing.T) {
 	for _, resource := range []string{
-		"/assets/araihu/v0.1.0/MISSING",
+		"/assets/releases/v0.1.1/MISSING",
 		"/unknown-extensionless-page",
 	} {
 		t.Run(resource, func(t *testing.T) {
@@ -587,15 +589,12 @@ func writeValidPublic(t *testing.T) string {
 	for _, name := range []string{"styles.css", "ahairu.css", "araihu-theme.css"} {
 		writeFile(t, filepath.Join(root, "assets", name), []byte("fixture"))
 	}
-	if err := site.CopyBundledBrandAssets(filepath.Join(root, "assets", "araihu", "v0.1.0")); err != nil {
-		t.Fatal(err)
-	}
 	writePNG(t, filepath.Join(root, "social", "brand.png"), 1200, 630)
 	writePNG(t, filepath.Join(root, "social", "license.png"), 1200, 630)
 	for _, page := range site.Pages() {
 		var content templ.Component = templ.NopComponent
 		if page.Meta.Kind == site.PageBrand {
-			content = templ.Raw(`<img src="/assets/araihu/v0.1.0/brand/araihu/logo/tinted-transparent-optical.svg" alt="Arai Hû" width="720" height="134" data-asset-brand="logo">`)
+			content = templ.Raw(`<img src="/assets/releases/v0.1.1/brand/araihu/logo/tinted-transparent-optical.svg" alt="Arai Hû" width="720" height="134" data-asset-brand="logo">`)
 		}
 		var output strings.Builder
 		if err := site.Layout(page, content).Render(context.Background(), &output); err != nil {
@@ -617,7 +616,39 @@ func writeAssetReleaseBundle(t *testing.T, root string) {
 		"campaign/v1.js":  []byte("(() => {})()\n"),
 		"themes/base.css": []byte("body{}\n"),
 	}
-	ordered := []string{"catalog.json", "themes.json", "campaigns.json", "campaign/v1.js", "themes/base.css"}
+	paths, err := site.BundledBrandAssetPaths()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range paths {
+		if name == "catalog.json" || name == "themes.json" || name == "campaigns.json" || name == "release.json" || name == "checksums.txt" {
+			continue
+		}
+		contents, err := fs.ReadFile(site.BrandAssets(), name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		files[name] = contents
+	}
+	ordered := make([]string, 0, len(files))
+	for name := range files {
+		ordered = append(ordered, name)
+	}
+	sort.Slice(ordered, func(left, right int) bool {
+		order := map[string]int{"catalog.json": 0, "themes.json": 1, "campaigns.json": 2}
+		leftOrder, leftKnown := order[ordered[left]]
+		rightOrder, rightKnown := order[ordered[right]]
+		if leftKnown && rightKnown {
+			return leftOrder < rightOrder
+		}
+		if leftKnown {
+			return true
+		}
+		if rightKnown {
+			return false
+		}
+		return ordered[left] < ordered[right]
+	})
 	type inventoryFile struct {
 		Path   string `json:"path"`
 		SHA256 string `json:"sha256"`

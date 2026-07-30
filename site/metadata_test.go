@@ -91,7 +91,7 @@ func TestMetadataRendersLocalizedDiscoveryTagsAndSafeJSONLD(t *testing.T) {
 			`<meta name="twitter:card" content="summary_large_image">`,
 			`<meta property="og:locale" content="` + page.Meta.Locale.OGLocale + `">`,
 			`<link rel="manifest" href="/site.webmanifest">`,
-			`<link rel="apple-touch-icon" href="/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png">`,
+			`<link rel="apple-touch-icon" href="` + BrandAssetsPublicPrefix + `platform/web/araihu/apple-touch-icon-180.png">`,
 			`<script id="structured-data" type="application/ld+json">`,
 		} {
 			if !strings.Contains(html, fragment) {

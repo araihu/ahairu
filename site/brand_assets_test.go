@@ -3,6 +3,7 @@ package site
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -24,7 +25,7 @@ func TestBundledBrandAssetsMatchReleaseChecksums(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := len(paths), 171; got != want {
+	if got, want := len(paths), 174; got != want {
 		t.Fatalf("bundled asset count = %d, want %d", got, want)
 	}
 	for _, path := range paths {
@@ -103,26 +104,102 @@ func TestCatalogUsesPinnedReleaseAndPublicPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if catalog.Release != "v0.1.0" || catalog.IdentityRevision != 11 {
+	if catalog.Release != "v0.1.1" || catalog.IdentityRevision != 11 {
 		t.Fatalf("catalog release = %q revision = %d", catalog.Release, catalog.IdentityRevision)
 	}
-	if BrandAssetsPublicPrefix != "/assets/araihu/v0.1.0/" {
+	if BrandAssetsPublicPrefix != "/assets/releases/v0.1.1/" {
 		t.Fatalf("public prefix = %q", BrandAssetsPublicPrefix)
 	}
-	if got := BrandCatalogSHA256; got != "d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af" {
+	if got := BrandCatalogSHA256; got != "bca54f24af0529ebe988c901c6786110f2006a5bcedbab5928ba2795e1cf7d7c" {
 		t.Fatalf("catalog hash = %q", got)
 	}
-	if BrandAssetsRelease != "v0.1.0" {
+	if BrandAssetsRelease != "v0.1.1" {
 		t.Fatalf("assets release = %q", BrandAssetsRelease)
 	}
 	if BrandIconsGeneratorCommit != "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854" {
 		t.Fatalf("icon generator commit = %q", BrandIconsGeneratorCommit)
 	}
-	if BrandChecksumsSHA256 != "2d83421b3a95c75f68c88af7d5618034b4189d42adf3f2e39b2c4c048c553d5d" {
+	if BrandChecksumsSHA256 != "9031d8f7ddbfd0ca33ea8e74953cd1a7f0e198f55fdd8dfe8277f0e80a4bd5c4" {
 		t.Fatalf("checksums hash = %q", BrandChecksumsSHA256)
 	}
 	if BrandSpriteSHA256 != "e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45" {
 		t.Fatalf("brand sprite hash = %q", BrandSpriteSHA256)
+	}
+}
+
+func TestBundledBrandAssetsMatchPinnedReleaseManifest(t *testing.T) {
+	if got, want := BrandAssetsPublicPrefix, "/assets/releases/v0.1.1/"; got != want {
+		t.Fatalf("public prefix = %q, want %q", got, want)
+	}
+	if got, want := BrandAssetsRelease, "v0.1.1"; got != want {
+		t.Fatalf("assets release = %q, want %q", got, want)
+	}
+
+	checksums, err := ReleaseChecksums()
+	if err != nil {
+		t.Fatal(err)
+	}
+	releaseData, err := fs.ReadFile(BrandAssets(), "release.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotRelease := sha256.Sum256(releaseData)
+	if got, want := hex.EncodeToString(gotRelease[:]), "eb2f556224ce1bcab979e3f1c8c8f05813dc0c3381b30ae757df32216027ebb9"; got != want {
+		t.Fatalf("release.json hash = %s, want %s", got, want)
+	}
+	if got, want := checksums["release.json"], hex.EncodeToString(gotRelease[:]); got != want {
+		t.Fatalf("release.json checksum = %q, want %q", got, want)
+	}
+
+	var release struct {
+		Release         string `json:"release"`
+		CatalogSHA256   string `json:"catalogSha256"`
+		ThemesSHA256    string `json:"themesSha256"`
+		CampaignsSHA256 string `json:"campaignsSha256"`
+	}
+	if err := json.Unmarshal(releaseData, &release); err != nil {
+		t.Fatal(err)
+	}
+	if release.Release != BrandAssetsRelease {
+		t.Fatalf("release document release = %q, want %q", release.Release, BrandAssetsRelease)
+	}
+	for path, want := range map[string]string{
+		"catalog.json":   release.CatalogSHA256,
+		"themes.json":    release.ThemesSHA256,
+		"campaigns.json": release.CampaignsSHA256,
+	} {
+		data, err := fs.ReadFile(BrandAssets(), path)
+		if err != nil {
+			t.Errorf("read %q: %v", path, err)
+			continue
+		}
+		got := sha256.Sum256(data)
+		if actual := hex.EncodeToString(got[:]); actual != want || checksums[path] != want {
+			t.Errorf("%s hash = %q checksum = %q, want %q", path, actual, checksums[path], want)
+		}
+	}
+}
+
+func TestBrandPageLinksPinnedReleaseDocuments(t *testing.T) {
+	const prefix = "/assets/releases/v0.1.1/"
+	for _, path := range []string{"/brand/", "/pt-br/brand/", "/es/brand/"} {
+		html := renderComponent(t, BrandPage(pageForTest(t, path)))
+		for _, releasePath := range []string{
+			"release.json",
+			"catalog.json",
+			"themes.json",
+			"campaigns.json",
+			"checksums.txt",
+		} {
+			if !strings.Contains(html, `href="`+prefix+releasePath+`"`) {
+				t.Errorf("%s missing immutable release link %q", path, releasePath)
+			}
+		}
+		for _, download := range pageForTest(t, path).Brand.Downloads {
+			if !strings.HasPrefix(download.URL, prefix) {
+				t.Errorf("%s download escapes immutable release prefix: %q", path, download.URL)
+			}
+		}
 	}
 }
 
