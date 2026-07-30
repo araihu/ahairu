@@ -176,13 +176,15 @@ async function waitForStableRender(page) {
       deadline("fonts did not settle within 10 seconds"),
     ]);
 
-    const images = [...document.images];
+    // Off-screen lazy images intentionally remain incomplete until scrolled into view.
+    // Wait only for images whose loading policy requires them for initial layout.
+    const images = [...document.images].filter((image) => image.loading !== "lazy");
     await Promise.race([
       Promise.all(images.map((image) => (image.complete ? image.decode().catch(() => {}) : new Promise((resolve) => {
         image.addEventListener("load", resolve, { once: true });
         image.addEventListener("error", resolve, { once: true });
       })))),
-      deadline(`images did not settle within 10 seconds: ${images.filter((image) => !image.complete).map((image) => image.currentSrc || image.src).join(", ")}`),
+      deadline(`eager images did not settle within 10 seconds: ${images.filter((image) => !image.complete).map((image) => image.currentSrc || image.src).join(", ")}`),
     ]);
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
