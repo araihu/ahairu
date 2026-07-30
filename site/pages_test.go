@@ -1,9 +1,181 @@
 package site
 
 import (
+	"context"
 	"strings"
 	"testing"
+
+	"golang.org/x/net/html"
 )
+
+func TestRenderedPagesEnrollCampaignCanaryWithFixedImages(t *testing.T) {
+	for _, page := range Pages() {
+		t.Run(page.Meta.Path, func(t *testing.T) {
+			component, err := PageComponent(page)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var output strings.Builder
+			if err := component.Render(context.Background(), &output); err != nil {
+				t.Fatal(err)
+			}
+			htmlText := output.String()
+			for _, want := range []string{
+				`data-theme="araihu"`,
+				`data-theme-source="default"`,
+				`src="/assets/campaign/v1.js"`,
+				`data-channel="/assets/releases/current"`,
+				`integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n"`,
+				`crossorigin="anonymous"`,
+				`data-campaign-toggle`,
+				`data-campaign-toggle-icon`,
+			} {
+				if !strings.Contains(htmlText, want) {
+					t.Errorf("rendered page misses %s", want)
+				}
+			}
+			if runtime, styles := strings.Index(htmlText, `src="/assets/campaign/v1.js"`), strings.LastIndex(htmlText, `rel="stylesheet"`); runtime < styles {
+				t.Error("campaign runtime precedes baseline styles")
+			}
+			if source, body := strings.Index(htmlText, `data-theme-source="default"`), strings.Index(htmlText, "<body"); source < 0 || source > body {
+				t.Error("theme source is not available before body content")
+			}
+
+			document, err := html.Parse(strings.NewReader(htmlText))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var hooks brandHookCounts
+			walkRenderedElements(t, document, &hooks)
+			wantLogoHooks := 0
+			if page.Meta.Kind == PageBrand {
+				wantLogoHooks = 1
+			}
+			if hooks.logo != wantLogoHooks || hooks.icon != 1 {
+				t.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", hooks.logo, hooks.icon, wantLogoHooks)
+			}
+			requireCampaignToggle(t, hooks.campaignToggles)
+		})
+	}
+}
+
+type brandHookCounts struct {
+	logo            int
+	icon            int
+	campaignToggles []*html.Node
+}
+
+func walkRenderedElements(t *testing.T, node *html.Node, hooks *brandHookCounts) {
+	t.Helper()
+	if node.Type == html.ElementNode {
+		attributes := make(map[string]string, len(node.Attr))
+		for _, attribute := range node.Attr {
+			attributes[attribute.Key] = attribute.Val
+		}
+		if node.Data == "img" && (attributes["width"] == "" || attributes["height"] == "") {
+			t.Errorf("replaceable image %q lacks fixed width and height", attributes["src"])
+		}
+		switch attributes["data-asset-brand"] {
+		case "":
+		case "logo":
+			if node.Data != "img" || attributes["src"] == "" {
+				t.Errorf("logo hook must target img[src]")
+			} else {
+				hooks.logo++
+			}
+		case "icon":
+			if node.Data != "link" || attributes["href"] == "" {
+				t.Errorf("icon hook must target link[href]")
+			} else if attributes["rel"] != "icon" {
+				t.Errorf("icon hook must target rel=icon link")
+			} else {
+				hooks.icon++
+			}
+		default:
+			t.Errorf("invalid asset brand hook %q", attributes["data-asset-brand"])
+		}
+		if _, toggle := attributes["data-campaign-toggle"]; toggle {
+			hooks.campaignToggles = append(hooks.campaignToggles, node)
+		}
+	}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		walkRenderedElements(t, child, hooks)
+	}
+}
+
+func requireCampaignToggle(t *testing.T, toggles []*html.Node) {
+	t.Helper()
+	if len(toggles) != 1 {
+		t.Errorf("campaign toggle count = %d, want 1", len(toggles))
+		return
+	}
+	toggle := toggles[0]
+	attributes := renderedAttributes(toggle)
+	if toggle.Data != "button" {
+		t.Errorf("campaign toggle is <%s>, want <button>", toggle.Data)
+	}
+	if _, hidden := attributes["hidden"]; !hidden {
+		t.Error("campaign toggle lacks hidden attribute")
+	}
+	if attributes["type"] != "button" {
+		t.Errorf("campaign toggle type = %q, want button", attributes["type"])
+	}
+	if attributes["aria-pressed"] != "false" {
+		t.Errorf("campaign toggle aria-pressed = %q, want false", attributes["aria-pressed"])
+	}
+	var iconChildren int
+	var srOnlyText strings.Builder
+	for child := toggle.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type != html.ElementNode {
+			continue
+		}
+		childAttributes := renderedAttributes(child)
+		if _, icon := childAttributes["data-campaign-toggle-icon"]; icon {
+			iconChildren++
+		}
+		if hasRenderedClass(childAttributes["class"], "sr-only") {
+			srOnlyText.WriteString(renderedText(child))
+		}
+	}
+	if iconChildren != 1 {
+		t.Errorf("campaign toggle icon children = %d, want 1", iconChildren)
+	}
+	if strings.TrimSpace(attributes["aria-label"]) == "" && strings.TrimSpace(srOnlyText.String()) == "" {
+		t.Error("campaign toggle lacks accessible name")
+	}
+}
+
+func renderedAttributes(node *html.Node) map[string]string {
+	attributes := make(map[string]string, len(node.Attr))
+	for _, attribute := range node.Attr {
+		attributes[attribute.Key] = attribute.Val
+	}
+	return attributes
+}
+
+func hasRenderedClass(value, want string) bool {
+	for _, class := range strings.Fields(value) {
+		if class == want {
+			return true
+		}
+	}
+	return false
+}
+
+func renderedText(node *html.Node) string {
+	var text strings.Builder
+	var walk func(*html.Node)
+	walk = func(current *html.Node) {
+		if current.Type == html.TextNode {
+			text.WriteString(current.Data)
+		}
+		for child := current.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(node)
+	return text.String()
+}
 
 func TestPagesContainNineCanonicalLocalizedPages(t *testing.T) {
 	pages := Pages()

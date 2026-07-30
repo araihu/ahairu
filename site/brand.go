@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	BrandAssetsPublicPrefix   = "/assets/araihu/v0.1.0/"
-	BrandAssetsRelease        = "v0.1.0"
+	BrandAssetsPublicPrefix   = "/assets/releases/v0.1.1/"
+	BrandAssetsRelease        = "v0.1.1"
 	BrandIconsGeneratorCommit = "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854"
-	BrandCatalogSHA256        = "d83be964fa411e87c61b49f0a0b6a2a1465f33ad43bea7cd93b2e434b59266af"
-	BrandChecksumsSHA256      = "2d83421b3a95c75f68c88af7d5618034b4189d42adf3f2e39b2c4c048c553d5d"
+	BrandCatalogSHA256        = "bca54f24af0529ebe988c901c6786110f2006a5bcedbab5928ba2795e1cf7d7c"
+	BrandChecksumsSHA256      = "9031d8f7ddbfd0ca33ea8e74953cd1a7f0e198f55fdd8dfe8277f0e80a4bd5c4"
 	BrandSpriteSHA256         = "e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45"
 )
 
@@ -52,7 +52,10 @@ type CatalogAsset struct {
 
 var releaseSupportPaths = []string{
 	"NOTICE",
+	"release.json",
 	"catalog.json",
+	"themes.json",
+	"campaigns.json",
 	"checksums.txt",
 	"icons/brand/sprite.svg",
 	"licenses/Apache-2.0.txt",
@@ -70,7 +73,7 @@ func BrandCSS() []byte { return brandCSS }
 // BrandThemeCSS returns Arai Hû's site-owned Goshtoso theme.
 func BrandThemeCSS() []byte { return brandThemeCSS }
 
-// BrandAssets returns the immutable v0.1.0 release subset rooted at its release paths.
+// BrandAssets returns the immutable v0.1.1 release subset rooted at its release paths.
 func BrandAssets() fs.FS {
 	sub, err := fs.Sub(embeddedBrandAssets, "brand-assets")
 	if err != nil {
@@ -79,7 +82,7 @@ func BrandAssets() fs.FS {
 	return sub
 }
 
-// BrandCatalog parses the exact upstream v0.1.0 catalog.
+// BrandCatalog parses the exact upstream v0.1.1 catalog.
 func BrandCatalog() (Catalog, error) {
 	return brandCatalog(BrandAssets())
 }
@@ -97,7 +100,7 @@ func brandCatalog(fsys fs.FS) (Catalog, error) {
 	if err := json.Unmarshal(data, &catalog); err != nil {
 		return Catalog{}, fmt.Errorf("parse catalog: %w", err)
 	}
-	if catalog.SchemaVersion != 1 || catalog.Release != "v0.1.0" || catalog.IdentityRevision != 11 {
+	if catalog.SchemaVersion != 1 || catalog.Release != BrandAssetsRelease || catalog.IdentityRevision != 11 {
 		return Catalog{}, fmt.Errorf("unexpected catalog schema/release/revision: %d/%s/%d", catalog.SchemaVersion, catalog.Release, catalog.IdentityRevision)
 	}
 	return catalog, nil

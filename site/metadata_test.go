@@ -73,7 +73,7 @@ func TestLayoutUsesMetadataForDocumentShell(t *testing.T) {
 	}
 	html := output.String()
 	for _, fragment := range []string{
-		`<!doctype html>`, `<html lang="en" data-theme="araihu">`, `<title>` + page.Meta.Title + `</title>`,
+		`<!doctype html>`, `<html lang="en" data-theme="araihu" data-theme-source="default">`, `<title>` + page.Meta.Title + `</title>`,
 		`<main id="main-content">content</main>`, `<meta property="og:image" content="` + page.Meta.SocialImageURL + `">`,
 	} {
 		if !strings.Contains(html, fragment) {
@@ -91,7 +91,7 @@ func TestMetadataRendersLocalizedDiscoveryTagsAndSafeJSONLD(t *testing.T) {
 			`<meta name="twitter:card" content="summary_large_image">`,
 			`<meta property="og:locale" content="` + page.Meta.Locale.OGLocale + `">`,
 			`<link rel="manifest" href="/site.webmanifest">`,
-			`<link rel="apple-touch-icon" href="/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png">`,
+			`<link rel="apple-touch-icon" href="` + BrandAssetsPublicPrefix + `platform/web/araihu/apple-touch-icon-180.png">`,
 			`<script id="structured-data" type="application/ld+json">`,
 		} {
 			if !strings.Contains(html, fragment) {

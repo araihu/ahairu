@@ -4,17 +4,85 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
-    branches: [main]
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
   cloudflare:
-    if: github.event.workflow_run.conclusion == 'success'
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.event == 'repository_dispatch')
     runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: ahairu-production
+      cancel-in-progress: false
     steps:
-      - name: Trigger Cloudflare production build
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: 1.26.5
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: accepted-assets
+          path: ${{ runner.temp }}/accepted-assets
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+      - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349
+        id: assets-token
+        with:
+          app-id: ${{ secrets.ASSETS_APP_ID }}
+          private-key: ${{ secrets.ASSETS_APP_PRIVATE_KEY }}
+          owner: araihu
+          repositories: assets
+          permission-actions: read
+      - run: npm ci
+      - run: go install github.com/a-h/templ/cmd/templ@v0.3.1020
+      - name: Reacquire exact accepted assets and verify hashes before extraction
         env:
-          CLOUDFLARE_DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
-        run: curl --fail-with-body --request POST "$CLOUDFLARE_DEPLOY_HOOK"
+          ASSETS_GITHUB_TOKEN: ${{ steps.assets-token.outputs.token }}
+          ACCEPTED_ASSETS: ${{ runner.temp }}/accepted-assets/accepted-assets.json
+          ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
+        run: |
+          node - <<'NODE'
+          const fs = require("node:fs");
+          const { spawnSync } = require("node:child_process");
+          const accepted = JSON.parse(fs.readFileSync(process.env.ACCEPTED_ASSETS, "utf8"));
+          const args = [
+            "scripts/prepare_asset_bundle.py",
+            "--release-url", accepted.releaseURL,
+            "--release-id", accepted.releaseID,
+            "--release-sha256", accepted.releaseSHA256,
+            "--channel-url", accepted.channelURL,
+            "--channel-id", accepted.channelID,
+            "--channel-sha256", accepted.channelSHA256,
+            "--output", process.env.ASSET_BUNDLE,
+          ];
+          const result = spawnSync("python3", args, { stdio: "inherit", env: process.env });
+          process.exit(result.status ?? 1);
+          NODE
+      - name: Assemble and validate exact Worker bundle
+        env:
+          ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
+        run: npm run check
+      - name: Deploy protected production Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          WRANGLER_OUTPUT_FILE_PATH="$RUNNER_TEMP/wrangler-version-upload.jsonl" npm exec -- wrangler versions upload
+          UPLOADED_VERSION="$(node scripts/select_deployed_version.mjs --upload "$RUNNER_TEMP/wrangler-version-upload.jsonl")"
+          npm exec -- wrangler versions deploy --version-id "$UPLOADED_VERSION" --percentage 100 --yes
+          npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-deployment.json"
+          node scripts/select_deployed_version.mjs \
+            --uploaded-version "$UPLOADED_VERSION" \
+            --deployment "$RUNNER_TEMP/worker-deployment.json"

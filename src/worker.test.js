@@ -97,6 +97,99 @@ function recordingAssets() {
   };
 }
 
+async function request(path, headers = {}) {
+  let requested;
+  const response = await worker.fetch(
+    new Request(`https://araihu.com${path}`, { headers }),
+    {
+      ASSETS: {
+        fetch(assetRequest) {
+          requested = new URL(assetRequest.url);
+          return new Response("asset", {
+            headers: { Vary: "Accept-Encoding" },
+          });
+        },
+      },
+    },
+  );
+  return { response, requested };
+}
+
+test("maps the extensionless current channel", async () => {
+  const { response, requested } = await request("/assets/releases/current");
+
+  assert.equal(requested.pathname, "/assets/releases/current.json");
+  assert.equal(response.headers.get("content-type"), "application/json; charset=utf-8");
+  assert.equal(response.headers.get("cache-control"), "public, max-age=60, must-revalidate");
+});
+
+test("maps only declared extensionless release channels", async () => {
+  for (const [channel, file] of [
+    ["latest", "/assets/releases/latest.json"],
+    ["default", "/assets/releases/default.json"],
+  ]) {
+    const { response, requested } = await request(`/assets/releases/${channel}`);
+
+    assert.equal(requested.pathname, file, channel);
+    assert.equal(response.status, 200, channel);
+  }
+
+  const { response, requested } = await request("/assets/releases/unknown");
+  assert.equal(response.status, 404);
+  assert.equal(requested, undefined);
+});
+
+test("marks strict SemVer versioned assets immutable", async () => {
+  const { response } = await request("/assets/releases/v0.1.1-rc.1+build.42/catalog.json");
+
+  assert.equal(response.headers.get("cache-control"), "public, max-age=31536000, immutable");
+});
+
+test("does not mark leading-zero release versions immutable", async () => {
+  const { response } = await request("/assets/releases/v01.1.1/catalog.json");
+
+  assert.equal(response.headers.get("cache-control"), null);
+});
+
+test("permits anonymous public asset consumption", async () => {
+  const { response } = await request("/assets/releases/current", {
+    Origin: "https://goshtoso.araihu.com",
+  });
+
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(response.headers.get("access-control-allow-credentials"), null);
+  assert.equal(response.headers.get("cross-origin-resource-policy"), "cross-origin");
+  assert.equal(response.headers.get("Vary"), "Accept-Encoding");
+});
+
+test("removes credentialed CORS headers and Origin Vary from asset upstreams", async () => {
+  const response = await worker.fetch(new Request("https://araihu.com/assets/releases/v0.1.1/catalog.json"), {
+    ASSETS: {
+      fetch() {
+        return new Response("asset", {
+          headers: {
+            "Access-Control-Allow-Credentials": "true",
+            Vary: "Accept-Encoding, Origin, Accept-Language",
+          },
+        });
+      },
+    },
+  });
+
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(response.headers.get("access-control-allow-credentials"), null);
+  assert.equal(response.headers.get("Vary"), "Accept-Encoding, Accept-Language");
+});
+
+test("preserves HEAD when mapping a release channel", async () => {
+  const { fetched, env } = recordingAssets();
+  await worker.fetch(new Request("https://araihu.com/assets/releases/current", { method: "HEAD" }), env);
+
+  assert.equal(fetched.length, 1);
+  assert.equal(fetched[0].method, "HEAD");
+  assert.equal(new URL(fetched[0].url).pathname, "/assets/releases/current.json");
+});
+
 test("canonical brand pages map explicitly to static files", async () => {
   for (const [route, asset] of canonicalPages) {
     const { fetched, env } = recordingAssets();

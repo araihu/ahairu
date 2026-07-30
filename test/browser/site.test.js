@@ -232,6 +232,13 @@ test("all canonical pages expose reciprocal absolute metadata and valid JSON-LD"
 });
 
 test("brand downloads are complete local responses in every locale", async () => {
+  const immutableReleasePrefix = "/assets/releases/v0.1.1/";
+  const mutableDownloadPrefixes = [
+    "/assets/araihu/",
+    "/assets/releases/current/",
+    "/assets/releases/default/",
+    "/assets/releases/latest/",
+  ];
   for (const pathname of ["/brand/", "/pt-br/brand/", "/es/brand/"]) {
     const page = await openCheckedPage(pathname);
     try {
@@ -244,7 +251,8 @@ test("brand downloads are complete local responses in every locale", async () =>
         ),
       );
       assert.equal(downloads.length, 8, pathname);
-      assert.ok(downloads.every(({ path, status }) => path.startsWith("/assets/araihu/v0.1.0/") && status === 200), pathname);
+      assert.ok(downloads.every(({ path, status }) => path.startsWith(immutableReleasePrefix) && status === 200), pathname);
+      assert.ok(downloads.every(({ path }) => !mutableDownloadPrefixes.some((prefix) => path.startsWith(prefix))), pathname);
     } finally {
       await page.close();
     }

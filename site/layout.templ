@@ -2,7 +2,7 @@ package site
 
 templ Layout(page Page, content templ.Component) {
 	<!doctype html>
-	<html lang={ page.Meta.Locale.Language } data-theme="araihu">
+	<html lang={ page.Meta.Locale.Language } data-theme="araihu" data-theme-source="default">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
@@ -11,6 +11,7 @@ templ Layout(page Page, content templ.Component) {
 			<link rel="stylesheet" href="/assets/styles.css"/>
 			<link rel="stylesheet" href="/assets/araihu-theme.css"/>
 			<link rel="stylesheet" href="/assets/ahairu.css"/>
+			<script src="/assets/campaign/v1.js" data-channel="/assets/releases/current" defer integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n" crossorigin="anonymous"></script>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
 			@SiteHeader(page)
@@ -55,6 +56,10 @@ templ SiteHeader(page Page) {
 						}
 					}
 				</div>
+				<button class="ahairu-campaign-toggle" type="button" hidden data-campaign-toggle aria-pressed="false">
+					<span data-campaign-toggle-icon aria-hidden="true"></span>
+					<span class="sr-only">Use the standard Arai Hû appearance</span>
+				</button>
 			</div>
 		</nav>
 	</header>

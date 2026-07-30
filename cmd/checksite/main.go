@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 
+	"github.com/araihu/ahairu/internal/assetbundle"
 	"github.com/araihu/ahairu/site"
 	"golang.org/x/net/html"
 )
@@ -20,10 +22,11 @@ const canonicalOrigin = "https://araihu.com"
 const sitemapNamespace = "http://www.sitemaps.org/schemas/sitemap/0.9"
 
 const (
-	faviconURL        = "/assets/araihu/v0.1.0/platform/web/araihu/favicon.svg"
-	appleTouchIconURL = "/assets/araihu/v0.1.0/platform/web/araihu/apple-touch-icon-180.png"
-	manifestURL       = "/site.webmanifest"
-	themeColor        = "#07111f"
+	faviconURL               = site.BrandAssetsPublicPrefix + "platform/web/araihu/favicon.svg"
+	appleTouchIconURL        = site.BrandAssetsPublicPrefix + "platform/web/araihu/apple-touch-icon-180.png"
+	manifestURL              = "/site.webmanifest"
+	themeColor               = "#07111f"
+	campaignRuntimeIntegrity = "sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n"
 )
 
 func main() {
@@ -39,6 +42,9 @@ func main() {
 
 // Check verifies every generated public page against its typed source model.
 func Check(root string) error {
+	if err := checkAssetBundle(root); err != nil {
+		return err
+	}
 	if err := checkRobots(root); err != nil {
 		return err
 	}
@@ -54,6 +60,91 @@ func Check(root string) error {
 		if err := checkPage(root, page, routes); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func checkAssetBundle(root string) error {
+	source := assetBundleTree{source: os.DirFS(filepath.Join(root, "assets"))}
+	if _, err := assetbundle.Validate(source); err != nil {
+		return fmt.Errorf("asset release bundle: %w", err)
+	}
+	for _, name := range []string{"latest", "default", "current"} {
+		data, err := fs.ReadFile(source, "releases/"+name+".json")
+		if err != nil {
+			return fmt.Errorf("read asset release channel %q: %w", name, err)
+		}
+		if err := checkChannelURLs(data); err != nil {
+			return fmt.Errorf("asset release channel %q: %w", name, err)
+		}
+	}
+	return nil
+}
+
+// assetBundleTree presents the release subtree to the shared bundle validator
+// without treating unrelated site assets as bundle inputs.
+type assetBundleTree struct{ source fs.FS }
+
+func (tree assetBundleTree) Open(name string) (fs.File, error) {
+	if name != "." && name != "campaign" && name != "releases" && !strings.HasPrefix(name, "campaign/") && !strings.HasPrefix(name, "releases/") {
+		return nil, fs.ErrNotExist
+	}
+	return tree.source.Open(name)
+}
+
+func (tree assetBundleTree) ReadDir(name string) ([]fs.DirEntry, error) {
+	entries, err := fs.ReadDir(tree.source, name)
+	if err != nil || name != "." {
+		return entries, err
+	}
+	filtered := make([]fs.DirEntry, 0, 2)
+	for _, entry := range entries {
+		if entry.Name() == "campaign" || entry.Name() == "releases" {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered, nil
+}
+
+func checkChannelURLs(data []byte) error {
+	var document any
+	if err := json.Unmarshal(data, &document); err != nil {
+		return err
+	}
+	return checkURLs(document)
+}
+
+func checkURLs(value any) error {
+	switch value := value.(type) {
+	case map[string]any:
+		for name, child := range value {
+			if name == "url" || name == "cssUrl" {
+				urlValue, ok := child.(string)
+				if !ok {
+					return fmt.Errorf("%s is not a string URL", name)
+				}
+				if err := requireAbsoluteSameOriginURL(urlValue); err != nil {
+					return err
+				}
+			}
+			if err := checkURLs(child); err != nil {
+				return err
+			}
+		}
+	case []any:
+		for _, child := range value {
+			if err := checkURLs(child); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func requireAbsoluteSameOriginURL(value string) error {
+	parsed, err := url.Parse(value)
+	if err != nil || parsed.Scheme != "https" || parsed.Host != "araihu.com" || parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.RawPath != "" {
+		return fmt.Errorf("%q must be an absolute same-origin URL", value)
 	}
 	return nil
 }
@@ -98,10 +189,10 @@ func checkManifest(root string) error {
 		return fmt.Errorf("manifest has %d icons, want 4", len(manifest.Icons))
 	}
 	expectedIcons := map[string]struct{ sizes, purpose string }{
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-192.png":          {sizes: "192x192"},
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-512.png":          {sizes: "512x512"},
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-maskable-192.png": {sizes: "192x192", purpose: "maskable"},
-		"/assets/araihu/v0.1.0/platform/web/araihu/icon-maskable-512.png": {sizes: "512x512", purpose: "maskable"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-192.png":          {sizes: "192x192"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-512.png":          {sizes: "512x512"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-maskable-192.png": {sizes: "192x192", purpose: "maskable"},
+		site.BrandAssetsPublicPrefix + "platform/web/araihu/icon-maskable-512.png": {sizes: "512x512", purpose: "maskable"},
 	}
 	for _, icon := range manifest.Icons {
 		expected, ok := expectedIcons[icon.Source]
@@ -196,6 +287,9 @@ func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 	if document.language != page.Meta.Locale.Language {
 		return fmt.Errorf("page %q html lang = %q, want %q", page.Meta.Path, document.language, page.Meta.Locale.Language)
 	}
+	if err := requireCampaignCanary(document, page); err != nil {
+		return pageError(page, err)
+	}
 	if err := requireExactly("title", document.titles, page.Meta.Title); err != nil {
 		return pageError(page, err)
 	}
@@ -264,6 +358,90 @@ func checkPage(root string, page site.Page, routes map[string]struct{}) error {
 
 func pageError(page site.Page, err error) error {
 	return fmt.Errorf("page %q: %w", page.Meta.Path, err)
+}
+
+func requireCampaignCanary(document htmlDocument, page site.Page) error {
+	if document.htmlAttributes["data-theme"] != "araihu" || document.htmlAttributes["data-theme-source"] != "default" {
+		return fmt.Errorf("theme source must declare the Arai Hû default before body content")
+	}
+
+	var runtime *htmlElement
+	for index := range document.scripts {
+		script := &document.scripts[index]
+		if script.attributes["src"] != "/assets/campaign/v1.js" {
+			continue
+		}
+		if runtime != nil {
+			return fmt.Errorf("campaign runtime appears more than once")
+		}
+		runtime = script
+	}
+	if runtime == nil || runtime.attributes["data-channel"] != "/assets/releases/current" || runtime.attributes["integrity"] != campaignRuntimeIntegrity || runtime.attributes["crossorigin"] != "anonymous" {
+		return fmt.Errorf("campaign runtime contract is invalid")
+	}
+	if _, deferred := runtime.attributes["defer"]; !deferred {
+		return fmt.Errorf("campaign runtime must defer")
+	}
+	for _, link := range document.links {
+		if link.attributes["rel"] == "stylesheet" && link.position > runtime.position {
+			return fmt.Errorf("campaign runtime must follow baseline styles")
+		}
+	}
+	for _, image := range document.images {
+		if image.attributes["src"] == "" || image.attributes["width"] == "" || image.attributes["height"] == "" {
+			return fmt.Errorf("image dimensions must be explicit for every replaceable image")
+		}
+	}
+	var logoHooks, iconHooks int
+	for _, hook := range document.brandHooks {
+		switch hook.attributes["data-asset-brand"] {
+		case "logo":
+			if hook.name != "img" || hook.attributes["src"] == "" {
+				return fmt.Errorf("logo hook must target img[src]")
+			}
+			logoHooks++
+		case "icon":
+			if hook.name != "link" || hook.attributes["href"] == "" {
+				return fmt.Errorf("icon hook must target link[href]")
+			}
+			if hook.attributes["rel"] != "icon" {
+				return fmt.Errorf("icon hook must target rel=icon link")
+			}
+			iconHooks++
+		default:
+			return fmt.Errorf("asset brand hook %q is invalid", hook.attributes["data-asset-brand"])
+		}
+	}
+	wantLogoHooks := 0
+	if page.Meta.Kind == site.PageBrand {
+		wantLogoHooks = 1
+	}
+	if logoHooks != wantLogoHooks || iconHooks != 1 {
+		return fmt.Errorf("campaign brand hooks = logo:%d icon:%d, want logo:%d icon:1", logoHooks, iconHooks, wantLogoHooks)
+	}
+	if len(document.campaignToggles) != 1 {
+		return fmt.Errorf("campaign toggle count = %d, want 1", len(document.campaignToggles))
+	}
+	toggle := document.campaignToggles[0]
+	if toggle.element.name != "button" {
+		return fmt.Errorf("campaign toggle must be button")
+	}
+	if _, hidden := toggle.element.attributes["hidden"]; !hidden {
+		return fmt.Errorf("campaign toggle must have hidden attribute")
+	}
+	if toggle.element.attributes["type"] != "button" {
+		return fmt.Errorf("campaign toggle type must be button")
+	}
+	if toggle.element.attributes["aria-pressed"] != "false" {
+		return fmt.Errorf("campaign toggle aria-pressed must be false")
+	}
+	if toggle.iconChildren != 1 {
+		return fmt.Errorf("campaign toggle icon children = %d, want 1", toggle.iconChildren)
+	}
+	if strings.TrimSpace(toggle.element.attributes["aria-label"]) == "" && strings.TrimSpace(toggle.srOnlyText) == "" {
+		return fmt.Errorf("campaign toggle must have an accessible name")
+	}
+	return nil
 }
 
 func requireExactly(name string, values []string, want string) error {
@@ -534,15 +712,31 @@ func exactLocalFile(root, resource string) (string, error) {
 }
 
 type htmlDocument struct {
-	language  string
-	titles    []string
-	metas     []htmlElement
-	links     []htmlElement
-	jsonLD    []string
-	resources []htmlResource
+	language        string
+	htmlAttributes  map[string]string
+	titles          []string
+	metas           []htmlElement
+	links           []htmlElement
+	scripts         []htmlElement
+	images          []htmlElement
+	brandHooks      []htmlElement
+	campaignToggles []campaignToggle
+	jsonLD          []string
+	resources       []htmlResource
+	nextPosition    int
 }
 
-type htmlElement struct{ attributes map[string]string }
+type htmlElement struct {
+	name       string
+	attributes map[string]string
+	position   int
+}
+
+type campaignToggle struct {
+	element      htmlElement
+	iconChildren int
+	srOnlyText   string
+}
 
 type htmlResource struct {
 	URL  string
@@ -578,22 +772,37 @@ func collectHTML(node *html.Node, document *htmlDocument) error {
 		if err != nil {
 			return fmt.Errorf("<%s>: %w", name, err)
 		}
+		document.nextPosition++
+		element := htmlElement{name: name, attributes: attributes, position: document.nextPosition}
+		if attributes["data-asset-brand"] != "" {
+			document.brandHooks = append(document.brandHooks, element)
+		}
+		if _, toggle := attributes["data-campaign-toggle"]; toggle {
+			campaignToggle, err := parseCampaignToggle(node, element)
+			if err != nil {
+				return err
+			}
+			document.campaignToggles = append(document.campaignToggles, campaignToggle)
+		}
 		switch name {
 		case "html":
 			if document.language != "" {
 				return fmt.Errorf("duplicate <html>")
 			}
 			document.language = attributes["lang"]
+			document.htmlAttributes = attributes
 		case "title":
 			document.titles = append(document.titles, nodeText(node))
 		case "meta":
-			document.metas = append(document.metas, htmlElement{attributes: attributes})
+			document.metas = append(document.metas, element)
 		case "link":
-			document.links = append(document.links, htmlElement{attributes: attributes})
+			document.links = append(document.links, element)
 			appendResource(document, attributes["href"], "link")
 		case "img":
+			document.images = append(document.images, element)
 			appendResource(document, attributes["src"], "image")
 		case "script":
+			document.scripts = append(document.scripts, element)
 			appendResource(document, attributes["src"], "script")
 			if attributes["type"] == "application/ld+json" {
 				if attributes["id"] != "structured-data" {
@@ -611,6 +820,35 @@ func collectHTML(node *html.Node, document *htmlDocument) error {
 		}
 	}
 	return nil
+}
+
+func parseCampaignToggle(node *html.Node, element htmlElement) (campaignToggle, error) {
+	toggle := campaignToggle{element: element}
+	for child := node.FirstChild; child != nil; child = child.NextSibling {
+		if child.Type != html.ElementNode {
+			continue
+		}
+		attributes, err := nodeAttributes(child.Attr)
+		if err != nil {
+			return campaignToggle{}, fmt.Errorf("<%s>: %w", strings.ToLower(child.Data), err)
+		}
+		if _, icon := attributes["data-campaign-toggle-icon"]; icon {
+			toggle.iconChildren++
+		}
+		if hasClass(attributes["class"], "sr-only") {
+			toggle.srOnlyText += nodeText(child)
+		}
+	}
+	return toggle, nil
+}
+
+func hasClass(value, want string) bool {
+	for _, class := range strings.Fields(value) {
+		if class == want {
+			return true
+		}
+	}
+	return false
 }
 
 func appendResource(document *htmlDocument, resource, kind string) {
