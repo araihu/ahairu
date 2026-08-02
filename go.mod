@@ -7,4 +7,4 @@ require (
 	github.com/araihu/goshtoso v0.1.1
 )
 
-require golang.org/x/net v0.51.0
+require golang.org/x/net v0.57.0
