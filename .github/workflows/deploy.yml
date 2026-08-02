@@ -13,7 +13,8 @@ jobs:
   cloudflare:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.event == 'repository_dispatch')
+      (github.event.workflow_run.event == 'repository_dispatch' ||
+      (github.event.workflow_run.head_branch == 'main' && vars.ASSETS_RELEASE_HANDOFF_JSON != ''))
     runs-on: ubuntu-latest
     environment: production
     concurrency:
@@ -30,7 +31,7 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: accepted-assets
           path: ${{ runner.temp }}/accepted-assets
