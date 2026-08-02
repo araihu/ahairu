@@ -88,6 +88,8 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 
 	deploy := readWorkflow(t, "deploy.yml")
 	for _, want := range []string{
+		"github.event.workflow_run.event == 'repository_dispatch'",
+		"vars.ASSETS_RELEASE_HANDOFF_JSON != ''",
 		"permission-actions: read",
 		"WRANGLER_OUTPUT_FILE_PATH=\"$RUNNER_TEMP/wrangler-version-upload.jsonl\"",
 		"wrangler versions upload",
