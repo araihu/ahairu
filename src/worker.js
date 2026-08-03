@@ -136,6 +136,9 @@ export default {
     if (locales.has(first) && (url.pathname === `/${first}` || url.pathname === `/${first}/`)) {
       return env.ASSETS.fetch(localizedPage(first, request.url));
     }
+    if (url.pathname.startsWith("/fragments/")) {
+      return env.ASSETS.fetch(request);
+    }
     if (!url.pathname.includes(".")) {
       return env.ASSETS.fetch(localizedPage("en", request.url));
     }

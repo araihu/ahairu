@@ -4,11 +4,12 @@ import "testing"
 
 func TestProjectLifecycleStatusesMatchPublicMaturity(t *testing.T) {
 	want := map[string]string{
-		"Goshtoso":        "BETA",
-		"Goshtoso Charts": "ALPHA",
-		"Manja":           "WIP",
-		"Pajé":            "WIP",
-		"X-9":             "WIP",
+		"Goshtoso":            "BETA",
+		"Goshtoso App Shells": "ALPHA",
+		"Goshtoso Charts":     "ALPHA",
+		"Manja":               "WIP",
+		"Pajé":                "WIP",
+		"X-9":                 "WIP",
 	}
 
 	for _, content := range Locales() {

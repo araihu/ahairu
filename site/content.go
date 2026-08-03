@@ -4,12 +4,18 @@ const brandAssetBase = "/assets/logos/"
 const brandAssetRevision = "?rev=a8a9647a"
 
 const araihuIconURL = brandAssetBase + "araihu-icon-transparent.svg" + brandAssetRevision
+const socialImageURL = "https://araihu.com/assets/social/araihu-storm-v1.jpg"
 
 // Content is one localized version of the organization site.
 type Content struct {
 	Language               string
 	Path                   string
 	Name                   string
+	PageTitle              string
+	CanonicalURL           string
+	OpenGraphLocale        string
+	SocialDescription      string
+	SocialImageAlt         string
 	Tagline                string
 	Intro                  string
 	ProjectsLabel          string
@@ -46,8 +52,42 @@ type Content struct {
 	FooterBuiltWith        string
 	FooterConjunction      string
 	HeartChartLabel        string
+	PajeLifecycle          PajeLifecycleLabels
 	Projects               []Project
 	MoreProjects           []Project
+}
+
+// PajeLifecycleLabels owns the localized labels shown in Pajé's workflow DAG.
+type PajeLifecycleLabels struct {
+	Discovery             string
+	WebResearch           string
+	Specification         string
+	SpecificationApproval string
+	Implementation        string
+	UnitTests             string
+	IntegrationTests      string
+	Documentation         string
+	CI                    string
+	AdversarialReview     string
+	ReleaseApproval       string
+	Publish               string
+}
+
+func (labels PajeLifecycleLabels) ordered() []string {
+	return []string{
+		labels.Discovery,
+		labels.WebResearch,
+		labels.Specification,
+		labels.SpecificationApproval,
+		labels.Implementation,
+		labels.UnitTests,
+		labels.IntegrationTests,
+		labels.Documentation,
+		labels.CI,
+		labels.AdversarialReview,
+		labels.ReleaseApproval,
+		labels.Publish,
+	}
 }
 
 // Project is a maintained AraiHu project.
@@ -64,6 +104,11 @@ type Project struct {
 var contents = map[string]Content{
 	"en": {
 		Language: "en", Path: "/en/", Name: "Arai Hû", Tagline: "Software for stormy weather.",
+		PageTitle:              "Arai Hû — Software for stormy weather.",
+		CanonicalURL:           "https://araihu.com/en/",
+		OpenGraphLocale:        "en_US",
+		SocialDescription:      "Independent, open software built to endure difficult work.",
+		SocialImageAlt:         "Arai Hû mark over a dark storm at sea.",
 		Intro:                  "Independent, open tools built to endure difficult work. In Guarani, arai hû means black or dark cloud.",
 		ProjectsLabel:          "Built by Arai Hû",
 		ProjectsKicker:         "Projects",
@@ -99,6 +144,12 @@ var contents = map[string]Content{
 		FooterBuiltWith:        "Built with",
 		FooterConjunction:      "and",
 		HeartChartLabel:        "Three-dimensional parametric heart line.",
+		PajeLifecycle: PajeLifecycleLabels{
+			Discovery: "Discovery", WebResearch: "Web\nresearch", Specification: "Specification",
+			SpecificationApproval: "Spec\napproval", Implementation: "Implementation",
+			UnitTests: "Unit\ntests", IntegrationTests: "Integration\ntests", Documentation: "Documentation",
+			CI: "CI", AdversarialReview: "Adversarial\nreview", ReleaseApproval: "Release\napproval", Publish: "Publish",
+		},
 		Projects: projects(
 			[]string{"Go UI", "API publishing", "Code workflows", "Monitoring"},
 			[]string{"A Go UI library for server-rendered applications.", "OpenAPI documentation and publishing workbench.", "Durable workflows for code changes.", "Self-hosted monitoring control plane."},
@@ -110,6 +161,11 @@ var contents = map[string]Content{
 	},
 	"pt-br": {
 		Language: "pt-BR", Path: "/pt-br/", Name: "Arai Hû", Tagline: "Software para passar a trovoada.",
+		PageTitle:              "Arai Hû — Software para passar a trovoada.",
+		CanonicalURL:           "https://araihu.com/pt-br/",
+		OpenGraphLocale:        "pt_BR",
+		SocialDescription:      "Ferramentas independentes e abertas, feitas para resistir ao trabalho difícil.",
+		SocialImageAlt:         "Marca da Arai Hû sobre uma tempestade escura no mar.",
 		Intro:                  "Ferramentas independentes e abertas, feitas para resistir ao trabalho difícil. Em guarani, arai hû significa nuvem preta ou escura.",
 		ProjectsLabel:          "Criado pela Arai Hû",
 		ProjectsKicker:         "Projetos",
@@ -145,6 +201,12 @@ var contents = map[string]Content{
 		FooterBuiltWith:        "Criado com",
 		FooterConjunction:      "e",
 		HeartChartLabel:        "Linha paramétrica tridimensional em forma de coração.",
+		PajeLifecycle: PajeLifecycleLabels{
+			Discovery: "Descoberta", WebResearch: "Pesquisa\nweb", Specification: "Especificação",
+			SpecificationApproval: "Aprovação\nda spec", Implementation: "Implementação",
+			UnitTests: "Testes\nunitários", IntegrationTests: "Testes de\nintegração", Documentation: "Documentação",
+			CI: "CI", AdversarialReview: "Revisão\nadversarial", ReleaseApproval: "Aprovação\nfinal", Publish: "Publicação",
+		},
 		Projects: projects(
 			[]string{"UI em Go", "Publicação de APIs", "Workflows de código", "Monitoramento"},
 			[]string{"Biblioteca de UI Go para aplicações renderizadas no servidor.", "Documentação OpenAPI e ambiente de publicação.", "Workflows duráveis para mudanças de código.", "Plano de controle de monitoramento auto-hospedado."},
@@ -156,6 +218,11 @@ var contents = map[string]Content{
 	},
 	"es": {
 		Language: "es", Path: "/es/", Name: "Arai Hû", Tagline: "Software para tiempos de tormenta.",
+		PageTitle:              "Arai Hû — Software para tiempos de tormenta.",
+		CanonicalURL:           "https://araihu.com/es/",
+		OpenGraphLocale:        "es_ES",
+		SocialDescription:      "Herramientas independientes y abiertas, creadas para resistir el trabajo difícil.",
+		SocialImageAlt:         "Marca de Arai Hû sobre una tormenta oscura en el mar.",
 		Intro:                  "Herramientas independientes y abiertas, creadas para resistir el trabajo difícil. En guaraní, arai hû significa nube negra u oscura.",
 		ProjectsLabel:          "Creado por Arai Hû",
 		ProjectsKicker:         "Proyectos",
@@ -191,6 +258,12 @@ var contents = map[string]Content{
 		FooterBuiltWith:        "Creado con",
 		FooterConjunction:      "y",
 		HeartChartLabel:        "Línea paramétrica tridimensional con forma de corazón.",
+		PajeLifecycle: PajeLifecycleLabels{
+			Discovery: "Descubrimiento", WebResearch: "Investigación\nweb", Specification: "Especificación",
+			SpecificationApproval: "Aprobación\nde spec", Implementation: "Implementación",
+			UnitTests: "Pruebas\nunitarias", IntegrationTests: "Pruebas de\nintegración", Documentation: "Documentación",
+			CI: "CI", AdversarialReview: "Revisión\nadversarial", ReleaseApproval: "Aprobación\nfinal", Publish: "Publicación",
+		},
 		Projects: projects(
 			[]string{"UI en Go", "Publicación de APIs", "Flujos de código", "Monitoreo"},
 			[]string{"Biblioteca de UI Go para aplicaciones renderizadas en servidor.", "Documentación OpenAPI y espacio de publicación.", "Flujos de trabajo durables para cambios de código.", "Plano de control de monitoreo autoalojado."},
@@ -213,7 +286,7 @@ func projects(categories, descriptions []string) []Project {
 
 func moreProjects(categories, descriptions []string) []Project {
 	return []Project{
-		{Name: "Goshtoso App Shells", Category: categories[0], Description: descriptions[0], URL: "https://github.com/araihu/goshtoso-app-shells"},
+		{Name: "Goshtoso App Shells", Category: categories[0], Description: descriptions[0], URL: "https://github.com/araihu/goshtoso-app-shells", Status: "ALPHA"},
 		{Name: "Goshtoso Charts", Category: categories[1], Description: descriptions[1], URL: "https://github.com/araihu/goshtoso-charts", Status: "ALPHA"},
 		{Name: "Muamba", Category: categories[2], Description: descriptions[2], URL: "https://github.com/araihu/muamba"},
 	}

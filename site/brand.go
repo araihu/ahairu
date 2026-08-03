@@ -20,6 +20,9 @@ var backdropAssets embed.FS
 //go:embed visuals/*
 var projectVisualAssets embed.FS
 
+//go:embed assets/social/*.jpg
+var socialAssets embed.FS
+
 //go:embed storm-backdrop.js
 var stormBackdropJS []byte
 
@@ -103,4 +106,14 @@ func ProjectVisualAsset(name string) ([]byte, error) {
 // ProjectVisualAssetNames returns every generated showcase asset.
 func ProjectVisualAssetNames() []string {
 	return []string{"goshtoso-components-montage-v1.mp4", "goshtoso-components-poster-v1.webp"}
+}
+
+// SocialAsset reads one generated organization social-preview image.
+func SocialAsset(name string) ([]byte, error) {
+	return socialAssets.ReadFile("assets/social/" + name)
+}
+
+// SocialAssetNames returns every social-preview image emitted by the static builder.
+func SocialAssetNames() []string {
+	return []string{"araihu-storm-v1.jpg"}
 }

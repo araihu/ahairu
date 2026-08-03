@@ -19,7 +19,8 @@ async function servePublic() {
     [".js", "text/javascript"],
     [".mp4", "video/mp4"],
     [".svg", "image/svg+xml"],
-	[".webp", "image/webp"],
+    [".webp", "image/webp"],
+    [".jpg", "image/jpeg"],
   ]);
   const server = createServer(async (request, response) => {
     try {
@@ -224,25 +225,106 @@ test("project maturity labels stay attached to the correct products", { timeout:
     await page.waitForSelector("#goshtoso-charts-version-slot a");
     const labels = await page.evaluate(() => ({
       goshtoso: document.querySelector(".featured-copy [data-status]")?.textContent.trim(),
+      featuredVisual: document.querySelector(".featured-demo [data-status]")?.textContent.trim(),
       manja: document.querySelector(".project-tile--2 [data-status]")?.textContent.trim(),
       paje: document.querySelector(".project-tile--3 [data-status]")?.textContent.trim(),
       x9: document.querySelector(".project-tile--4 [data-status]")?.textContent.trim(),
+      shells: document.querySelector(".more-list li:first-child [data-status]")?.textContent.trim(),
       charts: document.querySelector(".more-list li:nth-child(2) [data-status]")?.textContent.trim(),
       goshtosoVersion: document.querySelector("#goshtoso-version-slot")?.textContent.trim(),
       chartsVersion: document.querySelector("#goshtoso-charts-version-slot")?.textContent.trim(),
-      unlabeledSecondary: document.querySelectorAll(".more-list li:first-child [data-status], .more-list li:nth-child(3) [data-status]").length,
+      unlabeledSecondary: document.querySelectorAll(".more-list li:nth-child(3) [data-status]").length,
     }));
     assert.deepEqual(labels, {
       goshtoso: "BETA",
+      featuredVisual: "BETA",
       manja: "WIP",
       paje: "WIP",
       x9: "WIP",
+      shells: "ALPHA",
       charts: "ALPHA",
       goshtosoVersion: "v0.1.7",
       chartsVersion: "v0.0.1",
       unlabeledSecondary: 0,
     });
     assert.equal(versionRequests, 1);
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
+test("application marks sit beside their project names instead of inside the media", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await puppeteer.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 884, height: 781 });
+    await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+
+    const projects = await page.$$eval("#apps .project-card", (cards) => cards.map((card) => {
+      const title = card.querySelector("h3");
+      const mark = card.querySelector(".project-title-mark");
+      const titleRect = title?.getBoundingClientRect();
+      const markRect = mark?.getBoundingClientRect();
+      return {
+        name: title?.textContent.trim(),
+        markSource: mark?.getAttribute("src"),
+        mediaHasMark: Boolean(card.querySelector(".project-media .project-mark, .project-media .project-title-mark")),
+        sameRow: Boolean(titleRect && markRect && Math.abs(
+          titleRect.top + titleRect.height / 2 - (markRect.top + markRect.height / 2),
+        ) < 2),
+        markIsLeftOfTitle: Boolean(titleRect && markRect && markRect.right <= titleRect.left),
+      };
+    }));
+
+    assert.deepEqual(projects.map(({ name }) => name), ["Manja", "Pajé", "X-9"]);
+    assert.deepEqual(projects.map(({ mediaHasMark }) => mediaHasMark), [false, false, false]);
+    assert.deepEqual(projects.map(({ sameRow }) => sameRow), [true, true, true]);
+    assert.deepEqual(projects.map(({ markIsLeftOfTitle }) => markIsLeftOfTitle), [true, true, true]);
+    assert.deepEqual(projects.map(({ markSource }) => markSource?.match(/([^/]+)-icon-transparent\.svg/)?.[1]), [
+      "manja",
+      "paje",
+      "x9",
+    ]);
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
+test("Pajé metadata and WIP badge meet text contrast on the dark card", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await puppeteer.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 884, height: 781 });
+    await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+
+    const contrast = await page.$eval(".project-tile--3 .project-card-surface", (card) => {
+      const rgb = (value) => value.match(/[\d.]+/g).slice(0, 3).map(Number);
+      const luminance = (value) => {
+        const [red, green, blue] = rgb(value).map((channel) => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+      };
+      const ratio = (foreground, background) => {
+        const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+        return (values[0] + 0.05) / (values[1] + 0.05);
+      };
+      const background = getComputedStyle(card).backgroundColor;
+      const metadata = getComputedStyle(card.querySelector(":scope > div:last-child > span:first-child")).color;
+      const status = getComputedStyle(card.querySelector('.project-status[data-status="WIP"]')).color;
+      return {
+        metadata: ratio(metadata, background),
+        status: ratio(status, background),
+      };
+    });
+
+    assert.ok(contrast.metadata >= 4.5, `metadata contrast ${contrast.metadata.toFixed(2)} is below 4.5:1`);
+    assert.ok(contrast.status >= 4.5, `WIP contrast ${contrast.status.toFixed(2)} is below 4.5:1`);
   } finally {
     await browser.close();
     await server.close();
@@ -286,8 +368,12 @@ test("chart runtimes and payload stay out of first paint until the HTMX reveal t
       actualCharts: document.querySelectorAll("[data-paje-actual-chart], [data-x9-live-availability], [data-goshtoso-heart-chart]").length,
       canvases: document.querySelectorAll("canvas").length,
       echarts: Boolean(window.echarts),
+      triggerCoversSection: Math.abs(
+        document.querySelector("[data-chart-bundle-trigger]").getBoundingClientRect().height
+        - document.querySelector(".project-showcase").getBoundingClientRect().height,
+      ) < 1,
     }));
-    assert.deepEqual(initial, { placeholders: 3, actualCharts: 0, canvases: 0, echarts: false });
+    assert.deepEqual(initial, { placeholders: 3, actualCharts: 0, canvases: 0, echarts: false, triggerCoversSection: true });
     assert.equal(requested.some((path) => path.includes("/charts/assets/js/runtime/")), false);
     assert.equal(requested.includes("/fragments/en/charts.html"), false);
 
@@ -337,7 +423,7 @@ test("Pajé uses an undecorated actual chart that fills its media area", { timeo
   }
 });
 
-test("Pajé restarts its force layout on every card hover", { timeout: 30_000 }, async () => {
+test("Pajé restarts its deterministic lifecycle chart on every card hover", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true });
   try {
@@ -371,7 +457,38 @@ test("Pajé restarts its force layout on every card hover", { timeout: 30_000 },
       layout: window.echarts.getInstanceByDom(host).getOption().series[0].layout,
     }));
     assert.notEqual(state.instanceID, firstHoverID);
-    assert.equal(state.layout, "force");
+    assert.equal(state.layout, "none");
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
+test("Pajé exposes the complete localized lifecycle with stable coordinates", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await puppeteer.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 884, height: 781 });
+    await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+    await revealCharts(page);
+    await page.$eval("[data-paje-actual-chart]", (element) => element.scrollIntoView({ block: "center" }));
+    const lifecycle = await page.$eval("[data-paje-actual-chart] [_echarts_instance_]", (host) => {
+      const chart = window.echarts.getInstanceByDom(host);
+      const series = chart.getOption().series[0];
+      return {
+        layout: series.layout,
+        nodes: series.data.map(({ name, x, y, fixed }) => ({ name, x, y, fixed })),
+        links: series.links.map(({ source, target }) => ({ source, target })),
+      };
+    });
+
+    assert.equal(lifecycle.layout, "none");
+    assert.equal(lifecycle.nodes.length, 12);
+    assert.equal(lifecycle.links.length, 13);
+    assert.equal(lifecycle.nodes[0].name, "01 · Discovery");
+    assert.equal(lifecycle.nodes.at(-1).name, "12 · Publish");
+    assert.equal(lifecycle.nodes.every(({ fixed, x, y }) => fixed === true && Number.isFinite(x) && Number.isFinite(y)), true);
   } finally {
     await browser.close();
     await server.close();

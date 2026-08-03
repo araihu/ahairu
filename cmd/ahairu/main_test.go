@@ -43,6 +43,16 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		`class="skip-link" href="#main-content"`,
 		`<header class="ahairu-header">`,
 		`<meta name="theme-color" content="#07111f">`,
+		`<title>Arai Hû — Software for stormy weather.</title>`,
+		`<meta name="description" content="Independent, open software built to endure difficult work.">`,
+		`<link rel="canonical" href="https://araihu.com/en/">`,
+		`<meta property="og:type" content="website">`,
+		`<meta property="og:image" content="https://araihu.com/assets/social/araihu-storm-v1.jpg">`,
+		`<meta property="og:image:width" content="1280">`,
+		`<meta property="og:image:height" content="640">`,
+		`<meta property="og:image:alt" content="Arai Hû mark over a dark storm at sea.">`,
+		`<meta name="twitter:card" content="summary_large_image">`,
+		`<meta name="twitter:image:alt" content="Arai Hû mark over a dark storm at sea.">`,
 		`class="ahairu-brand-copy"><strong>Arai Hû</strong>`,
 		`<main id="main-content" tabindex="-1">`,
 		`href="/en/" aria-current="page"`,
@@ -115,7 +125,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 			t.Errorf("initial HTML eagerly includes deferred chart payload %q", deferredMarkup)
 		}
 	}
-	for status, expected := range map[string]int{"BETA": 1, "ALPHA": 1, "WIP": 3} {
+	for status, expected := range map[string]int{"BETA": 2, "ALPHA": 2, "WIP": 3} {
 		marker := `data-status="` + status + `">` + status + `</span>`
 		if count := strings.Count(page, marker); count != expected {
 			t.Errorf("generated English page has %d %s labels, want %d", count, status, expected)
@@ -210,7 +220,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	reducedMotionCSS := string(brandCSS)[reducedMotionStart:]
 	for _, contract := range []string{
 		".storm-mobile-trigger, .storm-mobile-panel, .more-row",
-		".signal-button, .project-art::before, .project-art::after, .project-art-name, .project-mark, .more-art",
+		".signal-button, .project-art::before, .project-art::after, .project-art-name, .project-mark, .project-title-mark, .more-art",
 		".openapi-stream { animation: none; transform: none; }",
 		".muamba-drop { animation: none;",
 		"transition: none",
@@ -233,6 +243,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		filepath.Join("public", "assets", "js", "goshtoso.min.js"),
 		filepath.Join("public", "assets", "js", "runtime", "alpinejs-focus", "3.14.9", "alpine-focus.min.js"),
 		filepath.Join("public", "assets", "js", "runtime", "alpinejs", "3.14.9", "alpine.min.js"),
+		filepath.Join("public", "assets", "social", "araihu-storm-v1.jpg"),
 	} {
 		if info, err := os.Stat(generatedAsset); err != nil || info.Size() == 0 {
 			t.Errorf("component runtime asset %s missing or empty: %v", generatedAsset, err)

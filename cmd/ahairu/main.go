@@ -113,6 +113,19 @@ func build() error {
 			return err
 		}
 	}
+	socialDir := filepath.Join("public", "assets", "social")
+	if err := os.MkdirAll(socialDir, 0o755); err != nil {
+		return err
+	}
+	for _, name := range site.SocialAssetNames() {
+		asset, err := site.SocialAsset(name)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(socialDir, name), asset, 0o644); err != nil {
+			return err
+		}
+	}
 	for _, locale := range site.Locales() {
 		if err := render(locale); err != nil {
 			return err

@@ -15,9 +15,26 @@ templ Page(content Content) {
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<meta name="description" content={ content.Intro }/>
+			<title>{ content.PageTitle }</title>
+			<meta name="description" content={ content.SocialDescription }/>
+			<link rel="canonical" href={ content.CanonicalURL }/>
+			<meta property="og:url" content={ content.CanonicalURL }/>
+			<meta property="og:type" content="website"/>
+			<meta property="og:title" content={ content.PageTitle }/>
+			<meta property="og:description" content={ content.SocialDescription }/>
+			<meta property="og:site_name" content={ content.Name }/>
+			<meta property="og:locale" content={ content.OpenGraphLocale }/>
+			<meta property="og:image" content={ socialImageURL }/>
+			<meta property="og:image:type" content="image/jpeg"/>
+			<meta property="og:image:width" content="1280"/>
+			<meta property="og:image:height" content="640"/>
+			<meta property="og:image:alt" content={ content.SocialImageAlt }/>
+			<meta name="twitter:card" content="summary_large_image"/>
+			<meta name="twitter:title" content={ content.PageTitle }/>
+			<meta name="twitter:description" content={ content.SocialDescription }/>
+			<meta name="twitter:image" content={ socialImageURL }/>
+			<meta name="twitter:image:alt" content={ content.SocialImageAlt }/>
 			<meta name="theme-color" content="#07111f"/>
-			<title>{ content.Name } — { content.Tagline }</title>
 			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-icon-background.svg?rev=a8a9647a"/>
 			@head.Dependencies(head.WithStylesheetURL("/assets/styles.css"), head.WithLocalRuntime())
 			<link rel="stylesheet" href={ shellassets.StylesheetURL("/landingshell/assets/") }/>
@@ -81,7 +98,10 @@ templ Page(content Content) {
 								<video data-featured-montage loop muted playsinline preload="metadata" poster="/assets/visuals/goshtoso-components-poster-v1.webp">
 									<source src="/assets/visuals/goshtoso-components-montage-v1.mp4" type="video/mp4"/>
 								</video>
-								<figcaption><span>Goshtoso + Goshtoso Charts</span><span>Tabs · HTMX · Monitoring · Line 3D</span></figcaption>
+								<figcaption>
+									<span><span>Goshtoso + Goshtoso Charts</span> @ProjectStatus(content.Projects[0])</span>
+									<span>Tabs · HTMX · Monitoring · Line 3D</span>
+								</figcaption>
 							</figure>
 						</a>
 						<div class="featured-copy">
@@ -240,7 +260,6 @@ templ ProjectMedia(project Project) {
 					<div class="openapi-block">@OpenAPILines()</div>
 				</div>
 			</div>
-			<img class="project-mark" src={ project.MarkURL } alt="" width="160" height="160" decoding="async"/>
 		</div>
 	} else if project.Name == "Pajé" {
 		<div id="paje-chart-slot" class="project-art project-art--graph chart-placeholder" data-chart-placeholder="paje" aria-busy="true">
@@ -325,6 +344,9 @@ templ ProjectBadges(project Project) {
 }
 
 templ ProjectFooter(content Content, project Project) {
+	if project.MarkURL != "" {
+		<img class="project-title-mark" src={ project.MarkURL } alt="" width="44" height="44" decoding="async"/>
+	}
 	@ProjectStatus(project)
 	<span class="project-action">{ content.ProjectAction } <span aria-hidden="true">↗</span></span>
 }

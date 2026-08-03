@@ -49,6 +49,27 @@ test("root serves detected locale while explicit routes remain fixed", async () 
   assert.equal(fetched[1].pathname, "/en/index.html");
 });
 
+test("extensionless chart fragment routes pass through to static assets", async () => {
+  const fetched = [];
+  const env = {
+    ASSETS: {
+      fetch(request) {
+        const url = new URL(request.url || request);
+        fetched.push(url);
+        return new Response("chart fragment");
+      },
+    },
+  };
+
+  const response = await worker.fetch(
+    new Request("https://araihu.com/fragments/pt-br/charts"),
+    env,
+  );
+
+  assert.equal(await response.text(), "chart fragment");
+  assert.equal(fetched[0].pathname, "/fragments/pt-br/charts");
+});
+
 test("project versions use latest releases, tag fallback, and a 24 hour edge cache", async () => {
   const githubRequests = [];
   const cacheEntries = new Map();
