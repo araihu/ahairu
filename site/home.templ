@@ -1,6 +1,13 @@
 package site
 
-import "fmt"
+import (
+	"fmt"
+
+	landingshell "github.com/araihu/goshtoso-app-shells/landingshell"
+	shellassets "github.com/araihu/goshtoso-app-shells/landingshell/assets"
+	"github.com/araihu/goshtoso/components/card"
+	"github.com/araihu/goshtoso/components/head"
+)
 
 templ Page(content Content) {
 	<!doctype html>
@@ -12,70 +19,312 @@ templ Page(content Content) {
 			<meta name="theme-color" content="#07111f"/>
 			<title>{ content.Name } — { content.Tagline }</title>
 			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-icon-background.svg?rev=a8a9647a"/>
-			<link rel="stylesheet" href="/assets/styles.css"/>
+			@head.Dependencies(head.WithStylesheetURL("/assets/styles.css"), head.WithLocalRuntime())
+			<link rel="stylesheet" href={ shellassets.StylesheetURL("/landingshell/assets/") }/>
 			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=a8a9647a"/>
 			<link rel="stylesheet" href="/assets/ahairu.css?rev=a8a9647a"/>
+			<script defer src="/assets/js/storm-backdrop.js?rev=2"></script>
+			<script defer src="/assets/js/x9-availability.js?rev=1"></script>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
 			<a class="skip-link" href="#main-content">{ content.SkipLabel }</a>
 			<header class="ahairu-header">
-				<nav class="ahairu-shell ahairu-nav mx-auto flex items-center justify-between px-6 py-5 md:px-10 md:py-7" aria-label={ content.PrimaryNavigationLabel }>
+				<nav class="ahairu-nav py-5 md:py-7" aria-label={ content.PrimaryNavigationLabel }>
 					<a class="ahairu-brand" href={ content.Path }>
 						<img src={ araihuIconURL } alt="" width="64" height="64"/>
-						<span>{ content.Name }</span>
+						<span class="ahairu-brand-copy"><strong>{ content.Name }</strong><small>{ content.Tagline }</small></span>
 					</a>
-					<div class="ahairu-locale flex gap-3 text-sm font-semibold">
-						if content.Path == "/pt-br/" {
-							<a href="/pt-br/" aria-current="page">PT</a>
-						} else {
-							<a href="/pt-br/">PT</a>
-						}
-						if content.Path == "/en/" {
-							<a href="/en/" aria-current="page">EN</a>
-						} else {
-							<a href="/en/">EN</a>
-						}
-						if content.Path == "/es/" {
-							<a href="/es/" aria-current="page">ES</a>
-						} else {
-							<a href="/es/">ES</a>
-						}
+					<ul class="ahairu-primary-links">
+						<li><a href="#home">{ content.NavHome }</a></li>
+						<li><a href="#libs">{ content.NavLibs }</a></li>
+						<li><a href="#apps">{ content.NavApps }</a></li>
+						<li><a href="#field-notes">{ content.NavBlog } <span>{ content.WorkInProgress }</span></a></li>
+					</ul>
+					<div class="ahairu-nav-tools">
+						<a class="ahairu-github" href="https://github.com/araihu">GitHub ↗</a>
+						<div class="ahairu-locale flex gap-3 text-sm font-semibold">
+							@LocaleLinks(content)
+						</div>
 					</div>
 				</nav>
 			</header>
-			<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">
-				<section class="storm-hero" aria-labelledby="hero-title">
-					<h1 id="hero-title" class="storm-title">{ content.Tagline }</h1>
-					<p class="storm-intro mt-8">{ content.Intro }</p>
+			@landingshell.MobileNavigation(landingshell.MobileNavigationConfig{
+				ID:              "araihu-navigation",
+				Title:           content.PrimaryNavigationLabel,
+				TriggerLabel:    content.MenuLabel,
+				NavigationLabel: content.PrimaryNavigationLabel,
+				Position:        landingshell.FloatingBottomLeft,
+				RootClass:       "storm-mobile-menu",
+				TriggerClass:    "storm-mobile-trigger",
+				PanelClass:      "storm-mobile-panel",
+			}, MobileMenuContent(content))
+			<main id="main-content" tabindex="-1">
+				<section id="home" class="storm-hero ahairu-shell mx-auto px-6 md:px-10" aria-labelledby="hero-title">
+					<div class="storm-video-stage" aria-hidden="true">
+						<video class="storm-backdrop" data-storm-backdrop loop muted playsinline preload="none">
+							<source media="(prefers-color-scheme: light)" src="/assets/video/storm-light-v1.mp4" type="video/mp4"/>
+							<source media="(prefers-color-scheme: dark)" src="/assets/video/storm-dark-v1.mp4" type="video/mp4"/>
+							<source src="/assets/video/storm-dark-v1.mp4" type="video/mp4"/>
+						</video>
+						<div class="storm-video-filter"></div>
+					</div>
+					<div class="storm-copy">
+						<p class="storm-kicker">{ content.OpenSourceLabel } · Arai Hû</p>
+						<h1 id="hero-title" class="storm-title">{ content.Tagline }</h1>
+						<p class="storm-intro mt-8">{ content.Intro }</p>
+					</div>
 				</section>
-				<section class="project-ledger" aria-labelledby="projects-title">
-					<h2 id="projects-title">{ content.ProjectsLabel }</h2>
-					<ol class="project-list mt-8">
-						for index, project := range content.Projects {
-							<li>
-								<a class="project-row" href={ project.URL }>
-									<span class="project-index">{ fmt.Sprintf("%02d", index + 1) }</span>
-									if project.MarkURL != "" {
-										<img class="project-mark" src={ project.MarkURL } alt="" width="48" height="48" decoding="async"/>
-									} else {
-										<span class="project-mark project-mark--word" aria-hidden="true">{ project.MarkText }</span>
-									}
-									<h3 class="project-name">{ project.Name }</h3>
-									<p class="project-description">{ project.Description }</p>
-									<span class="project-arrow" aria-hidden="true">↗</span>
-								</a>
-							</li>
-						}
-					</ol>
+				<section id="libs" class="featured-project" aria-labelledby="featured-title">
+					<div class="ahairu-shell featured-project-inner mx-auto px-6 md:px-10">
+						<a class="featured-visual" href="https://goshtoso.araihu.com" aria-label={ content.FeaturedAction }>
+							<figure class="featured-demo">
+								<video data-featured-montage loop muted playsinline preload="metadata" poster="/assets/visuals/goshtoso-components-poster-v1.webp">
+									<source src="/assets/visuals/goshtoso-components-montage-v1.mp4" type="video/mp4"/>
+								</video>
+								<figcaption><span>Goshtoso + Goshtoso Charts</span><span>Tabs · HTMX · Monitoring · Line 3D</span></figcaption>
+							</figure>
+						</a>
+						<div class="featured-copy">
+							<p class="storm-kicker">02 — { content.FeaturedLabel } @ProjectBadges(content.Projects[0])</p>
+							<h2 id="featured-title">{ content.FeaturedTitle }</h2>
+							<p>{ content.FeaturedDescription }</p>
+							<a class="signal-button" href="https://goshtoso.araihu.com">{ content.FeaturedAction } <span aria-hidden="true">↗</span></a>
+						</div>
+					</div>
+				</section>
+				<section class="project-showcase" aria-labelledby="projects-title">
+					<div
+						class="chart-bundle-trigger"
+						data-chart-bundle-trigger
+						aria-hidden="true"
+						hx-get={ ChartFragmentURL(content) }
+						hx-trigger="revealed once"
+						hx-target="#chart-lazy-stage"
+						hx-swap="innerHTML"
+					></div>
+					<div id="chart-lazy-stage" hidden></div>
+					<div class="ahairu-shell mx-auto px-6 md:px-10">
+						<div class="showcase-heading">
+							<div>
+								<p class="showcase-kicker">03 — { content.ProjectsKicker }</p>
+								<h2 id="projects-title">{ content.ProjectsLabel }</h2>
+							</div>
+							<p>{ content.ProjectsIntro }</p>
+						</div>
+						<div id="apps" class="project-collection">
+							<h3><span>02</span>{ content.AppsLabel }</h3>
+							<ol class="project-grid mt-8">
+								for index, project := range content.Projects[1:] {
+									@ProjectTile(content, project, index + 1)
+								}
+							</ol>
+						</div>
+					</div>
+				</section>
+				<section class="more-projects" aria-labelledby="more-title">
+					<div class="ahairu-shell mx-auto px-6 md:px-10">
+						<div class="more-heading">
+							<p class="showcase-kicker">04 — { content.MoreLabel }</p>
+							<h2 id="more-title">{ content.MoreLabel }</h2>
+							<p>{ content.MoreIntro }</p>
+						</div>
+						<ol class="more-list">
+							for index, project := range content.MoreProjects {
+								<li>
+									<article class="more-row">
+										<span class="more-index">{ fmt.Sprintf("%02d", index + 1) }</span>
+										@MoreProjectArt(content, project)
+										<div class="more-copy"><p>{ project.Category } @ProjectBadges(project)</p><h3><a class="more-project-link" href={ project.URL } aria-label={ project.Name + " — " + project.Description }>{ project.Name }</a></h3><p>{ project.Description }</p></div>
+										<span class="more-arrow" aria-hidden="true">↗</span>
+									</article>
+								</li>
+							}
+						</ol>
+					</div>
+				</section>
+				<section class="open-mission" aria-labelledby="mission-title">
+					<div class="ahairu-shell mx-auto px-6 md:px-10">
+						<p class="storm-kicker">05 — { content.OpenSourceLabel }</p>
+						<h2 id="mission-title">{ content.MissionTitle }</h2>
+						<p>{ content.MissionCopy }</p>
+					</div>
+				</section>
+				<section class="keep-up" aria-label={ content.NavBlog }>
+					<div class="ahairu-shell keep-up-grid mx-auto px-6 md:px-10">
+						<div id="field-notes" class="mailing-panel">
+							<p class="panel-status">{ content.NavBlog } · { content.WorkInProgress }</p>
+							<h2>{ content.MailingTitle }</h2>
+							<p>{ content.MailingCopy }</p>
+							<form class="mailing-preview" aria-label={ content.MailingTitle }>
+								<label class="sr-only" for="mailing-email">Email</label>
+								<input id="mailing-email" type="email" placeholder={ content.MailingPlaceholder } disabled/>
+								<button type="button" disabled>{ content.MailingAction }</button>
+							</form>
+						</div>
+						<div class="chat-panel">
+							<p class="panel-status">GitHub · { content.OpenSourceLabel }</p>
+							<h2>{ content.ChatTitle }</h2>
+							<p>{ content.ChatCopy }</p>
+							<a href="https://github.com/araihu">{ content.ChatAction } <span aria-hidden="true">↗</span></a>
+						</div>
+					</div>
 				</section>
 			</main>
 			<footer class="ahairu-shell ahairu-footer mx-auto flex flex-col gap-3 px-6 py-6 text-sm md:flex-row md:items-center md:justify-between md:px-10 md:py-8">
 				<div>
 					<p>© 2026 { content.Name }.</p>
-					<p>{ content.FooterBuild }</p>
+					<p>{ content.FooterBuiltWith } <a href="https://go.dev/">Go</a> { content.FooterConjunction } <a href="https://goshtoso.araihu.com">Goshtoso</a>.</p>
 				</div>
-					<p>{ content.Meaning }</p>
+				<p>{ content.Meaning }</p>
 			</footer>
 		</body>
 	</html>
+}
+
+templ LocaleLinks(content Content) {
+	if content.Path == "/pt-br/" {
+		<a href="/pt-br/" aria-current="page">PT</a>
+	} else {
+		<a href="/pt-br/">PT</a>
+	}
+	if content.Path == "/en/" {
+		<a href="/en/" aria-current="page">EN</a>
+	} else {
+		<a href="/en/">EN</a>
+	}
+	if content.Path == "/es/" {
+		<a href="/es/" aria-current="page">ES</a>
+	} else {
+		<a href="/es/">ES</a>
+	}
+}
+
+templ MobileMenuContent(content Content) {
+	<a class="mobile-menu-brand" href={ content.Path }><strong>{ content.Name }</strong><small>{ content.Tagline }</small></a>
+	<ul class="mobile-menu-list">
+		<li><a href="#home">{ content.NavHome }</a></li>
+		<li><a href="#libs">{ content.NavLibs }</a></li>
+		<li><a href="#apps">{ content.NavApps }</a></li>
+		<li><a href="#field-notes">{ content.NavBlog } <span>{ content.WorkInProgress }</span></a></li>
+	</ul>
+	<div class="mobile-menu-tools">
+		<a href="https://github.com/araihu">GitHub ↗</a>
+		@LocaleLinks(content)
+	</div>
+}
+
+templ ProjectTile(content Content, project Project, index int) {
+	<li class={ fmt.Sprintf("project-tile project-tile--%d", index + 1) }>
+		<a class="project-card" href={ project.URL } aria-label={ content.ProjectAction + ": " + project.Name }>
+			@card.Card(card.Config{
+				Media:       ProjectMedia(project),
+				MediaClass:  "project-media",
+				Tag:         fmt.Sprintf("%02d — %s", index + 1, project.Category),
+				Title:       project.Name,
+				Description: project.Description,
+				Footer:      ProjectFooter(content, project),
+				Interaction: card.InteractionPressed,
+				RootClass:   "project-card-surface",
+			})
+		</a>
+	</li>
+}
+
+templ ProjectMedia(project Project) {
+	if project.Name == "Manja" {
+		<div class="project-art project-art--openapi" aria-hidden="true">
+			<div class="openapi-toolbar"><i></i><i></i><i></i><span>github-rest-api.yaml</span></div>
+			<div class="openapi-viewport">
+				<div class="openapi-stream">
+					<div class="openapi-block">@OpenAPILines()</div>
+					<div class="openapi-block">@OpenAPILines()</div>
+				</div>
+			</div>
+			<img class="project-mark" src={ project.MarkURL } alt="" width="160" height="160" decoding="async"/>
+		</div>
+	} else if project.Name == "Pajé" {
+		<div id="paje-chart-slot" class="project-art project-art--graph chart-placeholder" data-chart-placeholder="paje" aria-busy="true">
+			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
+		</div>
+	} else if project.Name == "X-9" {
+		<div id="x9-chart-slot" class="project-art project-art--monitor chart-placeholder" data-chart-placeholder="x9" aria-busy="true">
+			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
+		</div>
+	} else {
+		<div class="project-art" aria-hidden="true">
+			<span class="project-art-name">{ project.Name }</span>
+			if project.MarkURL != "" {
+				<img class="project-mark" src={ project.MarkURL } alt="" width="160" height="160" decoding="async"/>
+			} else {
+				<span class="project-mark project-mark--word">{ project.MarkText }</span>
+			}
+		</div>
+	}
+}
+
+templ OpenAPILines() {
+	for _, line := range GitHubReleaseOpenAPILines() {
+		<span>{ line.Indent }<b>{ line.Key }</b>{ line.Value }</span>
+	}
+}
+
+templ MoreProjectArt(content Content, project Project) {
+	if project.Name == "Goshtoso Charts" {
+		<div id="goshtoso-heart-chart-slot" class="more-art more-art--chart chart-placeholder" data-chart-placeholder="goshtoso-heart" aria-busy="true">
+			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
+		</div>
+	} else if project.Name == "Muamba" {
+		<div class="more-art more-art--muamba" aria-hidden="true">
+			<b class="muamba-name">Muamba</b>
+			<div class="muamba-drops">
+				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+			</div>
+		</div>
+	} else if project.Name == "Goshtoso App Shells" {
+		<div class="more-art more-art--shells" data-shell-preview aria-hidden="true">
+			<div class="shell-preview shell-preview--desktop">
+				<div class="shell-preview-topbar"><i></i><i></i><i></i></div>
+				<div class="shell-preview-body"><aside><i></i><i></i><i></i></aside><main><b></b><span></span><span></span></main></div>
+			</div>
+			<div class="shell-preview shell-preview--mobile">
+				<div class="shell-preview-topbar"><i></i><b></b></div>
+				<div class="shell-preview-body"><aside><i></i><i></i><i></i></aside><main><span></span><span></span></main></div>
+			</div>
+		</div>
+	} else {
+		<div class="more-art" aria-hidden="true"><span>{ project.Name }</span></div>
+	}
+}
+
+
+templ ProjectStatus(project Project) {
+	if project.Status != "" {
+		<span class="project-status" data-status={ project.Status }>{ project.Status }</span>
+	}
+}
+
+templ ProjectBadges(project Project) {
+	@ProjectStatus(project)
+	if project.Name == "Goshtoso" {
+		<span
+			id="goshtoso-version-slot"
+			class="project-version"
+			aria-live="polite"
+			hx-get="/api/project-versions"
+			hx-trigger="load delay:750ms"
+			hx-swap="outerHTML"
+		></span>
+	} else if project.Name == "Goshtoso Charts" {
+		<span id="goshtoso-charts-version-slot" class="project-version" aria-live="polite"></span>
+	}
+}
+
+templ ProjectFooter(content Content, project Project) {
+	@ProjectStatus(project)
+	<span class="project-action">{ content.ProjectAction } <span aria-hidden="true">↗</span></span>
 }

@@ -7,8 +7,10 @@
   },
   "scripts": {
     "build": "templ generate && go run ./cmd/ahairu build",
+	"capture:visuals": "node scripts/capture-project-visuals.mjs",
+	"test:design": "node --test src/design.test.js",
     "test:worker": "node --test src/worker.test.js",
-    "check": "npm run build && go test ./... -count=1 && npm run test:worker && wrangler deploy --dry-run"
+	"check": "npm run build && go test ./... -count=1 && npm run test:design && npm run test:worker && wrangler deploy --dry-run"
   },
   "allowScripts": {
     "puppeteer@25.4.0": true,

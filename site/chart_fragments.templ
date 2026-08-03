@@ -1,0 +1,31 @@
+package site
+
+import chartassets "github.com/araihu/goshtoso-charts/assets"
+
+// ChartFragment is fetched after the project showcase reaches the viewport.
+// Chart markup stays inert in templates until the lightweight loader has
+// fetched both chart runtimes, then HTMX swaps each chart into its reserved slot.
+templ ChartFragment(content Content) {
+	<div data-chart-fragment>
+		<template data-chart-target="#paje-chart-slot">
+			<div id="paje-chart-slot" class="project-art project-art--graph" data-paje-actual-chart>
+				@PajeWorkflowGraph(content.Projects[2])
+			</div>
+		</template>
+		<template data-chart-target="#x9-chart-slot">
+			<div id="x9-chart-slot" class="project-art project-art--monitor" data-x9-live-availability>
+				@X9AvailabilityChart(content.Projects[3])
+			</div>
+		</template>
+		<template data-chart-target="#goshtoso-heart-chart-slot">
+			<div id="goshtoso-heart-chart-slot" class="more-art more-art--chart" data-goshtoso-heart-chart>
+				@GoshtosoHeartLine3D(content.MoreProjects[1], content.HeartChartLabel)
+			</div>
+		</template>
+		<script
+			src="/assets/js/chart-loader.js?rev=1"
+			data-echarts-src={ chartassets.RuntimeURL }
+			data-three-d-src={ chartassets.ThreeDRuntimeURL }
+		></script>
+	</div>
+}

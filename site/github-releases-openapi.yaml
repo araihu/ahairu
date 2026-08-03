@@ -1,0 +1,158 @@
+---
+openapi: 3.1.0
+info:
+  version: 1.1.4
+  title: GitHub v3 REST API
+  description: GitHub's v3 REST API.
+  license:
+    name: MIT
+    url: https://spdx.org/licenses/MIT
+  termsOfService: https://docs.github.com/articles/github-terms-of-service
+  contact:
+    name: Support
+    url: https://support.github.com/contact?tags=dotcom-rest-api
+  x-github-plan: api.github.com
+tags:
+- name: repos
+  description: Interact with GitHub Repos.
+paths:
+  "/repos/{owner}/{repo}/releases":
+    get:
+      summary: List releases
+      description: |-
+        This returns a list of releases, which does not include regular Git tags
+        that have not been associated with a release.
+
+        Information about published releases is available to everyone. Only users
+        with push access will receive listings for draft releases.
+      tags:
+      - repos
+      operationId: repos/list-releases
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/releases/releases#list-releases
+      parameters:
+      - "$ref": "#/components/parameters/owner"
+      - "$ref": "#/components/parameters/repo"
+      - "$ref": "#/components/parameters/per-page"
+      - "$ref": "#/components/parameters/page"
+      responses:
+        '200':
+          description: Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/release"
+              examples:
+                default:
+                  "$ref": "#/components/examples/release-items"
+          headers:
+            Link:
+              "$ref": "#/components/headers/link"
+        '404':
+          "$ref": "#/components/responses/not_found"
+      x-github:
+        githubCloudOnly: false
+        enabledForGitHubApps: true
+        category: releases
+        subcategory: releases
+    post:
+      summary: Create a release
+      description: |-
+        Users with push access to the repository can create a release.
+        This endpoint triggers notifications. Creating content too quickly may
+        result in secondary rate limiting.
+      tags:
+      - repos
+      operationId: repos/create-release
+      externalDocs:
+        description: API method documentation
+        url: https://docs.github.com/rest/releases/releases#create-a-release
+      parameters:
+      - "$ref": "#/components/parameters/owner"
+      - "$ref": "#/components/parameters/repo"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tag_name:
+                  type: string
+                  description: The name of the tag.
+                target_commitish:
+                  type: string
+                  description: The branch or commit SHA used to create the tag.
+                name:
+                  type: string
+                  description: The name of the release.
+                body:
+                  type: string
+                  description: Text describing the contents of the tag.
+                draft:
+                  type: boolean
+                  description: Whether to create an unpublished release.
+                  default: false
+                prerelease:
+                  type: boolean
+                  description: Whether to identify the release as a prerelease.
+                  default: false
+                discussion_category_name:
+                  type: string
+                  description: Discussion category linked to the release.
+                generate_release_notes:
+                  type: boolean
+                  description: Automatically generate the release name and body.
+                  default: false
+                make_latest:
+                  type: string
+                  description: Whether this is the latest repository release.
+                  enum:
+                  - 'true'
+                  - 'false'
+                  - legacy
+                  default: 'true'
+              required:
+              - tag_name
+            examples:
+              default:
+                value:
+                  tag_name: v1.0.0
+                  target_commitish: master
+                  name: v1.0.0
+                  body: Description of the release
+                  draft: false
+                  prerelease: false
+                  generate_release_notes: false
+      responses:
+        '201':
+          description: Response
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/release"
+              examples:
+                default:
+                  "$ref": "#/components/examples/release"
+          headers:
+            Location:
+              example: https://api.github.com/repos/octocat/Hello-World/releases/1
+              schema:
+                type: string
+        '404':
+          description: Not Found if the discussion category name is invalid
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/basic-error"
+        '422':
+          "$ref": "#/components/responses/validation_failed"
+      x-github:
+        triggersNotification: true
+        githubCloudOnly: false
+        enabledForGitHubApps: true
+        category: releases
+        subcategory: releases
