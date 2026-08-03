@@ -14,7 +14,19 @@ permissions:
 
 jobs:
   source:
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{
+        github.event_name == 'pull_request' &&
+        contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.user.login == github.actor &&
+        github.event.pull_request.base.repo.full_name == github.repository &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.head.repo.fork == false &&
+        contains(fromJSON(vars.HOSTINGER_PR_ACTORS_JSON || '[]'), github.actor) &&
+        fromJSON('["self-hosted","Linux","X64","hostinger-vps"]') ||
+        'ubuntu-latest'
+      }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
@@ -36,7 +48,19 @@ jobs:
     if: >-
       github.event_name == 'repository_dispatch' ||
       (github.ref == 'refs/heads/main' && vars.ASSETS_RELEASE_HANDOFF_JSON != '')
-    runs-on: ubuntu-latest
+    runs-on: >-
+      ${{
+        github.event_name == 'pull_request' &&
+        contains(fromJSON('["opened","synchronize","reopened","ready_for_review"]'), github.event.action) &&
+        github.event.pull_request.draft == false &&
+        github.event.pull_request.user.login == github.actor &&
+        github.event.pull_request.base.repo.full_name == github.repository &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.head.repo.fork == false &&
+        contains(fromJSON(vars.HOSTINGER_PR_ACTORS_JSON || '[]'), github.actor) &&
+        fromJSON('["self-hosted","Linux","X64","hostinger-vps"]') ||
+        'ubuntu-latest'
+      }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
