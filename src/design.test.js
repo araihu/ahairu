@@ -337,6 +337,47 @@ test("Pajé uses an undecorated actual chart that fills its media area", { timeo
   }
 });
 
+test("Pajé restarts its force layout on every card hover", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await puppeteer.launch({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 884, height: 781 });
+    await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+    await revealCharts(page);
+    await page.waitForSelector("[data-paje-actual-chart] [_echarts_instance_]");
+    await page.$eval("[data-paje-actual-chart]", (element) => element.scrollIntoView({ block: "center" }));
+
+    const hostSelector = "[data-paje-actual-chart] [_echarts_instance_]";
+    const instanceID = () => page.$eval(hostSelector, (element) => element.getAttribute("_echarts_instance_"));
+    const initialID = await instanceID();
+
+    await page.hover(".project-tile--3 .project-card");
+    await page.waitForFunction((previousID) => {
+      const host = document.querySelector("[data-paje-actual-chart] [_echarts_instance_]");
+      return host && host.getAttribute("_echarts_instance_") !== previousID;
+    }, {}, initialID);
+    const firstHoverID = await instanceID();
+
+    await page.mouse.move(1, 1);
+    await page.hover(".project-tile--3 .project-card");
+    await page.waitForFunction((previousID) => {
+      const host = document.querySelector("[data-paje-actual-chart] [_echarts_instance_]");
+      return host && host.getAttribute("_echarts_instance_") !== previousID;
+    }, {}, firstHoverID);
+
+    const state = await page.$eval(hostSelector, (host) => ({
+      instanceID: host.getAttribute("_echarts_instance_"),
+      layout: window.echarts.getInstanceByDom(host).getOption().series[0].layout,
+    }));
+    assert.notEqual(state.instanceID, firstHoverID);
+    assert.equal(state.layout, "force");
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
 test("X-9 availability chart fills its media area", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true });

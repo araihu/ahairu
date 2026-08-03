@@ -47,8 +47,33 @@
     });
 
     window.htmx.process(document.body);
+    installPajeRestart();
     document.dispatchEvent(new CustomEvent("araihu:charts-loaded"));
     fragment.remove();
+  }
+
+  function installPajeRestart() {
+    const art = document.querySelector("[data-paje-actual-chart]");
+    const trigger = art?.closest(".project-card");
+    const host = art?.querySelector("[_echarts_instance_]");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (!trigger || !host || !window.echarts) return;
+
+    const currentChart = () => window.echarts.getInstanceByDom(host);
+    const restart = () => {
+      if (reducedMotion.matches) return;
+      const current = currentChart();
+      if (!current) return;
+      const option = current.getOption();
+      window.echarts.dispose(host);
+      const next = window.echarts.init(host);
+      next.setOption(option, true);
+      next.resize();
+    };
+
+    trigger.addEventListener("pointerenter", restart);
+    trigger.addEventListener("focusin", restart);
+    window.addEventListener("resize", () => currentChart()?.resize(), { passive: true });
   }
 
   hydrateCharts().catch(() => {

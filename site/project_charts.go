@@ -14,7 +14,7 @@ const heartLine3DFormula = "x = 16 × sin³(t); y = 2.4 × sin(3t); z = 13 × co
 func PajeWorkflowGraph(project Project) interactive.Instance {
 	return interactive.Graph(interactive.GraphConfig{
 		Label:  project.Name + " — " + project.Description,
-		Layout: interactive.GraphLayoutNone,
+		Layout: interactive.GraphLayoutForce,
 		Nodes: []interactive.Node{
 			graphNode("resolve", 14, 35, 42, "#ff8a3d"),
 			graphNode("execute", 34, 18, 54, "#ff8a3d"),
@@ -29,11 +29,16 @@ func PajeWorkflowGraph(project Project) interactive.Instance {
 			{Source: "resolve", Target: "finalize"},
 			{Source: "finalize", Target: "approval"},
 		},
+		Force: &interactive.ForceOptions{
+			InitialLayout: interactive.ForceInitialLayoutCircular,
+			Repulsion:     420,
+			Gravity:       .16,
+			EdgeLength:    105,
+		},
 		Draggable: interactive.Bool(false),
 		Width:     "100%",
 		Height:    "100%",
 		Options: interactive.ChartOptions{
-			Animation: interactive.Bool(false),
 			Legend:    &interactive.LegendOptions{Show: interactive.Bool(false)},
 			Tooltip:   &interactive.TooltipOptions{Show: interactive.Bool(false)},
 			Controls:  chartcontrol.Options{Expand: chartcontrol.Bool(false)},
