@@ -334,6 +334,7 @@ test("project versions use latest releases, tag fallback, and a 24 hour edge cac
   assert.match(html, /id="goshtoso-version-slot"[^>]*>.*v0\.1\.7/s);
   assert.match(html, /id="goshtoso-app-shells-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.1\.3/s);
   assert.match(html, /id="goshtoso-charts-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.0\.1/s);
+  assert.doesNotMatch(html, /<a\b/);
   assert.deepEqual(githubRequests, [
     "/repos/araihu/goshtoso/releases/latest",
     "/repos/araihu/goshtoso-app-shells/releases/latest",

@@ -90,7 +90,7 @@ templ HomeDocument(page Page, content Content) {
 							<h2 id="featured-title">{ content.FeaturedTitle }</h2>
 							<p>{ content.FeaturedDescription }</p>
 						</div>
-						<div class="featured-family-grid" aria-label={ content.FeaturedFamilyLabel }>
+						<div class="featured-family-grid" role="group" aria-label={ content.FeaturedFamilyLabel }>
 							@FeaturedFamilyCard(content, content.Projects[0], "goshtoso")
 							@FeaturedFamilyCard(content, content.MoreProjects[0], "shells")
 							@FeaturedFamilyCard(content, content.MoreProjects[1], "charts")
