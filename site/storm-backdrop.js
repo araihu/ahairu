@@ -9,7 +9,6 @@
   const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
   const saveData = navigator.connection?.saveData === true;
   let animationFrame = 0;
-  let montageActive = false;
   let montageVisible = false;
 
   const updateParallax = () => {
@@ -39,8 +38,7 @@
       }
     }
     if (montage) {
-      const montageEngaged = touchInput.matches ? montageVisible : montageActive;
-      if (reducedMotion.matches || saveData || !montageVisible || !montageEngaged) {
+      if (reducedMotion.matches || saveData || !montageVisible) {
         montage.pause();
       } else {
         if (montage.networkState === HTMLMediaElement.NETWORK_EMPTY) montage.load();
@@ -57,19 +55,6 @@
   });
   window.addEventListener("scroll", scheduleParallax, { passive: true });
   window.addEventListener("resize", scheduleParallax, { passive: true });
-  const montageTrigger = montage?.closest(".featured-visual");
-  if (montageTrigger) {
-    const setMontageActive = (active) => {
-      montageActive = active;
-      syncPlayback();
-    };
-    montageTrigger.addEventListener("pointerenter", () => setMontageActive(true));
-    montageTrigger.addEventListener("pointerleave", () => setMontageActive(false));
-    montageTrigger.addEventListener("focusin", () => setMontageActive(true));
-    montageTrigger.addEventListener("focusout", (event) => {
-      if (!montageTrigger.contains(event.relatedTarget)) setMontageActive(false);
-    });
-  }
   if (montage && "IntersectionObserver" in window) {
     new IntersectionObserver((entries) => {
       montageVisible = entries.some((entry) => entry.isIntersecting);
@@ -80,7 +65,7 @@
   }
   syncPlayback();
 
-  const cards = document.querySelectorAll(".project-card, .more-row");
+  const cards = document.querySelectorAll(".featured-family-card, .project-card, .more-row");
   const cardVisibility = new Map();
   const syncTouchCard = (card, active) => {
     card.toggleAttribute("data-card-viewport-active", active && touchInput.matches && !reducedMotion.matches);

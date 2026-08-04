@@ -47,13 +47,13 @@
     });
 
     window.htmx.process(document.body);
-    installPajeRestart();
+    installPajeLifecycleMotion();
     installHeartMotion();
     document.dispatchEvent(new CustomEvent("araihu:charts-loaded"));
     fragment.remove();
   }
 
-  function installPajeRestart() {
+  function installPajeLifecycleMotion() {
     const art = document.querySelector("[data-paje-actual-chart]");
     const trigger = art?.closest(".project-card");
     const host = art?.querySelector("[_echarts_instance_]");
@@ -61,42 +61,128 @@
     const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
     if (!trigger || !host || !window.echarts) return;
 
-    const currentChart = () => window.echarts.getInstanceByDom(host);
-    const restart = () => {
-      if (reducedMotion.matches) return;
-      const current = currentChart();
-      if (!current) return;
-      const option = current.getOption();
-      window.echarts.dispose(host);
-      const next = window.echarts.init(host);
-      next.setOption(option, true);
-      next.resize();
+    const chart = window.echarts.getInstanceByDom(host);
+    const series = chart?.getOption().series?.[0];
+    const baseNodes = series?.data;
+    const baseLinks = series?.links;
+    if (!chart || !Array.isArray(baseNodes) || !Array.isArray(baseLinks)) return;
+
+    const waves = [[0], [1], [2, 3], [4], [5, 6, 7], [8], [9], [10], [11]];
+    const indexByName = new Map(baseNodes.map((node, index) => [node.name, index]));
+    const baseLine = series.lineStyle || {};
+    const baseLineOpacity = Number(baseLine.opacity ?? 0.72);
+    const baseLineWidth = Number(baseLine.width ?? 2);
+    const waveDelay = 60;
+    let timers = [];
+    let run = 0;
+
+    const scaleSize = (size, scale) => Array.isArray(size)
+      ? size.map((value) => Number(value) * scale)
+      : Number(size) * scale;
+
+    const frame = (active, current, duration = 180) => {
+      const currentSet = new Set(current);
+      chart.setOption({
+        animationDurationUpdate: duration,
+        animationEasingUpdate: "cubicOut",
+        series: [{
+          data: baseNodes.map((node, index) => {
+            const isActive = active.has(index);
+            const isCurrent = currentSet.has(index);
+            const color = node.itemStyle?.color || "#b8ff39";
+            return {
+              ...node,
+              symbolSize: scaleSize(node.symbolSize, isCurrent ? 1.24 : (isActive ? 1 : 0.72)),
+              itemStyle: {
+                ...node.itemStyle,
+                opacity: isActive ? 1 : 0.22,
+                borderWidth: isCurrent ? 4 : (node.itemStyle?.borderWidth ?? 2),
+                shadowBlur: isCurrent ? 22 : 0,
+                shadowColor: isCurrent ? color : "transparent",
+              },
+            };
+          }),
+          links: baseLinks.map((link) => {
+            const targetIndex = indexByName.get(link.target);
+            const isActive = active.has(targetIndex);
+            const isCurrent = currentSet.has(targetIndex);
+            return {
+              ...link,
+              lineStyle: {
+                ...link.lineStyle,
+                opacity: isCurrent ? 1 : (isActive ? baseLineOpacity : 0.1),
+                width: isCurrent ? baseLineWidth + 1 : baseLineWidth,
+              },
+            };
+          }),
+        }],
+      }, { notMerge: false, lazyUpdate: false, silent: true });
     };
 
-    trigger.addEventListener("pointerenter", restart);
-    trigger.addEventListener("focusin", restart);
+    const cancel = () => {
+      run += 1;
+      timers.forEach(window.clearTimeout);
+      timers = [];
+    };
+
+    const settle = (duration = 0) => {
+      frame(new Set(baseNodes.map((_, index) => index)), [], duration);
+      art.dataset.pajeMotion = "idle";
+      delete art.dataset.pajeMotionStep;
+    };
+
+    const animate = () => {
+      if (reducedMotion.matches) return;
+      cancel();
+      const currentRun = run;
+      const active = new Set();
+      art.dataset.pajeMotion = "running";
+      art.dataset.pajeMotionStep = "0";
+      frame(active, [], 100);
+
+      waves.forEach((wave, waveIndex) => {
+        timers.push(window.setTimeout(() => {
+          if (currentRun !== run) return;
+          wave.forEach((index) => active.add(index));
+          art.dataset.pajeMotionStep = String(waveIndex + 1);
+          frame(active, wave);
+        }, waveDelay * (waveIndex + 1)));
+      });
+
+      timers.push(window.setTimeout(() => {
+        if (currentRun !== run) return;
+        settle(120);
+      }, waveDelay * (waves.length + 1) + 80));
+    };
+
+    art.dataset.pajeMotion = "idle";
+    trigger.addEventListener("pointerenter", animate);
+    trigger.addEventListener("focusin", animate);
+    reducedMotion.addEventListener("change", () => {
+      if (!reducedMotion.matches) return;
+      cancel();
+      settle();
+    });
     if ("IntersectionObserver" in window) {
       let visible = false;
       new IntersectionObserver((entries) => {
         const nextVisible = entries.some((entry) => entry.isIntersecting);
-        if (touchInput.matches && nextVisible && !visible) restart();
+        if (touchInput.matches && nextVisible && !visible) animate();
         visible = nextVisible;
       }, { threshold: 0.2 }).observe(trigger);
     }
-    window.addEventListener("resize", () => currentChart()?.resize(), { passive: true });
+    window.addEventListener("resize", () => chart.resize(), { passive: true });
   }
 
   function installHeartMotion() {
     const art = document.querySelector("[data-goshtoso-heart-chart]");
-    const trigger = art?.closest(".more-row");
+    const trigger = art?.closest(".featured-family-card, .more-row");
     const host = art?.querySelector("[_echarts_instance_]");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
     if (!trigger || !host || !window.echarts) return;
 
     const chart = () => window.echarts.getInstanceByDom(host);
     let visible = false;
-    let engaged = trigger.matches(":hover") || trigger.contains(document.activeElement);
     let rotating = false;
 
     // Surface3D owns rendering and topology. These presentation-only overrides
@@ -112,7 +198,7 @@
     art.dataset.heartMotion = "paused";
 
     const sync = () => {
-      const next = visible && !reducedMotion.matches && (touchInput.matches || engaged);
+      const next = visible && !reducedMotion.matches;
       if (next === rotating) return;
       rotating = next;
       chart()?.setOption({
@@ -120,19 +206,7 @@
       }, { notMerge: false, lazyUpdate: false, silent: true });
       art.dataset.heartMotion = next ? "running" : "paused";
     };
-    const setEngaged = (next) => {
-      engaged = next;
-      sync();
-    };
-
-    trigger.addEventListener("pointerenter", () => setEngaged(true));
-    trigger.addEventListener("pointerleave", () => setEngaged(false));
-    trigger.addEventListener("focusin", () => setEngaged(true));
-    trigger.addEventListener("focusout", (event) => {
-      if (!trigger.contains(event.relatedTarget)) setEngaged(false);
-    });
     reducedMotion.addEventListener("change", sync);
-    touchInput.addEventListener("change", sync);
     window.addEventListener("resize", () => chart()?.resize(), { passive: true });
 
     if ("IntersectionObserver" in window) {
