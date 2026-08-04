@@ -100,13 +100,13 @@
     let rotating = false;
 
     // Surface3D owns rendering and topology. These presentation-only overrides
-    // remove the component demo chrome so its real mesh fits the small card.
+    // keep its 3D grid while removing the legend and axis labels from the card.
     chart()?.setOption({
       legend: [{ show: false }],
       xAxis3D: [{ show: false }],
       yAxis3D: [{ show: false }],
       zAxis3D: [{ show: false }],
-      grid3D: [{ show: false, viewControl: { autoRotateSpeed: 12 } }],
+      grid3D: [{ show: true, viewControl: { autoRotateSpeed: 12 } }],
     }, { notMerge: false, lazyUpdate: false, silent: true });
     art.dataset.heartFramed = "true";
     art.dataset.heartMotion = "paused";

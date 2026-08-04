@@ -596,7 +596,7 @@ test("Goshtoso Charts uses an actual solid Surface3D heart", { timeout: 30_000 }
     assert.equal(state.wireframe, false);
     assert.equal(state.shading, "lambert");
     assert.equal(state.legend, false);
-    assert.equal(state.grid, false);
+    assert.equal(state.grid, true);
     assert.equal(state.pointCount, 49 * 65);
     assert.deepEqual(state.first, [0, 5.2, -1.5]);
     assert.ok(Math.abs(state.center[0] - 13.5) < 1e-9);
