@@ -134,6 +134,9 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("Arai Hû theme missing or empty: %v", err)
 	}
+	if info, err := os.Stat(filepath.Join("public", "charts", "assets", "js", "controls", "5", "controls.js")); err != nil || info.Size() == 0 {
+		t.Fatalf("Goshtoso Charts control runtime missing or empty: %v", err)
+	}
 	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "checksums.txt"} {
 		if info, err := os.Stat(filepath.Join("public", "assets", "releases", "v0.1.1", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
 			t.Errorf("brand release asset %s missing or empty: %v", name, err)

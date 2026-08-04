@@ -188,6 +188,9 @@ func buildAt(output string, bundle fs.FS) error {
 	if err := writeHandlerAsset(filepath.Join(output, "public"), chartassets.Handler(), chartassets.ThreeDRuntimeURL); err != nil {
 		return err
 	}
+	if err := writeHandlerAsset(filepath.Join(output, "public"), chartassets.Handler(), chartassets.ControlRuntimeURL); err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(assetsDirectory, "ahairu.css"), site.BrandCSS(), 0o644); err != nil {
 		return err
 	}

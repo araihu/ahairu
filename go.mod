@@ -6,7 +6,7 @@ require (
 	github.com/a-h/templ v0.3.1020
 	github.com/araihu/goshtoso v0.1.7
 	github.com/araihu/goshtoso-app-shells v0.1.3
-	github.com/araihu/goshtoso-charts v0.0.1
+	github.com/araihu/goshtoso-charts v0.0.2-0.20260803224432-297df2f562e8
 )
 
 require (
