@@ -48,6 +48,7 @@
 
     window.htmx.process(document.body);
     installPajeRestart();
+    installHeartMotion();
     document.dispatchEvent(new CustomEvent("araihu:charts-loaded"));
     fragment.remove();
   }
@@ -57,6 +58,7 @@
     const trigger = art?.closest(".project-card");
     const host = art?.querySelector("[_echarts_instance_]");
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
     if (!trigger || !host || !window.echarts) return;
 
     const currentChart = () => window.echarts.getInstanceByDom(host);
@@ -73,7 +75,75 @@
 
     trigger.addEventListener("pointerenter", restart);
     trigger.addEventListener("focusin", restart);
+    if ("IntersectionObserver" in window) {
+      let visible = false;
+      new IntersectionObserver((entries) => {
+        const nextVisible = entries.some((entry) => entry.isIntersecting);
+        if (touchInput.matches && nextVisible && !visible) restart();
+        visible = nextVisible;
+      }, { threshold: 0.2 }).observe(trigger);
+    }
     window.addEventListener("resize", () => currentChart()?.resize(), { passive: true });
+  }
+
+  function installHeartMotion() {
+    const art = document.querySelector("[data-goshtoso-heart-chart]");
+    const trigger = art?.closest(".more-row");
+    const host = art?.querySelector("[_echarts_instance_]");
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
+    if (!trigger || !host || !window.echarts) return;
+
+    const chart = () => window.echarts.getInstanceByDom(host);
+    let visible = false;
+    let engaged = trigger.matches(":hover") || trigger.contains(document.activeElement);
+    let rotating = false;
+
+    // Surface3D owns rendering and topology. These presentation-only overrides
+    // remove the component demo chrome so its real mesh fits the small card.
+    chart()?.setOption({
+      legend: [{ show: false }],
+      xAxis3D: [{ show: false }],
+      yAxis3D: [{ show: false }],
+      zAxis3D: [{ show: false }],
+      grid3D: [{ show: false, viewControl: { autoRotateSpeed: 12 } }],
+    }, { notMerge: false, lazyUpdate: false, silent: true });
+    art.dataset.heartFramed = "true";
+    art.dataset.heartMotion = "paused";
+
+    const sync = () => {
+      const next = visible && !reducedMotion.matches && (touchInput.matches || engaged);
+      if (next === rotating) return;
+      rotating = next;
+      chart()?.setOption({
+        grid3D: [{ viewControl: { autoRotate: next } }],
+      }, { notMerge: false, lazyUpdate: false, silent: true });
+      art.dataset.heartMotion = next ? "running" : "paused";
+    };
+    const setEngaged = (next) => {
+      engaged = next;
+      sync();
+    };
+
+    trigger.addEventListener("pointerenter", () => setEngaged(true));
+    trigger.addEventListener("pointerleave", () => setEngaged(false));
+    trigger.addEventListener("focusin", () => setEngaged(true));
+    trigger.addEventListener("focusout", (event) => {
+      if (!trigger.contains(event.relatedTarget)) setEngaged(false);
+    });
+    reducedMotion.addEventListener("change", sync);
+    touchInput.addEventListener("change", sync);
+    window.addEventListener("resize", () => chart()?.resize(), { passive: true });
+
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => {
+        visible = entries.some((entry) => entry.isIntersecting);
+        sync();
+      }, { threshold: 0.2 }).observe(trigger);
+    } else {
+      visible = true;
+    }
+    sync();
   }
 
   hydrateCharts().catch(() => {

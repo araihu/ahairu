@@ -2,6 +2,7 @@
   const bucketCount = 36;
   const tickMilliseconds = 2000;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
 
   function stateAt(value) {
     const phase = value % 24;
@@ -69,7 +70,8 @@
         step += 1;
       }
 
-      let active = trigger.matches(":hover") || trigger.contains(document.activeElement);
+      let engaged = trigger.matches(":hover") || trigger.contains(document.activeElement);
+      let visible = false;
       let interval = 0;
       const stopTicks = () => {
         if (!interval) return;
@@ -77,6 +79,7 @@
         interval = 0;
       };
       const syncTicks = () => {
+        const active = visible && (touchInput.matches || engaged);
         if (!active || reducedMotion.matches) {
           stopTicks();
           return;
@@ -85,19 +88,28 @@
         tick();
         interval = window.setInterval(tick, tickMilliseconds);
       };
-      const setActive = (nextActive) => {
-        active = nextActive;
+      const setEngaged = (nextEngaged) => {
+        engaged = nextEngaged;
         syncTicks();
       };
 
       tick();
-      trigger.addEventListener("pointerenter", () => setActive(true));
-      trigger.addEventListener("pointerleave", () => setActive(false));
-      trigger.addEventListener("focusin", () => setActive(true));
+      trigger.addEventListener("pointerenter", () => setEngaged(true));
+      trigger.addEventListener("pointerleave", () => setEngaged(false));
+      trigger.addEventListener("focusin", () => setEngaged(true));
       trigger.addEventListener("focusout", (event) => {
-        if (!trigger.contains(event.relatedTarget)) setActive(false);
+        if (!trigger.contains(event.relatedTarget)) setEngaged(false);
       });
       reducedMotion.addEventListener("change", syncTicks);
+      touchInput.addEventListener("change", syncTicks);
+      if ("IntersectionObserver" in window) {
+        new IntersectionObserver((entries) => {
+          visible = entries.some((entry) => entry.isIntersecting);
+          syncTicks();
+        }, { threshold: 0.2 }).observe(trigger);
+      } else {
+        visible = true;
+      }
       syncTicks();
     }
 

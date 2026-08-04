@@ -375,13 +375,17 @@ test("chart runtimes and payload stay out of first paint until the HTMX reveal t
     }));
     assert.deepEqual(initial, { placeholders: 3, actualCharts: 0, canvases: 0, echarts: false, triggerCoversSection: true });
     assert.equal(requested.some((path) => path.includes("/charts/assets/js/runtime/")), false);
+    assert.equal(requested.some((path) => path.includes("/charts/assets/js/controls/")), false);
     assert.equal(requested.includes("/fragments/en/charts.html"), false);
 
     await revealCharts(page);
     const chartRequests = requested.filter((path) => path.includes("/charts/assets/js/runtime/"));
     assert.deepEqual(chartRequests.sort(), [
-      "/charts/assets/js/runtime/echarts/5.4.3/echarts.min.js",
+      "/charts/assets/js/runtime/echarts/5.6.0/echarts.min.js",
       "/charts/assets/js/runtime/three-d/2.0.9/runtime.min.js",
+    ]);
+    assert.deepEqual(requested.filter((path) => path.includes("/charts/assets/js/controls/")), [
+      "/charts/assets/js/controls/5/controls.js",
     ]);
     assert.equal(requested.filter((path) => path === "/fragments/en/charts.html").length, 1);
     assert.equal(await page.$$eval("[data-chart-placeholder]", (elements) => elements.length), 0);
@@ -553,7 +557,7 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
   }
 });
 
-test("Goshtoso Charts uses an actual undecorated Line3D heart", { timeout: 30_000 }, async () => {
+test("Goshtoso Charts uses an actual solid Surface3D heart", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
   try {
@@ -571,29 +575,99 @@ test("Goshtoso Charts uses an actual undecorated Line3D heart", { timeout: 30_00
       const canvasRect = art.querySelector("canvas").getBoundingClientRect();
       return {
         type: option.series[0].type,
-        autoRotate: art.querySelector("figure").getAttribute("data-goshtoso-charts-line3d-auto-rotate"),
+        dataShape: option.series[0].dataShape,
+        wireframe: option.series[0].wireframe.show,
+        shading: option.series[0].shading,
+        legend: option.legend[0].show,
+        grid: option.grid3D[0].show,
         pointCount: option.series[0].data.length,
         first: point(0),
-        quarter: point(80),
+        center: point(12 * 65 + 32),
         widthDelta: Math.abs(artRect.width - hostRect.width),
         heightDelta: Math.abs(artRect.height - hostRect.height),
         canvasCoversHost: canvasRect.width >= hostRect.width && canvasRect.height >= hostRect.height,
         images: art.querySelectorAll("img").length,
         buttons: art.querySelectorAll("button").length,
-        detailsDisplay: getComputedStyle(art.querySelector("[data-line3d-exact-data]")).display,
+        detailsDisplay: getComputedStyle(art.querySelector("[data-surface3d-exact-data]")).display,
       };
     });
-    assert.equal(state.type, "line3D");
-    assert.equal(state.autoRotate, "true");
-    assert.equal(state.pointCount, 321);
-    assert.deepEqual(state.first, [0, 0, 5]);
-    assert.ok(Math.abs(state.quarter[0] - 16) < 1e-9);
-    assert.ok(Math.abs(state.quarter[1] + 2.4) < 1e-9);
-    assert.ok(Math.abs(state.quarter[2] - 4) < 1e-9);
+    assert.equal(state.type, "surface");
+    assert.deepEqual(state.dataShape, [49, 65]);
+    assert.equal(state.wireframe, false);
+    assert.equal(state.shading, "lambert");
+    assert.equal(state.legend, false);
+    assert.equal(state.grid, false);
+    assert.equal(state.pointCount, 49 * 65);
+    assert.deepEqual(state.first, [0, 5.2, -1.5]);
+    assert.ok(Math.abs(state.center[0] - 13.5) < 1e-9);
+    assert.ok(Math.abs(state.center[1]) < 1e-9);
+    assert.ok(Math.abs(state.center[2] - 3.680000033378601) < 1e-9);
     assert.ok(state.widthDelta < 3);
     assert.ok(state.heightDelta < 3);
     assert.equal(state.canvasCoversHost, true);
     assert.deepEqual({ images: state.images, buttons: state.buttons, detailsDisplay: state.detailsDisplay }, { images: 0, buttons: 0, detailsDisplay: "none" });
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
+test("Surface3D heart follows desktop hover and touch viewport motion policy", { timeout: 60_000 }, async () => {
+  const server = await servePublic();
+  const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
+  try {
+    const desktop = await browser.newPage();
+    await desktop.setViewport({ width: 1280, height: 800, isMobile: false, hasTouch: false });
+    await desktop.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+    await revealCharts(desktop);
+    const heartSelector = "[data-goshtoso-heart-chart]";
+    await desktop.$eval(heartSelector, (element) => element.scrollIntoView({ block: "center" }));
+    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "paused", {}, heartSelector);
+    await desktop.hover(".more-list li:nth-child(2) .more-row");
+    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
+    await desktop.mouse.move(0, 0);
+    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "paused", {}, heartSelector);
+
+    const mobile = await browser.newPage();
+    await mobile.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await mobile.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+    await revealCharts(mobile);
+    await mobile.$eval(heartSelector, (element) => element.scrollIntoView({ block: "center" }));
+    await mobile.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
+    const firstEntry = await mobile.$eval(heartSelector, (art) => ({
+      motion: art.dataset.heartMotion,
+      touchActive: art.closest(".more-row").hasAttribute("data-card-viewport-active"),
+      autoRotate: window.echarts.getInstanceByDom(art.querySelector("[_echarts_instance_]")).getOption().grid3D[0].viewControl.autoRotate,
+    }));
+    assert.deepEqual(firstEntry, { motion: "running", touchActive: true, autoRotate: true });
+    await mobile.evaluate(() => window.scrollTo(0, 0));
+    await mobile.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "paused", {}, heartSelector);
+    await mobile.$eval(heartSelector, (element) => element.scrollIntoView({ block: "center" }));
+    await mobile.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
+
+    const reduced = await browser.newPage();
+    await reduced.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await reduced.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "reduce" }]);
+    await reduced.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+    await revealCharts(reduced);
+    await reduced.$eval(heartSelector, (element) => element.scrollIntoView({ block: "center" }));
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    const reducedState = await reduced.$eval(heartSelector, (art) => ({
+      motion: art.dataset.heartMotion,
+      touchActive: art.closest(".more-row").hasAttribute("data-card-viewport-active"),
+      autoRotate: window.echarts.getInstanceByDom(art.querySelector("[_echarts_instance_]")).getOption().grid3D[0].viewControl.autoRotate,
+      transform: getComputedStyle(art).transform,
+      shellTransform: getComputedStyle(document.querySelector(".shell-preview")).transform,
+      dropTransform: getComputedStyle(document.querySelector(".muamba-drop")).transform,
+    }));
+    assert.deepEqual(reducedState, {
+      motion: "paused",
+      touchActive: false,
+      autoRotate: false,
+      transform: "none",
+      shellTransform: "none",
+      dropTransform: "none",
+    });
   } finally {
     await browser.close();
     await server.close();

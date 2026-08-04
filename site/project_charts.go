@@ -9,7 +9,11 @@ import (
 	"github.com/araihu/goshtoso-charts/components/interactive"
 )
 
-const heartLine3DFormula = "x = 16 × sin³(t); y = 2.4 × sin(3t); z = 13 × cos(t) − 5 × cos(2t) − 2 × cos(3t) − cos(4t)"
+const (
+	heartSurface3DFormula = "θ ∈ [0, 2π], φ ∈ [0, π]; hx = 13.5 × sin³(θ); c = 0.56 × ((1 + cos(θ)) / 2)²⁴; hz = 0.92 × (13cos(θ) − 5cos(2θ) − 2cos(3θ) − cos(4θ)) + c; s = sin(φ); x = s × hx; y = 5.2 × cos(φ); z = −1.5 + s × (hz + 1.5)"
+	heartSurface3DRows    = 49
+	heartSurface3DColumns = 65
+)
 
 // PajeWorkflowGraph renders Pajé's deterministic software-delivery lifecycle.
 func PajeWorkflowGraph(project Project, labels PajeLifecycleLabels) interactive.Instance {
@@ -111,48 +115,61 @@ func X9AvailabilityChart(project Project) interactive.Instance {
 	})
 }
 
-// GoshtosoHeartLine3D renders the parametric heart as actual Line3D data.
-func GoshtosoHeartLine3D(project Project, label string) interactive.Instance {
-	return interactive.Line3D(interactive.Line3DConfig{
+// GoshtosoHeartSurface3D renders the solid ordered mesh from the Goshtoso
+// Charts Surface3D example through its reusable public component API.
+func GoshtosoHeartSurface3D(project Project, label string) interactive.Instance {
+	return interactive.Surface3D(interactive.Surface3DConfig{
 		Label: project.Name + " — " + label,
-		Series: []interactive.Line3DSeries{{
+		Series: []interactive.Surface3DSeries{{
 			Name:   "Heart",
-			Points: heartLine3DPoints(),
-			Color:  "#c7ff4a",
-			Options: interactive.SeriesOptions{
-				Animation: interactive.Bool(false),
-				LineStyle: &interactive.LineStyle{Width: 10, Opacity: interactive.Float(.96)},
+			Points: heartSurface3DPoints(),
+			Mesh: &interactive.Surface3DMesh{
+				Rows: heartSurface3DRows, Columns: heartSurface3DColumns,
+			},
+			Style: interactive.Surface3DSeriesStyle{
+				Shading:   interactive.Surface3DShadingLambert,
+				Wireframe: interactive.Bool(false),
+				Color:     "#db2777",
 			},
 		}},
-		Grid: interactive.Line3DGrid{
-			Width: 115, Height: 100, Depth: 40,
-			View: &interactive.Line3DView{AutoRotate: interactive.Bool(true), AutoRotateSpeed: 8},
+		Axes: &interactive.Surface3DAxes{
+			X: interactive.Surface3DAxis{Name: "X", Show: interactive.Bool(false)},
+			Y: interactive.Surface3DAxis{Name: "Y", Show: interactive.Bool(false)},
+			Z: interactive.Surface3DAxis{Name: "Z", Show: interactive.Bool(false)},
 		},
-		DataSummary: interactive.Line3DDataSummary{
-			Formula: heartLine3DFormula, Parameter: "t", ParameterMin: 0, ParameterMax: 2 * math.Pi,
+		Grid: interactive.Surface3DGrid{
+			Width: 150, Height: 145, Depth: 42,
+			// Card lifecycle owns rotation; renderer must start stationary offscreen.
+			View: &interactive.Surface3DView{AutoRotate: interactive.Bool(false)},
 		},
-		Width:  "100%",
-		Height: "100%",
+		DataSummary: interactive.Surface3DDataSummary{Formula: heartSurface3DFormula},
+		Width:       "100%",
+		Height:      "100%",
 		Options: interactive.ChartOptions{
 			Animation: interactive.Bool(false),
-			Legend:    &interactive.LegendOptions{Show: interactive.Bool(false)},
 			Tooltip:   &interactive.TooltipOptions{Show: interactive.Bool(false)},
 			Controls:  chartcontrol.Options{Expand: chartcontrol.Bool(false)},
 			Export:    &chartcontrol.ExportOptions{Disabled: true},
 		},
-		Style: charttheme.Style{Palette: charttheme.PaletteAraiHu, Colors: []string{"#c7ff4a"}, Class: "goshtoso-heart-chart"},
+		Style: charttheme.Style{Palette: charttheme.PaletteAraiHu, Colors: []string{"#db2777"}, Class: "goshtoso-heart-chart"},
 	})
 }
 
-func heartLine3DPoints() []interactive.Point3D {
-	const segments = 320
-	points := make([]interactive.Point3D, segments+1)
-	for index := range points {
-		t := float64(index) / segments * 2 * math.Pi
-		points[index] = interactive.Point3D{
-			X: 16 * math.Pow(math.Sin(t), 3),
-			Y: 2.4 * math.Sin(3*t),
-			Z: 13*math.Cos(t) - 5*math.Cos(2*t) - 2*math.Cos(3*t) - math.Cos(4*t),
+func heartSurface3DPoints() []interactive.Point3D {
+	points := make([]interactive.Point3D, 0, heartSurface3DRows*heartSurface3DColumns)
+	for row := 0; row < heartSurface3DRows; row++ {
+		theta := 2 * math.Pi * float64(row) / float64(heartSurface3DRows-1)
+		outlineX := 13.5 * math.Pow(math.Sin(theta), 3)
+		cleftLift := 0.56 * math.Pow((1+math.Cos(theta))/2, 24)
+		outlineZ := 0.92*(13*math.Cos(theta)-5*math.Cos(2*theta)-2*math.Cos(3*theta)-math.Cos(4*theta)) + cleftLift
+		for column := 0; column < heartSurface3DColumns; column++ {
+			phi := math.Pi * float64(column) / float64(heartSurface3DColumns-1)
+			scale := math.Sin(phi)
+			points = append(points, interactive.Point3D{
+				X: scale * outlineX,
+				Y: 5.2 * math.Cos(phi),
+				Z: -1.5 + scale*(outlineZ+1.5),
+			})
 		}
 	}
 	return points

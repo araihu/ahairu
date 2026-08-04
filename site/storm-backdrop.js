@@ -6,6 +6,7 @@
   const hero = video?.closest(".storm-hero");
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const darkMode = window.matchMedia("(prefers-color-scheme: dark)");
+  const touchInput = window.matchMedia("(hover: none), (pointer: coarse)");
   const saveData = navigator.connection?.saveData === true;
   let animationFrame = 0;
   let montageActive = false;
@@ -38,7 +39,8 @@
       }
     }
     if (montage) {
-      if (reducedMotion.matches || saveData || !montageVisible || !montageActive) {
+      const montageEngaged = touchInput.matches ? montageVisible : montageActive;
+      if (reducedMotion.matches || saveData || !montageVisible || !montageEngaged) {
         montage.pause();
       } else {
         if (montage.networkState === HTMLMediaElement.NETWORK_EMPTY) montage.load();
@@ -48,6 +50,7 @@
   };
 
   reducedMotion.addEventListener("change", syncPlayback);
+  touchInput.addEventListener("change", syncPlayback);
   darkMode.addEventListener("change", () => {
     video?.load();
     syncPlayback();
@@ -71,9 +74,27 @@
     new IntersectionObserver((entries) => {
       montageVisible = entries.some((entry) => entry.isIntersecting);
       syncPlayback();
-    }, { rootMargin: "120px" }).observe(montage);
+    }, { threshold: 0.2 }).observe(montage);
   } else {
     montageVisible = Boolean(montage);
   }
   syncPlayback();
+
+  const cards = document.querySelectorAll(".project-card, .more-row");
+  const cardVisibility = new Map();
+  const syncTouchCard = (card, active) => {
+    card.toggleAttribute("data-card-viewport-active", active && touchInput.matches && !reducedMotion.matches);
+  };
+  if ("IntersectionObserver" in window) {
+    const cardObserver = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        cardVisibility.set(entry.target, entry.isIntersecting);
+        syncTouchCard(entry.target, entry.isIntersecting);
+      });
+    }, { threshold: 0.2 });
+    cards.forEach((card) => cardObserver.observe(card));
+    const refreshCards = () => cards.forEach((card) => syncTouchCard(card, cardVisibility.get(card) === true));
+    reducedMotion.addEventListener("change", refreshCards);
+    touchInput.addEventListener("change", refreshCards);
+  }
 })();
