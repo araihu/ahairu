@@ -76,9 +76,13 @@
     let timers = [];
     let run = 0;
 
+    const finiteSize = (value) => {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : 10;
+    };
     const scaleSize = (size, scale) => Array.isArray(size)
-      ? size.map((value) => Number(value) * scale)
-      : Number(size) * scale;
+      ? size.map((value) => finiteSize(value) * scale)
+      : finiteSize(size) * scale;
 
     const frame = (active, current, duration = 180) => {
       const currentSet = new Set(current);

@@ -27,7 +27,7 @@ async function servePublic() {
       const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
       if (pathname === "/api/project-versions") {
         response.setHeader("content-type", "text/html; charset=utf-8");
-        response.end('<span id="goshtoso-version-slot" class="project-version"><a href="https://github.com/araihu/goshtoso/releases/tag/v0.1.7">v0.1.7</a></span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-swap-oob="outerHTML"><a href="https://github.com/araihu/goshtoso-app-shells/releases/tag/v0.1.3">v0.1.3</a></span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML"><a href="https://github.com/araihu/goshtoso-charts/tree/v0.0.1">v0.0.1</a></span>');
+        response.end('<span id="goshtoso-version-slot" class="project-version">v0.1.7</span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.1.3</span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.0.1</span>');
         return;
       }
       const relativePath = pathname.endsWith("/") ? `${pathname.slice(1)}index.html` : pathname.slice(1);
@@ -231,9 +231,8 @@ test("project maturity labels stay attached to the correct products", { timeout:
     });
     await page.setViewport({ width: 1280, height: 720 });
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
-    await page.waitForSelector("#goshtoso-version-slot a");
-    await page.waitForSelector("#goshtoso-app-shells-version-slot a");
-    await page.waitForSelector("#goshtoso-charts-version-slot a");
+    await page.waitForFunction(() => ["goshtoso-version-slot", "goshtoso-app-shells-version-slot", "goshtoso-charts-version-slot"]
+      .every((id) => document.getElementById(id)?.textContent.trim()));
     const labels = await page.evaluate(() => ({
       goshtoso: document.querySelector(".featured-family-card--goshtoso [data-status]")?.textContent.trim(),
       manja: document.querySelector(".project-tile--2 [data-status]")?.textContent.trim(),
@@ -246,6 +245,8 @@ test("project maturity labels stay attached to the correct products", { timeout:
       chartsVersion: document.querySelector("#goshtoso-charts-version-slot")?.textContent.trim(),
       chartsURL: document.querySelector(".featured-family-card--charts")?.href,
       secondaryProjects: [...document.querySelectorAll(".more-list h3")].map((heading) => heading.textContent.trim()),
+      familyRole: document.querySelector(".featured-family-grid")?.getAttribute("role"),
+      nestedVersionLinks: document.querySelectorAll(".featured-family-card .project-version a").length,
     }));
     assert.deepEqual(labels, {
       goshtoso: "BETA",
@@ -259,6 +260,8 @@ test("project maturity labels stay attached to the correct products", { timeout:
       chartsVersion: "v0.0.1",
       chartsURL: "https://charts.goshtoso.araihu.com/",
       secondaryProjects: ["Muamba"],
+      familyRole: "group",
+      nestedVersionLinks: 0,
     });
     assert.equal(versionRequests, 1);
   } finally {
