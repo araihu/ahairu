@@ -129,7 +129,7 @@ function escapeHTML(value) {
 function versionBadge(project, result) {
   const outOfBand = project.outOfBand ? ' hx-swap-oob="outerHTML"' : "";
   if (!result) return `<span id="${project.slot}" class="project-version"${outOfBand}></span>`;
-  return `<span id="${project.slot}" class="project-version"${outOfBand}><a href="${escapeHTML(result.url)}" rel="noopener noreferrer">${escapeHTML(result.version)}</a></span>`;
+  return `<span id="${project.slot}" class="project-version"${outOfBand}>${escapeHTML(result.version)}</span>`;
 }
 
 async function projectVersions(request, env, ctx) {
