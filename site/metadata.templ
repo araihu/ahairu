@@ -15,6 +15,7 @@ templ Metadata(page Page) {
 	<meta property="og:title" content={ page.Meta.Title }/>
 	<meta property="og:description" content={ page.Meta.Description }/>
 	<meta property="og:url" content={ page.Meta.CanonicalURL }/>
+	<meta property="og:site_name" content="Arai Hû"/>
 	<meta property="og:locale" content={ page.Meta.Locale.OGLocale }/>
 	for _, alternate := range page.Meta.Alternates {
 		if alternate.Language != "x-default" && alternate.Language != page.Meta.Locale.Language {
@@ -22,6 +23,9 @@ templ Metadata(page Page) {
 		}
 	}
 	<meta property="og:image" content={ page.Meta.SocialImageURL }/>
+	<meta property="og:image:type" content="image/png"/>
+	<meta property="og:image:width" content="1200"/>
+	<meta property="og:image:height" content="630"/>
 	<meta property="og:image:alt" content={ page.Meta.SocialImageAlt }/>
 	<meta name="twitter:card" content="summary_large_image"/>
 	<meta name="twitter:title" content={ page.Meta.Title }/>

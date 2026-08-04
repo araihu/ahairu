@@ -211,6 +211,10 @@ test("all canonical pages expose reciprocal absolute metadata and valid JSON-LD"
           ogImage: document.querySelector('meta[property="og:image"]')?.content,
           ogTitle: document.querySelector('meta[property="og:title"]')?.content,
           ogDescription: document.querySelector('meta[property="og:description"]')?.content,
+          ogSiteName: document.querySelector('meta[property="og:site_name"]')?.content,
+          ogImageType: document.querySelector('meta[property="og:image:type"]')?.content,
+          ogImageWidth: document.querySelector('meta[property="og:image:width"]')?.content,
+          ogImageHeight: document.querySelector('meta[property="og:image:height"]')?.content,
           xImage: document.querySelector('meta[name="twitter:image"]')?.content,
           xTitle: document.querySelector('meta[name="twitter:title"]')?.content,
           xDescription: document.querySelector('meta[name="twitter:description"]')?.content,
@@ -221,6 +225,10 @@ test("all canonical pages expose reciprocal absolute metadata and valid JSON-LD"
         assert.equal(metadata.language, expected.language);
         assert.equal(metadata.canonical, canonical);
         assert.equal(metadata.ogURL, canonical);
+        assert.equal(metadata.ogSiteName, "Arai Hû");
+        assert.equal(metadata.ogImageType, "image/png");
+        assert.equal(metadata.ogImageWidth, "1200");
+        assert.equal(metadata.ogImageHeight, "630");
         assert.equal(metadata.xCard, "summary_large_image");
         assert.ok(metadata.ogTitle && metadata.ogDescription && metadata.xTitle && metadata.xDescription);
         assert.ok(metadata.ogImage.startsWith(`${canonicalOrigin}/social/`));
@@ -366,8 +374,8 @@ test("light and dark schemes render distinct storm filters", async () => {
     );
     await page.close();
   }
-  assert.match(schemes[0].source, /^\/assets\/video\/storm-(?:light|dark)-v1\.mp4$/);
-  assert.match(schemes[1].source, /^\/assets\/video\/storm-(?:light|dark)-v1\.mp4$/);
+  assert.match(schemes[0].source, /^\/assets\/video\/storm-(?:light|dark)-v2\.mp4$/);
+  assert.match(schemes[1].source, /^\/assets\/video\/storm-(?:light|dark)-v2\.mp4$/);
   assert.notEqual(schemes[0].filter, schemes[1].filter);
 });
 

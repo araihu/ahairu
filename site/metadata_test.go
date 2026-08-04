@@ -88,6 +88,10 @@ func TestMetadataRendersLocalizedDiscoveryTagsAndSafeJSONLD(t *testing.T) {
 		for _, fragment := range []string{
 			`<link rel="canonical" href="` + page.Meta.CanonicalURL + `">`,
 			`<meta property="og:image" content="` + page.Meta.SocialImageURL + `">`,
+			`<meta property="og:site_name" content="Arai Hû">`,
+			`<meta property="og:image:type" content="image/png">`,
+			`<meta property="og:image:width" content="1200">`,
+			`<meta property="og:image:height" content="630">`,
 			`<meta name="twitter:card" content="summary_large_image">`,
 			`<meta property="og:locale" content="` + page.Meta.Locale.OGLocale + `">`,
 			`<link rel="manifest" href="/site.webmanifest">`,
@@ -96,6 +100,11 @@ func TestMetadataRendersLocalizedDiscoveryTagsAndSafeJSONLD(t *testing.T) {
 		} {
 			if !strings.Contains(html, fragment) {
 				t.Errorf("%s metadata misses %q", page.Meta.Path, fragment)
+			}
+		}
+		for _, property := range []string{"og:site_name", "og:image:type", "og:image:width", "og:image:height"} {
+			if strings.Count(html, `property="`+property+`"`) != 1 {
+				t.Errorf("%s metadata must render %s exactly once", page.Meta.Path, property)
 			}
 		}
 		for _, alternate := range page.Meta.Alternates {

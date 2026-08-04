@@ -288,7 +288,7 @@ func HomeDocument(page Page, content Content) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<main id=\"main-content\" tabindex=\"-1\"><section id=\"home\" class=\"storm-hero\" aria-labelledby=\"hero-title\"><div class=\"storm-video-stage\" aria-hidden=\"true\"><video class=\"storm-backdrop\" data-storm-backdrop loop muted playsinline preload=\"none\"><source media=\"(prefers-color-scheme: light)\" src=\"/assets/video/storm-light-v1.mp4\" type=\"video/mp4\"> <source media=\"(prefers-color-scheme: dark)\" src=\"/assets/video/storm-dark-v1.mp4\" type=\"video/mp4\"> <source src=\"/assets/video/storm-dark-v1.mp4\" type=\"video/mp4\"></video><div class=\"storm-video-filter\"></div></div><div class=\"storm-copy ahairu-shell mx-auto px-6 md:px-10\"><p class=\"storm-kicker\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<main id=\"main-content\" tabindex=\"-1\"><section id=\"home\" class=\"storm-hero\" aria-labelledby=\"hero-title\"><div class=\"storm-video-stage\" aria-hidden=\"true\"><video class=\"storm-backdrop\" data-storm-backdrop loop muted playsinline preload=\"none\"><source media=\"(prefers-color-scheme: light)\" src=\"/assets/video/storm-light-v2.mp4\" type=\"video/mp4\"> <source media=\"(prefers-color-scheme: dark)\" src=\"/assets/video/storm-dark-v2.mp4\" type=\"video/mp4\"> <source src=\"/assets/video/storm-dark-v2.mp4\" type=\"video/mp4\"></video><div class=\"storm-video-filter\"></div></div><div class=\"storm-copy ahairu-shell mx-auto px-6 md:px-10\"><p class=\"storm-kicker\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

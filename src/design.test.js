@@ -147,7 +147,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
 		  legacyCloudAfter: getComputedStyle(document.querySelector(".storm-hero"), "::after").content,
         };
       });
-      assert.match(state.currentSrc, new RegExp(`storm-${theme}-v1\\.mp4$`));
+      assert.match(state.currentSrc, new RegExp(`storm-${theme}-v2\\.mp4$`));
       assert.equal(state.coversHero, true);
       assert.equal(state.coversViewport, true);
       assert.equal(state.topbarFullWidth, true);
@@ -156,7 +156,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
 	  assert.equal(state.legacyCloudBefore, "none");
 	  assert.equal(state.legacyCloudAfter, "none");
       assert.notEqual(state.filter, "none");
-      assert.deepEqual([...new Set(requestedVideos.map((url) => new URL(url).pathname))], [`/assets/video/storm-${theme}-v1.mp4`]);
+      assert.deepEqual([...new Set(requestedVideos.map((url) => new URL(url).pathname))], [`/assets/video/storm-${theme}-v2.mp4`]);
 
       await page.evaluate(() => window.scrollTo(0, 360));
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -165,6 +165,10 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
     }
 
     const reducedPage = await browser.newPage();
+    const reducedVideoRequests = [];
+    reducedPage.on("request", (request) => {
+      if (request.url().includes("/assets/video/storm-")) reducedVideoRequests.push(request.url());
+    });
     await reducedPage.emulateMediaFeatures([
       { name: "prefers-color-scheme", value: "dark" },
       { name: "prefers-reduced-motion", value: "reduce" },
@@ -180,6 +184,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
       };
     });
     assert.deepEqual(reducedState, { paused: true, montagePaused: true, stage: "none", parallax: "" });
+    assert.deepEqual(reducedVideoRequests, [], "reduced motion must not request storm video bytes");
   } finally {
     await browser.close();
     await server.close();

@@ -131,7 +131,7 @@ func GitHubReleaseOpenAPILines() []OpenAPILine {
 func BackdropAsset(name string) ([]byte, error) { return backdropAssets.ReadFile("backdrops/" + name) }
 
 // BackdropAssetNames returns every video emitted by the static builder.
-func BackdropAssetNames() []string { return []string{"storm-dark-v1.mp4", "storm-light-v1.mp4"} }
+func BackdropAssetNames() []string { return []string{"storm-dark-v2.mp4", "storm-light-v2.mp4"} }
 
 // ProjectVisualAsset reads one project showcase asset.
 func ProjectVisualAsset(name string) ([]byte, error) {
