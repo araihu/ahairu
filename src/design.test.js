@@ -27,7 +27,7 @@ async function servePublic() {
       const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
       if (pathname === "/api/project-versions") {
         response.setHeader("content-type", "text/html; charset=utf-8");
-        response.end('<span id="goshtoso-version-slot" class="project-version"><a href="https://github.com/araihu/goshtoso/releases/tag/v0.1.7">v0.1.7</a></span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML"><a href="https://github.com/araihu/goshtoso-charts/tree/v0.0.1">v0.0.1</a></span>');
+        response.end('<span id="goshtoso-version-slot" class="project-version"><a href="https://github.com/araihu/goshtoso/releases/tag/v0.1.7">v0.1.7</a></span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-swap-oob="outerHTML"><a href="https://github.com/araihu/goshtoso-app-shells/releases/tag/v0.1.3">v0.1.3</a></span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML"><a href="https://github.com/araihu/goshtoso-charts/tree/v0.0.1">v0.0.1</a></span>');
         return;
       }
       const relativePath = pathname.endsWith("/") ? `${pathname.slice(1)}index.html` : pathname.slice(1);
@@ -52,8 +52,7 @@ const fixture = `<!doctype html>
 <style>${componentCSS}\n${shellCSS}\n${css}</style>
 <header class="ahairu-header"><nav class="ahairu-primary-links" aria-label="Project navigation"><a href="#home">Home</a><a href="#libs">Libs</a><a href="#apps">Apps</a><a href="#blog">Blog</a></nav></header>
 <section class="storm-hero"></section>
-<a class="featured-visual" href="#"><figure class="featured-demo"><video data-featured-montage muted playsinline></video></figure></a>
-<a class="signal-button" href="#">Signal</a>
+<section class="featured-project"><a class="featured-family-card featured-family-card--goshtoso" href="#"><article class="shadow-lg transition-[translate,box-shadow] duration-150 hover:translate-y-1.5 hover:shadow-sm active:translate-y-2 active:shadow-none motion-reduce:hover:translate-none motion-reduce:active:translate-none motion-reduce:transition-none featured-family-card-surface"><div class="featured-family-media"><figure class="featured-demo"><video data-featured-montage muted playsinline></video></figure></div></article></a></section>
 <a class="project-card" href="#"><article class="shadow-lg transition-[translate,box-shadow] duration-150 hover:translate-y-1.5 hover:shadow-sm active:translate-y-2 active:shadow-none motion-reduce:hover:translate-none motion-reduce:active:translate-none motion-reduce:transition-none project-card-surface"><div class="project-art"><span class="project-art-name">Project</span><span class="project-mark"></span></div></article></a>
 <a class="project-card project-card--openapi" href="#"><div class="project-art project-art--openapi"><div class="openapi-viewport"><div class="openapi-stream"><div class="openapi-block"><span><b>openapi:</b> 3.1.0</span></div><div class="openapi-block"><span><b>openapi:</b> 3.1.0</span></div></div></div></div></a>
 <a class="more-row" href="#"><div class="more-art more-art--chart">More</div></a>
@@ -135,6 +134,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
         const navigationRect = navigation.getBoundingClientRect();
         const video = document.querySelector("[data-storm-backdrop]");
         const videoRect = video.getBoundingClientRect();
+		const heroStyle = getComputedStyle(document.querySelector(".storm-hero"));
         return {
           currentSrc: video.currentSrc,
           filter: getComputedStyle(document.querySelector(".storm-video-filter")).backgroundImage,
@@ -142,6 +142,9 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
           coversViewport: stage.left <= 0 && stage.right >= innerWidth && videoRect.left <= 0 && videoRect.right >= innerWidth,
           topbarFullWidth: navigationRect.left === 0 && navigationRect.right === innerWidth,
           topbarPadding: parseFloat(getComputedStyle(navigation).paddingInlineStart),
+		  heroPaddingInline: [parseFloat(heroStyle.paddingLeft), parseFloat(heroStyle.paddingRight)],
+		  legacyCloudBefore: getComputedStyle(document.querySelector(".storm-hero"), "::before").content,
+		  legacyCloudAfter: getComputedStyle(document.querySelector(".storm-hero"), "::after").content,
         };
       });
       assert.match(state.currentSrc, new RegExp(`storm-${theme}-v1\\.mp4$`));
@@ -149,6 +152,9 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
       assert.equal(state.coversViewport, true);
       assert.equal(state.topbarFullWidth, true);
       assert.ok(state.topbarPadding >= 24, `expected at least 24px topbar padding, received ${state.topbarPadding}px`);
+	  assert.deepEqual(state.heroPaddingInline, [0, 0]);
+	  assert.equal(state.legacyCloudBefore, "none");
+	  assert.equal(state.legacyCloudAfter, "none");
       assert.notEqual(state.filter, "none");
       assert.deepEqual([...new Set(requestedVideos.map((url) => new URL(url).pathname))], [`/assets/video/storm-${theme}-v1.mp4`]);
 
@@ -180,7 +186,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
   }
 });
 
-test("featured Goshtoso montage owns the full showcase width without the former CSS window", { timeout: 30_000 }, async () => {
+test("featured Goshtoso montage fills the lead family card without the former CSS window", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true });
   try {
@@ -190,17 +196,21 @@ test("featured Goshtoso montage owns the full showcase width without the former 
     await page.$eval(".featured-demo", (element) => element.scrollIntoView({ block: "center" }));
     await page.waitForFunction(() => document.querySelector("[data-featured-montage]").currentSrc);
     const state = await page.evaluate(() => {
-      const visual = document.querySelector(".featured-visual").getBoundingClientRect();
+      const visual = document.querySelector(".featured-family-card--goshtoso .featured-family-media").getBoundingClientRect();
       const demo = document.querySelector(".featured-demo").getBoundingClientRect();
+      const lead = document.querySelector(".featured-family-card--goshtoso").getBoundingClientRect();
+      const supporting = document.querySelector(".featured-family-card--shells").getBoundingClientRect();
       return {
         sameWidth: Math.abs(visual.width - demo.width) < 1,
-        ratio: demo.width / demo.height,
+        sameHeight: Math.abs(visual.height - demo.height) < 1,
+        leadIsWider: lead.width > supporting.width,
         formerWindow: Boolean(document.querySelector(".featured-window")),
         source: document.querySelector("[data-featured-montage]").currentSrc,
       };
     });
     assert.equal(state.sameWidth, true);
-    assert.ok(Math.abs(state.ratio - 16 / 9) < 0.02);
+    assert.equal(state.sameHeight, true);
+    assert.equal(state.leadIsWider, true);
     assert.equal(state.formerWindow, false);
     assert.match(state.source, /goshtoso-components-montage-v1\.mp4$/);
     assert.doesNotMatch(css, /\.featured-window/);
@@ -222,30 +232,33 @@ test("project maturity labels stay attached to the correct products", { timeout:
     await page.setViewport({ width: 1280, height: 720 });
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
     await page.waitForSelector("#goshtoso-version-slot a");
+    await page.waitForSelector("#goshtoso-app-shells-version-slot a");
     await page.waitForSelector("#goshtoso-charts-version-slot a");
     const labels = await page.evaluate(() => ({
-      goshtoso: document.querySelector(".featured-copy [data-status]")?.textContent.trim(),
-      featuredVisual: document.querySelector(".featured-demo [data-status]")?.textContent.trim(),
+      goshtoso: document.querySelector(".featured-family-card--goshtoso [data-status]")?.textContent.trim(),
       manja: document.querySelector(".project-tile--2 [data-status]")?.textContent.trim(),
       paje: document.querySelector(".project-tile--3 [data-status]")?.textContent.trim(),
       x9: document.querySelector(".project-tile--4 [data-status]")?.textContent.trim(),
-      shells: document.querySelector(".more-list li:first-child [data-status]")?.textContent.trim(),
-      charts: document.querySelector(".more-list li:nth-child(2) [data-status]")?.textContent.trim(),
+      shells: document.querySelector(".featured-family-card--shells [data-status]")?.textContent.trim(),
+      charts: document.querySelector(".featured-family-card--charts [data-status]")?.textContent.trim(),
       goshtosoVersion: document.querySelector("#goshtoso-version-slot")?.textContent.trim(),
+      shellsVersion: document.querySelector("#goshtoso-app-shells-version-slot")?.textContent.trim(),
       chartsVersion: document.querySelector("#goshtoso-charts-version-slot")?.textContent.trim(),
-      unlabeledSecondary: document.querySelectorAll(".more-list li:nth-child(3) [data-status]").length,
+      chartsURL: document.querySelector(".featured-family-card--charts")?.href,
+      secondaryProjects: [...document.querySelectorAll(".more-list h3")].map((heading) => heading.textContent.trim()),
     }));
     assert.deepEqual(labels, {
       goshtoso: "BETA",
-      featuredVisual: "BETA",
       manja: "WIP",
       paje: "WIP",
       x9: "WIP",
       shells: "ALPHA",
       charts: "ALPHA",
       goshtosoVersion: "v0.1.7",
+      shellsVersion: "v0.1.3",
       chartsVersion: "v0.0.1",
-      unlabeledSecondary: 0,
+      chartsURL: "https://charts.goshtoso.araihu.com/",
+      secondaryProjects: ["Muamba"],
     });
     assert.equal(versionRequests, 1);
   } finally {
@@ -282,10 +295,10 @@ test("application marks sit beside their project names instead of inside the med
     assert.deepEqual(projects.map(({ mediaHasMark }) => mediaHasMark), [false, false, false]);
     assert.deepEqual(projects.map(({ sameRow }) => sameRow), [true, true, true]);
     assert.deepEqual(projects.map(({ markIsLeftOfTitle }) => markIsLeftOfTitle), [true, true, true]);
-    assert.deepEqual(projects.map(({ markSource }) => markSource?.match(/([^/]+)-icon-adaptive-transparent-optical\.svg/)?.[1]), [
-      "manja",
-      "paje",
-      "x9",
+    assert.deepEqual(projects.map(({ markSource }) => markSource?.split("/").at(-1)), [
+      "manja-icon-dark-plate-optical.svg",
+      "paje-icon-dark-transparent-optical.svg",
+      "x9-icon-dark-plate-optical.svg",
     ]);
   } finally {
     await browser.close();
@@ -331,7 +344,7 @@ test("Pajé metadata and WIP badge meet text contrast on the dark card", { timeo
   }
 });
 
-test("featured Goshtoso montage plays only while its visual is hovered", { timeout: 30_000 }, async () => {
+test("featured Goshtoso family montage plays whenever its visual is in view", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true });
   try {
@@ -339,13 +352,20 @@ test("featured Goshtoso montage plays only while its visual is hovered", { timeo
     await page.setViewport({ width: 1280, height: 720 });
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
     await page.$eval(".featured-demo", (element) => element.scrollIntoView({ block: "center" }));
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    assert.equal(await page.$eval("[data-featured-montage]", (video) => video.paused), true);
-
-    await page.hover(".featured-visual");
     await page.waitForFunction(() => !document.querySelector("[data-featured-montage]").paused);
     await page.mouse.move(0, 0);
-    await page.waitForFunction(() => document.querySelector("[data-featured-montage]").paused);
+	await new Promise((resolve) => setTimeout(resolve, 150));
+	assert.equal(await page.$eval("[data-featured-montage]", (video) => video.paused), false);
+	assert.deepEqual(await page.$$eval(".featured-family-card", (members) => members.map((member) => ({
+	  name: [...member.querySelectorAll("h3")].at(-1)?.textContent.trim(),
+	  status: member.querySelector("[data-status]")?.textContent.trim(),
+	}))), [
+	  { name: "Goshtoso", status: "BETA" },
+	  { name: "Goshtoso App Shells", status: "ALPHA" },
+	  { name: "Goshtoso Charts", status: "ALPHA" },
+	]);
+	await page.$eval(".project-showcase", (element) => element.scrollIntoView({ block: "start" }));
+	await page.waitForFunction(() => document.querySelector("[data-featured-montage]").paused);
   } finally {
     await browser.close();
     await server.close();
@@ -368,12 +388,14 @@ test("chart runtimes and payload stay out of first paint until the HTMX reveal t
       actualCharts: document.querySelectorAll("[data-paje-actual-chart], [data-x9-live-availability], [data-goshtoso-heart-chart]").length,
       canvases: document.querySelectorAll("canvas").length,
       echarts: Boolean(window.echarts),
-      triggerCoversSection: Math.abs(
-        document.querySelector("[data-chart-bundle-trigger]").getBoundingClientRect().height
-        - document.querySelector(".project-showcase").getBoundingClientRect().height,
-      ) < 1,
+      triggers: document.querySelectorAll("[data-chart-bundle-trigger]").length,
+      consumersOwnTriggers: [
+        "#paje-chart-slot",
+        "#x9-chart-slot",
+        "#goshtoso-heart-chart-slot",
+      ].every((selector) => document.querySelector(`${selector} [data-chart-bundle-trigger]`)),
     }));
-    assert.deepEqual(initial, { placeholders: 3, actualCharts: 0, canvases: 0, echarts: false, triggerCoversSection: true });
+    assert.deepEqual(initial, { placeholders: 3, actualCharts: 0, canvases: 0, echarts: false, triggers: 3, consumersOwnTriggers: true });
     assert.equal(requested.some((path) => path.includes("/charts/assets/js/runtime/")), false);
     assert.equal(requested.some((path) => path.includes("/charts/assets/js/controls/")), false);
     assert.equal(requested.includes("/fragments/en/charts.html"), false);
@@ -387,6 +409,29 @@ test("chart runtimes and payload stay out of first paint until the HTMX reveal t
     assert.deepEqual(requested.filter((path) => path.includes("/charts/assets/js/controls/")), [
       "/charts/assets/js/controls/5/controls.js",
     ]);
+    assert.equal(requested.filter((path) => path === "/fragments/en/charts.html").length, 1);
+    assert.equal(await page.$$eval("[data-chart-placeholder]", (elements) => elements.length), 0);
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
+test("restoring directly to a chart card still hydrates the shared chart bundle", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
+  try {
+    const page = await browser.newPage();
+    const requested = [];
+    page.on("request", (request) => requested.push(new URL(request.url()).pathname));
+    await page.setViewport({ width: 884, height: 781 });
+    await page.goto(`${server.origin}/en/#paje-chart-slot`, { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => [
+      "[data-paje-actual-chart] canvas",
+      "[data-x9-live-availability] canvas",
+      "[data-goshtoso-heart-chart] canvas",
+    ].every((selector) => document.querySelector(selector)), { timeout: 15_000 });
+
     assert.equal(requested.filter((path) => path === "/fragments/en/charts.html").length, 1);
     assert.equal(await page.$$eval("[data-chart-placeholder]", (elements) => elements.length), 0);
   } finally {
@@ -427,7 +472,7 @@ test("Pajé uses an undecorated actual chart that fills its media area", { timeo
   }
 });
 
-test("Pajé restarts its deterministic lifecycle chart on every card hover", { timeout: 30_000 }, async () => {
+test("Pajé traces its deterministic lifecycle on every card hover", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true });
   try {
@@ -439,29 +484,50 @@ test("Pajé restarts its deterministic lifecycle chart on every card hover", { t
     await page.$eval("[data-paje-actual-chart]", (element) => element.scrollIntoView({ block: "center" }));
 
     const hostSelector = "[data-paje-actual-chart] [_echarts_instance_]";
-    const instanceID = () => page.$eval(hostSelector, (element) => element.getAttribute("_echarts_instance_"));
-    const initialID = await instanceID();
+    const initial = await page.$eval(hostSelector, (host) => {
+      const series = window.echarts.getInstanceByDom(host).getOption().series[0];
+      return {
+        instanceID: host.getAttribute("_echarts_instance_"),
+        sizes: series.data.map(({ symbolSize }) => symbolSize),
+      };
+    });
 
     await page.hover(".project-tile--3 .project-card");
-    await page.waitForFunction((previousID) => {
-      const host = document.querySelector("[data-paje-actual-chart] [_echarts_instance_]");
-      return host && host.getAttribute("_echarts_instance_") !== previousID;
-    }, {}, initialID);
-    const firstHoverID = await instanceID();
+    await page.waitForFunction(() => {
+      const art = document.querySelector("[data-paje-actual-chart]");
+      return art?.dataset.pajeMotion === "running" && Number(art.dataset.pajeMotionStep) > 0;
+    });
+    const firstHover = await page.$eval(hostSelector, (host) => {
+      const art = host.closest("[data-paje-actual-chart]");
+      const series = window.echarts.getInstanceByDom(host).getOption().series[0];
+      return {
+        instanceID: host.getAttribute("_echarts_instance_"),
+        motion: art.dataset.pajeMotion,
+        step: Number(art.dataset.pajeMotionStep),
+        opacities: series.data.map(({ itemStyle }) => itemStyle.opacity),
+        sizes: series.data.map(({ symbolSize }) => symbolSize),
+      };
+    });
+    assert.equal(firstHover.instanceID, initial.instanceID);
+    assert.equal(firstHover.motion, "running");
+    assert.ok(firstHover.step > 0);
+    assert.ok(firstHover.opacities.some((opacity) => opacity < 1));
+    assert.ok(firstHover.sizes.some((size, index) => size !== initial.sizes[index]));
+
+    await page.waitForFunction(() => document.querySelector("[data-paje-actual-chart]")?.dataset.pajeMotion === "idle");
 
     await page.mouse.move(1, 1);
     await page.hover(".project-tile--3 .project-card");
-    await page.waitForFunction((previousID) => {
-      const host = document.querySelector("[data-paje-actual-chart] [_echarts_instance_]");
-      return host && host.getAttribute("_echarts_instance_") !== previousID;
-    }, {}, firstHoverID);
+    await page.waitForFunction(() => document.querySelector("[data-paje-actual-chart]")?.dataset.pajeMotion === "running");
 
     const state = await page.$eval(hostSelector, (host) => ({
       instanceID: host.getAttribute("_echarts_instance_"),
       layout: window.echarts.getInstanceByDom(host).getOption().series[0].layout,
+      motion: host.closest("[data-paje-actual-chart]").dataset.pajeMotion,
     }));
-    assert.notEqual(state.instanceID, firstHoverID);
+    assert.equal(state.instanceID, initial.instanceID);
     assert.equal(state.layout, "none");
+    assert.equal(state.motion, "running");
   } finally {
     await browser.close();
     await server.close();
@@ -612,7 +678,7 @@ test("Goshtoso Charts uses an actual solid Surface3D heart", { timeout: 30_000 }
   }
 });
 
-test("Surface3D heart follows desktop hover and touch viewport motion policy", { timeout: 60_000 }, async () => {
+test("featured Surface3D heart rotates whenever visible on desktop and touch", { timeout: 60_000 }, async () => {
   const server = await servePublic();
   const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
   try {
@@ -622,11 +688,16 @@ test("Surface3D heart follows desktop hover and touch viewport motion policy", {
     await revealCharts(desktop);
     const heartSelector = "[data-goshtoso-heart-chart]";
     await desktop.$eval(heartSelector, (element) => element.scrollIntoView({ block: "center" }));
-    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "paused", {}, heartSelector);
-    await desktop.hover(".more-list li:nth-child(2) .more-row");
+    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
+    await desktop.hover(".featured-family-card--charts");
     await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
     await desktop.mouse.move(0, 0);
+    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
+    assert.equal(await desktop.$$eval("[data-heart-motion]", (elements) => elements.length), 1);
+    await desktop.evaluate(() => window.scrollTo(0, 0));
     await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "paused", {}, heartSelector);
+    await desktop.$eval(heartSelector, (element) => element.scrollIntoView({ block: "center" }));
+    await desktop.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
 
     const mobile = await browser.newPage();
     await mobile.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
@@ -636,7 +707,7 @@ test("Surface3D heart follows desktop hover and touch viewport motion policy", {
     await mobile.waitForFunction((selector) => document.querySelector(selector)?.dataset.heartMotion === "running", {}, heartSelector);
     const firstEntry = await mobile.$eval(heartSelector, (art) => ({
       motion: art.dataset.heartMotion,
-      touchActive: art.closest(".more-row").hasAttribute("data-card-viewport-active"),
+      touchActive: art.closest(".featured-family-card").hasAttribute("data-card-viewport-active"),
       autoRotate: window.echarts.getInstanceByDom(art.querySelector("[_echarts_instance_]")).getOption().grid3D[0].viewControl.autoRotate,
     }));
     assert.deepEqual(firstEntry, { motion: "running", touchActive: true, autoRotate: true });
@@ -654,7 +725,7 @@ test("Surface3D heart follows desktop hover and touch viewport motion policy", {
     await new Promise((resolve) => setTimeout(resolve, 300));
     const reducedState = await reduced.$eval(heartSelector, (art) => ({
       motion: art.dataset.heartMotion,
-      touchActive: art.closest(".more-row").hasAttribute("data-card-viewport-active"),
+      touchActive: art.closest(".featured-family-card").hasAttribute("data-card-viewport-active"),
       autoRotate: window.echarts.getInstanceByDom(art.querySelector("[_echarts_instance_]")).getOption().grid3D[0].viewControl.autoRotate,
       transform: getComputedStyle(art).transform,
       shellTransform: getComputedStyle(document.querySelector(".shell-preview")).transform,
@@ -689,7 +760,7 @@ test("Goshtoso App Shells art previews desktop and mobile shell composition", { 
       desktopTransform: getComputedStyle(art.querySelector(".shell-preview--desktop")).transform,
       mobileTransform: getComputedStyle(art.querySelector(".shell-preview--mobile")).transform,
     }));
-    await page.hover(".more-list li:first-child .more-row");
+    await page.hover(".featured-family-card--shells");
     await new Promise((resolve) => setTimeout(resolve, 300));
     const after = await page.$eval(selector, (art) => ({
       desktopTransform: getComputedStyle(art.querySelector(".shell-preview--desktop")).transform,

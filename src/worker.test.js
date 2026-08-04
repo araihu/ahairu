@@ -302,6 +302,12 @@ test("project versions use latest releases, tag fallback, and a 24 hour edge cac
           html_url: "https://github.com/araihu/goshtoso/releases/tag/v0.1.7",
         });
       }
+      if (url.pathname === "/repos/araihu/goshtoso-app-shells/releases/latest") {
+        return Response.json({
+          tag_name: "v0.1.3",
+          html_url: "https://github.com/araihu/goshtoso-app-shells/releases/tag/v0.1.3",
+        });
+      }
       if (url.pathname === "/repos/araihu/goshtoso-charts/releases/latest") {
         return new Response("missing", { status: 404 });
       }
@@ -326,9 +332,11 @@ test("project versions use latest releases, tag fallback, and a 24 hour edge cac
   const html = await first.text();
   assert.equal(first.headers.get("cache-control"), "public, max-age=0, s-maxage=86400");
   assert.match(html, /id="goshtoso-version-slot"[^>]*>.*v0\.1\.7/s);
+  assert.match(html, /id="goshtoso-app-shells-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.1\.3/s);
   assert.match(html, /id="goshtoso-charts-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.0\.1/s);
   assert.deepEqual(githubRequests, [
     "/repos/araihu/goshtoso/releases/latest",
+    "/repos/araihu/goshtoso-app-shells/releases/latest",
     "/repos/araihu/goshtoso-charts/releases/latest",
     "/repos/araihu/goshtoso-charts/tags",
   ]);
@@ -336,5 +344,5 @@ test("project versions use latest releases, tag fallback, and a 24 hour edge cac
 
   const second = await worker.fetch(request, env, ctx);
   assert.match(await second.text(), /v0\.1\.7/);
-  assert.equal(githubRequests.length, 3, "cache hit must not call GitHub again");
+  assert.equal(githubRequests.length, 4, "cache hit must not call GitHub again");
 });

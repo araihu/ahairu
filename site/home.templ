@@ -27,7 +27,7 @@ templ HomeDocument(page Page, content Content) {
 			<link rel="stylesheet" href={ shellassets.StylesheetURL("/landingshell/assets/") }/>
 			<link rel="stylesheet" href="/assets/araihu-theme.css"/>
 			<link rel="stylesheet" href="/assets/ahairu.css"/>
-			<script defer src="/assets/js/storm-backdrop.js?rev=2"></script>
+			<script defer src="/assets/js/storm-backdrop.js?rev=3"></script>
 			<script defer src="/assets/js/x9-availability.js?rev=1"></script>
 			<script src="/assets/campaign/v1.js" data-channel="/assets/releases/current" defer integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n" crossorigin="anonymous"></script>
 		</head>
@@ -68,7 +68,7 @@ templ HomeDocument(page Page, content Content) {
 				PanelClass:      "storm-mobile-panel",
 			}, MobileMenuContent(content))
 			<main id="main-content" tabindex="-1">
-				<section id="home" class="storm-hero ahairu-shell mx-auto px-6 md:px-10" aria-labelledby="hero-title">
+				<section id="home" class="storm-hero" aria-labelledby="hero-title">
 					<div class="storm-video-stage" aria-hidden="true">
 						<video class="storm-backdrop" data-storm-backdrop loop muted playsinline preload="none">
 							<source media="(prefers-color-scheme: light)" src="/assets/video/storm-light-v1.mp4" type="video/mp4"/>
@@ -77,7 +77,7 @@ templ HomeDocument(page Page, content Content) {
 						</video>
 						<div class="storm-video-filter"></div>
 					</div>
-					<div class="storm-copy">
+					<div class="storm-copy ahairu-shell mx-auto px-6 md:px-10">
 						<p class="storm-kicker">{ content.OpenSourceLabel } · Arai Hû</p>
 						<h1 id="hero-title" class="storm-title">{ content.Tagline }</h1>
 						<p class="storm-intro mt-8">{ content.Intro }</p>
@@ -85,36 +85,19 @@ templ HomeDocument(page Page, content Content) {
 				</section>
 				<section id="libs" class="featured-project" aria-labelledby="featured-title">
 					<div class="ahairu-shell featured-project-inner mx-auto px-6 md:px-10">
-						<a class="featured-visual" href="https://goshtoso.araihu.com" aria-label={ content.FeaturedAction }>
-							<figure class="featured-demo">
-								<img class="featured-brand-mark" src={ content.Projects[0].MarkURL } alt="" width="56" height="56" decoding="async"/>
-								<video data-featured-montage loop muted playsinline preload="metadata" poster="/assets/visuals/goshtoso-components-poster-v1.webp">
-									<source src="/assets/visuals/goshtoso-components-montage-v1.mp4" type="video/mp4"/>
-								</video>
-								<figcaption>
-									<span><span>Goshtoso + Goshtoso Charts</span> @ProjectStatus(content.Projects[0])</span>
-									<span>Tabs · HTMX · Monitoring · Line 3D</span>
-								</figcaption>
-							</figure>
-						</a>
 						<div class="featured-copy">
-							<p class="storm-kicker">02 — { content.FeaturedLabel } @ProjectBadges(content.Projects[0])</p>
+							<p class="storm-kicker">02 — { content.FeaturedLabel }</p>
 							<h2 id="featured-title">{ content.FeaturedTitle }</h2>
 							<p>{ content.FeaturedDescription }</p>
-							<a class="signal-button" href="https://goshtoso.araihu.com">{ content.FeaturedAction } <span aria-hidden="true">↗</span></a>
+						</div>
+						<div class="featured-family-grid" aria-label={ content.FeaturedFamilyLabel }>
+							@FeaturedFamilyCard(content, content.Projects[0], "goshtoso")
+							@FeaturedFamilyCard(content, content.MoreProjects[0], "shells")
+							@FeaturedFamilyCard(content, content.MoreProjects[1], "charts")
 						</div>
 					</div>
 				</section>
 				<section class="project-showcase" aria-labelledby="projects-title">
-					<div
-						class="chart-bundle-trigger"
-						data-chart-bundle-trigger
-						aria-hidden="true"
-						hx-get={ ChartFragmentURL(content) }
-						hx-trigger="revealed once"
-						hx-target="#chart-lazy-stage"
-						hx-swap="innerHTML"
-					></div>
 					<div id="chart-lazy-stage" hidden></div>
 					<div class="ahairu-shell mx-auto px-6 md:px-10">
 						<div class="showcase-heading">
@@ -142,7 +125,7 @@ templ HomeDocument(page Page, content Content) {
 							<p>{ content.MoreIntro }</p>
 						</div>
 						<ol class="more-list">
-							for index, project := range content.MoreProjects {
+							for index, project := range content.MoreProjects[2:] {
 								<li>
 									<article class="more-row">
 										<span class="more-index">{ fmt.Sprintf("%02d", index + 1) }</span>
@@ -231,7 +214,7 @@ templ ProjectTile(content Content, project Project, index int) {
 	<li class={ fmt.Sprintf("project-tile project-tile--%d", index + 1) }>
 		<a class="project-card" href={ project.URL } aria-label={ content.ProjectAction + ": " + project.Name }>
 			@card.Card(card.Config{
-				Media:       ProjectMedia(project),
+				Media:       ProjectMedia(content, project),
 				MediaClass:  "project-media",
 				Tag:         fmt.Sprintf("%02d — %s", index + 1, project.Category),
 				Title:       project.Name,
@@ -244,7 +227,7 @@ templ ProjectTile(content Content, project Project, index int) {
 	</li>
 }
 
-templ ProjectMedia(project Project) {
+templ ProjectMedia(content Content, project Project) {
 	if project.Name == "Manja" {
 		<div class="project-art project-art--openapi" aria-hidden="true">
 			<div class="openapi-toolbar"><i></i><i></i><i></i><span>github-rest-api.yaml</span></div>
@@ -257,10 +240,12 @@ templ ProjectMedia(project Project) {
 		</div>
 	} else if project.Name == "Pajé" {
 		<div id="paje-chart-slot" class="project-art project-art--graph chart-placeholder" data-chart-placeholder="paje" aria-busy="true">
+			@ChartBundleTrigger(content)
 			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
 		</div>
 	} else if project.Name == "X-9" {
 		<div id="x9-chart-slot" class="project-art project-art--monitor chart-placeholder" data-chart-placeholder="x9" aria-busy="true">
+			@ChartBundleTrigger(content)
 			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
 		</div>
 	} else {
@@ -275,6 +260,40 @@ templ ProjectMedia(project Project) {
 	}
 }
 
+templ FeaturedFamilyCard(content Content, project Project, kind string) {
+	<a class={ "featured-family-card featured-family-card--" + kind } href={ project.URL } aria-label={ content.ProjectAction + ": " + project.Name }>
+		@card.Card(card.Config{
+			Media:       FeaturedFamilyMedia(content, project),
+			MediaClass:  "featured-family-media",
+			Tag:         project.Category,
+			Title:       project.Name,
+			Description: project.Description,
+			Footer:      FeaturedFamilyFooter(content, project),
+			Interaction: card.InteractionPressed,
+			RootClass:   "featured-family-card-surface",
+		})
+	</a>
+}
+
+templ FeaturedFamilyMedia(content Content, project Project) {
+	if project.Name == "Goshtoso" {
+		<figure class="featured-demo">
+			<img class="featured-brand-mark" src={ project.MarkURL } alt="" width="56" height="56" decoding="async"/>
+			<video data-featured-montage autoplay loop muted playsinline preload="metadata" poster="/assets/visuals/goshtoso-components-poster-v1.webp">
+				<source src="/assets/visuals/goshtoso-components-montage-v1.mp4" type="video/mp4"/>
+			</video>
+			<figcaption><span>Tabs · HTMX · Monitoring · Line 3D</span></figcaption>
+		</figure>
+	} else {
+		@MoreProjectArt(content, project)
+	}
+}
+
+templ FeaturedFamilyFooter(content Content, project Project) {
+	<span class="featured-family-badges">@ProjectBadges(project)</span>
+	<span class="featured-family-action">{ content.ProjectAction } <span aria-hidden="true">↗</span></span>
+}
+
 templ OpenAPILines() {
 	for _, line := range GitHubReleaseOpenAPILines() {
 		<span>{ line.Indent }<b>{ line.Key }</b>{ line.Value }</span>
@@ -284,6 +303,7 @@ templ OpenAPILines() {
 templ MoreProjectArt(content Content, project Project) {
 	if project.Name == "Goshtoso Charts" {
 		<div id="goshtoso-heart-chart-slot" class="more-art more-art--chart chart-placeholder" data-chart-placeholder="goshtoso-heart" aria-busy="true">
+			@ChartBundleTrigger(content)
 			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
 		</div>
 	} else if project.Name == "Muamba" {
@@ -314,6 +334,19 @@ templ MoreProjectArt(content Content, project Project) {
 	}
 }
 
+templ ChartBundleTrigger(content Content) {
+	<span
+		class="chart-bundle-trigger"
+		data-chart-bundle-trigger
+		aria-hidden="true"
+		hx-get={ ChartFragmentURL(content) }
+		hx-trigger="revealed once"
+		hx-target="#chart-lazy-stage"
+		hx-swap="innerHTML"
+		hx-sync="#chart-lazy-stage:drop"
+	></span>
+}
+
 
 templ ProjectStatus(project Project) {
 	if project.Status != "" {
@@ -323,6 +356,10 @@ templ ProjectStatus(project Project) {
 
 templ ProjectBadges(project Project) {
 	@ProjectStatus(project)
+	@ProjectVersion(project)
+}
+
+templ ProjectVersion(project Project) {
 	if project.Name == "Goshtoso" {
 		<span
 			id="goshtoso-version-slot"
@@ -332,6 +369,8 @@ templ ProjectBadges(project Project) {
 			hx-trigger="load delay:750ms"
 			hx-swap="outerHTML"
 		></span>
+	} else if project.Name == "Goshtoso App Shells" {
+		<span id="goshtoso-app-shells-version-slot" class="project-version" aria-live="polite"></span>
 	} else if project.Name == "Goshtoso Charts" {
 		<span id="goshtoso-charts-version-slot" class="project-version" aria-live="polite"></span>
 	}

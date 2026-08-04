@@ -1,8 +1,9 @@
 const locales = new Set(["en", "pt-br", "es"]);
 const versionCacheSeconds = 24 * 60 * 60;
-const versionCacheRevision = "2";
+const versionCacheRevision = "3";
 const versionRepositories = [
   { repo: "goshtoso", slot: "goshtoso-version-slot", outOfBand: false },
+  { repo: "goshtoso-app-shells", slot: "goshtoso-app-shells-version-slot", outOfBand: true },
   { repo: "goshtoso-charts", slot: "goshtoso-charts-version-slot", outOfBand: true },
 ];
 const canonicalPages = new Map([

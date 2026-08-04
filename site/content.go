@@ -31,6 +31,7 @@ type Content struct {
 	FeaturedTitle          string
 	FeaturedDescription    string
 	FeaturedAction         string
+	FeaturedFamilyLabel    string
 	LibrariesLabel         string
 	AppsLabel              string
 	MoreLabel              string
@@ -122,10 +123,11 @@ var contents = map[string]Content{
 		NavBlog:                "Blog",
 		MenuLabel:              "Menu",
 		WorkInProgress:         "WIP",
-		FeaturedLabel:          "Featured project",
-		FeaturedTitle:          "Interfaces for Go, without leaving the server.",
-		FeaturedDescription:    "Goshtoso brings accessible UI components and local assets to server-rendered Go applications.",
+		FeaturedLabel:          "Featured family",
+		FeaturedTitle:          "The server-rendered UI family.",
+		FeaturedDescription:    "Goshtoso provides accessible primitives, App Shells composes them into layouts, and Charts brings data visualization to Go and templ.",
 		FeaturedAction:         "Explore Goshtoso",
+		FeaturedFamilyLabel:    "Goshtoso family",
 		LibrariesLabel:         "Libraries",
 		AppsLabel:              "Applications",
 		MoreLabel:              "More stuff",
@@ -179,10 +181,11 @@ var contents = map[string]Content{
 		NavBlog:                "Blog",
 		MenuLabel:              "Menu",
 		WorkInProgress:         "Em breve",
-		FeaturedLabel:          "Projeto em destaque",
-		FeaturedTitle:          "Interfaces para Go, sem sair do servidor.",
-		FeaturedDescription:    "Goshtoso leva componentes de UI acessíveis e assets locais a aplicações Go renderizadas no servidor.",
+		FeaturedLabel:          "Família em destaque",
+		FeaturedTitle:          "A família de UI renderizada no servidor.",
+		FeaturedDescription:    "Goshtoso fornece primitivas acessíveis, App Shells as compõe em layouts e Charts leva visualização de dados a Go e templ.",
 		FeaturedAction:         "Explorar Goshtoso",
+		FeaturedFamilyLabel:    "Família Goshtoso",
 		LibrariesLabel:         "Bibliotecas",
 		AppsLabel:              "Aplicações",
 		MoreLabel:              "Mais projetos",
@@ -236,10 +239,11 @@ var contents = map[string]Content{
 		NavBlog:                "Blog",
 		MenuLabel:              "Menú",
 		WorkInProgress:         "En progreso",
-		FeaturedLabel:          "Proyecto destacado",
-		FeaturedTitle:          "Interfaces para Go, sin salir del servidor.",
-		FeaturedDescription:    "Goshtoso lleva componentes de UI accesibles y recursos locales a aplicaciones Go renderizadas en servidor.",
+		FeaturedLabel:          "Familia destacada",
+		FeaturedTitle:          "La familia de UI renderizada en servidor.",
+		FeaturedDescription:    "Goshtoso aporta primitivas accesibles, App Shells las compone en layouts y Charts lleva visualización de datos a Go y templ.",
 		FeaturedAction:         "Explorar Goshtoso",
+		FeaturedFamilyLabel:    "Familia Goshtoso",
 		LibrariesLabel:         "Bibliotecas",
 		AppsLabel:              "Aplicaciones",
 		MoreLabel:              "Más proyectos",
@@ -278,18 +282,18 @@ var contents = map[string]Content{
 
 func projects(categories, descriptions []string) []Project {
 	return []Project{
-		{Name: "Goshtoso", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-adaptive-transparent-optical.svg", Status: "BETA"},
-		{Name: "Manja", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-adaptive-transparent-optical.svg", Status: "WIP"},
-		{Name: "Pajé", Category: categories[2], Description: descriptions[2], URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-adaptive-transparent-optical.svg", Status: "WIP"},
-		{Name: "X-9", Category: categories[3], Description: descriptions[3], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-adaptive-transparent-optical.svg", Status: "WIP"},
+		{Name: "Goshtoso", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-dark-plate-optical.svg", Status: "BETA"},
+		{Name: "Manja", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-dark-plate-optical.svg", Status: "WIP"},
+		{Name: "Pajé", Category: categories[2], Description: descriptions[2], URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-dark-transparent-optical.svg", Status: "WIP"},
+		{Name: "X-9", Category: categories[3], Description: descriptions[3], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-dark-plate-optical.svg", Status: "WIP"},
 	}
 }
 
 func moreProjects(categories, descriptions []string) []Project {
 	return []Project{
 		{Name: "Goshtoso App Shells", Category: categories[0], Description: descriptions[0], URL: "https://github.com/araihu/goshtoso-app-shells", Status: "ALPHA"},
-		{Name: "Goshtoso Charts", Category: categories[1], Description: descriptions[1], URL: "https://github.com/araihu/goshtoso-charts", Status: "ALPHA"},
-		{Name: "Muamba", Category: categories[2], Description: descriptions[2], URL: "https://github.com/araihu/muamba"},
+		{Name: "Goshtoso Charts", Category: categories[1], Description: descriptions[1], URL: "https://charts.goshtoso.araihu.com", Status: "ALPHA"},
+		{Name: "Muamba", Category: categories[2], Description: descriptions[2], URL: "https://muamba.araihu.com"},
 	}
 }
 

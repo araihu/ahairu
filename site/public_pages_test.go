@@ -100,17 +100,25 @@ func TestBrandAndLicenseMetadataDescriptionsAreLocalized(t *testing.T) {
 	}
 }
 
-func TestSharedChromeProjectsAndMinimumSizeUseAdaptiveAssets(t *testing.T) {
+func TestSharedChromeAndProjectMarksUseContextualAssets(t *testing.T) {
 	if araihuIconURL != BrandAssetsPublicPrefix+"icons/brand/araihu-icon-adaptive-transparent-optical.svg" {
 		t.Fatalf("shared chrome icon = %q, want adaptive asset", araihuIconURL)
 	}
+	wantProjectMark := map[string]string{
+		"Goshtoso": "goshtoso-icon-dark-plate-optical.svg",
+		"Manja":    "manja-icon-dark-plate-optical.svg",
+		"Pajé":     "paje-icon-dark-transparent-optical.svg",
+		"X-9":      "x9-icon-dark-plate-optical.svg",
+	}
 	for _, home := range Locales() {
 		for _, project := range home.Projects {
-			if !strings.Contains(project.MarkURL, "-icon-adaptive-transparent-optical.svg") {
-				t.Errorf("%s project mark = %q, want adaptive asset", project.Name, project.MarkURL)
+			want, ok := wantProjectMark[project.Name]
+			if !ok {
+				t.Errorf("unexpected project %q", project.Name)
+				continue
 			}
-			if strings.Contains(project.MarkURL, "-icon-light-transparent-optical.svg") {
-				t.Errorf("%s project mark remains hardcoded light asset", project.Name)
+			if !strings.HasSuffix(project.MarkURL, want) {
+				t.Errorf("%s project mark = %q, want contextual asset %q", project.Name, project.MarkURL, want)
 			}
 		}
 	}
@@ -128,10 +136,15 @@ func TestSharedChromeProjectsAndMinimumSizeUseAdaptiveAssets(t *testing.T) {
 	}
 
 	homeHTML := renderComponent(t, HomePage(pageForTest(t, "/en/")))
-	for _, product := range []string{"araihu", "goshtoso", "manja", "paje", "x9"} {
-		want := product + "-icon-adaptive-transparent-optical.svg"
+	for _, want := range []string{
+		"araihu-icon-adaptive-transparent-optical.svg",
+		"goshtoso-icon-dark-plate-optical.svg",
+		"manja-icon-dark-plate-optical.svg",
+		"paje-icon-dark-transparent-optical.svg",
+		"x9-icon-dark-plate-optical.svg",
+	} {
 		if !strings.Contains(homeHTML, want) {
-			t.Errorf("home page misses adaptive %s mark", product)
+			t.Errorf("home page misses contextual mark %q", want)
 		}
 	}
 }
