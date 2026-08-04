@@ -282,7 +282,7 @@ test("application marks sit beside their project names instead of inside the med
     assert.deepEqual(projects.map(({ mediaHasMark }) => mediaHasMark), [false, false, false]);
     assert.deepEqual(projects.map(({ sameRow }) => sameRow), [true, true, true]);
     assert.deepEqual(projects.map(({ markIsLeftOfTitle }) => markIsLeftOfTitle), [true, true, true]);
-    assert.deepEqual(projects.map(({ markSource }) => markSource?.match(/([^/]+)-icon-transparent\.svg/)?.[1]), [
+    assert.deepEqual(projects.map(({ markSource }) => markSource?.match(/([^/]+)-icon-adaptive-transparent-optical\.svg/)?.[1]), [
       "manja",
       "paje",
       "x9",

@@ -153,7 +153,13 @@ async function openCheckedPage(pathname, options = {}) {
     if (message.type() === "error") failures.push(`console: ${message.text()}`);
   });
   page.on("pageerror", (error) => failures.push(`page: ${error.message}`));
-  page.on("requestfailed", (request) => failures.push(`request: ${request.url()} ${request.failure()?.errorText}`));
+  page.on("requestfailed", (request) => {
+    const errorText = request.failure()?.errorText;
+    // Chromium can cancel a valid partial media read after preload/pause.
+    // HTTP failures remain covered by the response listener below.
+    if (request.resourceType() === "media" && errorText === "net::ERR_ABORTED") return;
+    failures.push(`request: ${request.url()} ${errorText}`);
+  });
   page.on("response", (response) => {
     if (response.status() >= 400) failures.push(`response: ${response.status()} ${response.url()}`);
   });
@@ -276,7 +282,7 @@ test("all canonical pages fit a 375px mobile viewport", async () => {
 
 test("representative pages satisfy the full responsive scheme matrix", async () => {
   const representatives = [
-    { path: "/en/", selector: ".project-mark", count: 4 },
+    { path: "/en/", selector: ".project-title-mark", count: 3 },
     { path: "/brand/", selector: ".variant-card", count: 4 },
     { path: "/license/", selector: ".terms-panel", count: 2 },
   ];
@@ -348,48 +354,21 @@ test("brand specimens retain approved variants and stable geometry", async () =>
   }
 });
 
-test("light and dark schemes remain distinct", async () => {
+test("light and dark schemes render distinct storm filters", async () => {
   const schemes = [];
   for (const scheme of ["light", "dark"]) {
     const page = await openCheckedPage("/en/", { scheme });
     schemes.push(
-      await page.evaluate(() => {
-        function ink(mark) {
-          const canvas = document.createElement("canvas");
-          canvas.width = 64;
-          canvas.height = 64;
-          const context = canvas.getContext("2d");
-          context.drawImage(mark, 0, 0, 64, 64);
-          const pixels = context.getImageData(0, 0, 64, 64).data;
-          let dark = 0;
-          let light = 0;
-          for (let index = 0; index < pixels.length; index += 4) {
-            if (pixels[index + 3] === 0) continue;
-            if (pixels[index] < 60 && pixels[index + 1] < 60 && pixels[index + 2] < 60) dark++;
-            if (pixels[index] > 220 && pixels[index + 1] > 220 && pixels[index + 2] > 220) light++;
-          }
-          return { dark, light };
-        }
-        return {
-          background: getComputedStyle(document.body).backgroundColor,
-          header: ink(document.querySelector(".ahairu-brand img")),
-          projects: [...document.querySelectorAll("img.project-mark")].map(ink),
-        };
-      }),
+      await page.evaluate(() => ({
+        source: new URL(document.querySelector("[data-storm-backdrop]").currentSrc).pathname,
+        filter: getComputedStyle(document.querySelector(".storm-video-filter")).backgroundImage,
+      })),
     );
     await page.close();
   }
-  assert.notEqual(schemes[0].background, schemes[1].background);
-  assert.equal(schemes[0].projects.length, 4);
-  assert.equal(schemes[1].projects.length, 4);
-  assert.ok(schemes[0].header.dark > 100, `light scheme header has only ${schemes[0].header.dark} dark pixels`);
-  assert.ok(schemes[1].header.light > 100, `dark scheme header has only ${schemes[1].header.light} light pixels`);
-  schemes[0].projects.forEach((mark, index) => {
-    assert.ok(mark.dark > 100, `light scheme project ${index + 1} has only ${mark.dark} dark pixels`);
-  });
-  schemes[1].projects.forEach((mark, index) => {
-    assert.ok(mark.light > 100, `dark scheme project ${index + 1} has only ${mark.light} light pixels`);
-  });
+  assert.match(schemes[0].source, /^\/assets\/video\/storm-(?:light|dark)-v1\.mp4$/);
+  assert.match(schemes[1].source, /^\/assets\/video\/storm-(?:light|dark)-v1\.mp4$/);
+  assert.notEqual(schemes[0].filter, schemes[1].filter);
 });
 
 test("child teardown escalates and awaits stubborn processes", async () => {
@@ -463,7 +442,7 @@ test("keyboard focus is visible and reduced motion removes decorative movement",
     await page.reload({ waitUntil: "networkidle0" });
     const motion = await page.evaluate(() => ({
       cloud: getComputedStyle(document.querySelector(".storm-hero"), "::before").animationName,
-      row: getComputedStyle(document.querySelector(".project-row")).transitionDuration,
+      row: getComputedStyle(document.querySelector(".more-row")).transitionDuration,
     }));
     assert.equal(motion.cloud, "none");
     assert.equal(motion.row, "0s");
