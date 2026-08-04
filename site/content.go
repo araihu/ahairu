@@ -1,10 +1,8 @@
 package site
 
-const brandAssetBase = "/assets/logos/"
-const brandAssetRevision = "?rev=a8a9647a"
+const brandAssetBase = BrandAssetsPublicPrefix + "icons/brand/"
 
-const araihuIconURL = brandAssetBase + "araihu-icon-transparent.svg" + brandAssetRevision
-const socialImageURL = "https://araihu.com/assets/social/araihu-storm-v1.jpg"
+const araihuIconURL = brandAssetBase + "araihu-icon-adaptive-transparent-optical.svg"
 
 // Content is one localized version of the organization site.
 type Content struct {
@@ -56,6 +54,9 @@ type Content struct {
 	Projects               []Project
 	MoreProjects           []Project
 }
+
+// HomeContent is the typed home-page model used by the public page registry.
+type HomeContent = Content
 
 // PajeLifecycleLabels owns the localized labels shown in Pajé's workflow DAG.
 type PajeLifecycleLabels struct {
@@ -277,10 +278,10 @@ var contents = map[string]Content{
 
 func projects(categories, descriptions []string) []Project {
 	return []Project{
-		{Name: "Goshtoso", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-transparent.svg" + brandAssetRevision, Status: "BETA"},
-		{Name: "Manja", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-transparent.svg" + brandAssetRevision, Status: "WIP"},
-		{Name: "Pajé", Category: categories[2], Description: descriptions[2], URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-transparent.svg" + brandAssetRevision, Status: "WIP"},
-		{Name: "X-9", Category: categories[3], Description: descriptions[3], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-transparent.svg" + brandAssetRevision, Status: "WIP"},
+		{Name: "Goshtoso", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-adaptive-transparent-optical.svg", Status: "BETA"},
+		{Name: "Manja", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-adaptive-transparent-optical.svg", Status: "WIP"},
+		{Name: "Pajé", Category: categories[2], Description: descriptions[2], URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-adaptive-transparent-optical.svg", Status: "WIP"},
+		{Name: "X-9", Category: categories[3], Description: descriptions[3], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-adaptive-transparent-optical.svg", Status: "WIP"},
 	}
 }
 
@@ -293,7 +294,9 @@ func moreProjects(categories, descriptions []string) []Project {
 }
 
 // Locales returns all generated locales. English is the fallback.
-func Locales() []Content { return []Content{contents["en"], contents["pt-br"], contents["es"]} }
+func homeContent(localeKey string) HomeContent { return contents[localeKey] }
+
+func Locales() []HomeContent { return []HomeContent{contents["en"], contents["pt-br"], contents["es"]} }
 
 // ChartFragmentURL returns the localized static HTMX fragment for a page.
 func ChartFragmentURL(content Content) string { return "/fragments" + content.Path + "charts.html" }

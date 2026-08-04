@@ -1,0 +1,41 @@
+package site
+
+templ Metadata(page Page) {
+	<meta name="description" content={ page.Meta.Description }/>
+	<meta name="robots" content={ page.Meta.Robots }/>
+	<meta name="theme-color" content="#07111f"/>
+	<link rel="canonical" href={ page.Meta.CanonicalURL }/>
+	for _, alternate := range page.Meta.Alternates {
+		<link rel="alternate" hreflang={ alternate.Language } href={ alternate.URL }/>
+	}
+	<link rel="icon" type="image/svg+xml" href={ BrandAssetsPublicPrefix + "platform/web/araihu/favicon.svg" } data-asset-brand="icon"/>
+	<link rel="apple-touch-icon" href={ BrandAssetsPublicPrefix + "platform/web/araihu/apple-touch-icon-180.png" }/>
+	<link rel="manifest" href="/site.webmanifest"/>
+	<meta property="og:type" content="website"/>
+	<meta property="og:title" content={ page.Meta.Title }/>
+	<meta property="og:description" content={ page.Meta.Description }/>
+	<meta property="og:url" content={ page.Meta.CanonicalURL }/>
+	<meta property="og:locale" content={ page.Meta.Locale.OGLocale }/>
+	for _, alternate := range page.Meta.Alternates {
+		if alternate.Language != "x-default" && alternate.Language != page.Meta.Locale.Language {
+			<meta property="og:locale:alternate" content={ ogLocaleFor(alternate.Language) }/>
+		}
+	}
+	<meta property="og:image" content={ page.Meta.SocialImageURL }/>
+	<meta property="og:image:alt" content={ page.Meta.SocialImageAlt }/>
+	<meta name="twitter:card" content="summary_large_image"/>
+	<meta name="twitter:title" content={ page.Meta.Title }/>
+	<meta name="twitter:description" content={ page.Meta.Description }/>
+	<meta name="twitter:image" content={ page.Meta.SocialImageURL }/>
+	<meta name="twitter:image:alt" content={ page.Meta.SocialImageAlt }/>
+	@templ.JSONScript("structured-data", page.Meta.StructuredData).WithType("application/ld+json")
+}
+
+func ogLocaleFor(language string) string {
+	for _, locale := range siteLocales {
+		if locale.Language == language {
+			return locale.OGLocale
+		}
+	}
+	return ""
+}

@@ -9,39 +9,27 @@ import (
 	"github.com/araihu/goshtoso/components/head"
 )
 
-templ Page(content Content) {
+templ HomePage(page Page) {
+	if page.Home != nil {
+		@HomeDocument(page, *page.Home)
+	}
+}
+
+templ HomeDocument(page Page, content Content) {
 	<!doctype html>
-	<html lang={ content.Language } data-theme="araihu">
+	<html lang={ content.Language } data-theme="araihu" data-theme-source="default">
 		<head>
 			<meta charset="utf-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1"/>
-			<title>{ content.PageTitle }</title>
-			<meta name="description" content={ content.SocialDescription }/>
-			<link rel="canonical" href={ content.CanonicalURL }/>
-			<meta property="og:url" content={ content.CanonicalURL }/>
-			<meta property="og:type" content="website"/>
-			<meta property="og:title" content={ content.PageTitle }/>
-			<meta property="og:description" content={ content.SocialDescription }/>
-			<meta property="og:site_name" content={ content.Name }/>
-			<meta property="og:locale" content={ content.OpenGraphLocale }/>
-			<meta property="og:image" content={ socialImageURL }/>
-			<meta property="og:image:type" content="image/jpeg"/>
-			<meta property="og:image:width" content="1280"/>
-			<meta property="og:image:height" content="640"/>
-			<meta property="og:image:alt" content={ content.SocialImageAlt }/>
-			<meta name="twitter:card" content="summary_large_image"/>
-			<meta name="twitter:title" content={ content.PageTitle }/>
-			<meta name="twitter:description" content={ content.SocialDescription }/>
-			<meta name="twitter:image" content={ socialImageURL }/>
-			<meta name="twitter:image:alt" content={ content.SocialImageAlt }/>
-			<meta name="theme-color" content="#07111f"/>
-			<link rel="icon" type="image/svg+xml" href="/assets/logos/araihu-icon-background.svg?rev=a8a9647a"/>
+			<title>{ page.Meta.Title }</title>
+			@Metadata(page)
 			@head.Dependencies(head.WithStylesheetURL("/assets/styles.css"), head.WithLocalRuntime())
 			<link rel="stylesheet" href={ shellassets.StylesheetURL("/landingshell/assets/") }/>
-			<link rel="stylesheet" href="/assets/araihu-theme.css?rev=a8a9647a"/>
-			<link rel="stylesheet" href="/assets/ahairu.css?rev=a8a9647a"/>
+			<link rel="stylesheet" href="/assets/araihu-theme.css"/>
+			<link rel="stylesheet" href="/assets/ahairu.css"/>
 			<script defer src="/assets/js/storm-backdrop.js?rev=2"></script>
 			<script defer src="/assets/js/x9-availability.js?rev=1"></script>
+			<script src="/assets/campaign/v1.js" data-channel="/assets/releases/current" defer integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n" crossorigin="anonymous"></script>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
 			<a class="skip-link" href="#main-content">{ content.SkipLabel }</a>
@@ -62,6 +50,10 @@ templ Page(content Content) {
 						<div class="ahairu-locale flex gap-3 text-sm font-semibold">
 							@LocaleLinks(content)
 						</div>
+						<button class="ahairu-campaign-toggle" type="button" hidden data-campaign-toggle aria-pressed="false">
+							<span data-campaign-toggle-icon aria-hidden="true"></span>
+							<span class="sr-only">Use the standard Arai Hû appearance</span>
+						</button>
 					</div>
 				</nav>
 			</header>
@@ -95,6 +87,7 @@ templ Page(content Content) {
 					<div class="ahairu-shell featured-project-inner mx-auto px-6 md:px-10">
 						<a class="featured-visual" href="https://goshtoso.araihu.com" aria-label={ content.FeaturedAction }>
 							<figure class="featured-demo">
+								<img class="featured-brand-mark" src={ content.Projects[0].MarkURL } alt="" width="56" height="56" decoding="async"/>
 								<video data-featured-montage loop muted playsinline preload="metadata" poster="/assets/visuals/goshtoso-components-poster-v1.webp">
 									<source src="/assets/visuals/goshtoso-components-montage-v1.mp4" type="video/mp4"/>
 								</video>
@@ -196,6 +189,7 @@ templ Page(content Content) {
 					<p>{ content.FooterBuiltWith } <a href="https://go.dev/">Go</a> { content.FooterConjunction } <a href="https://goshtoso.araihu.com">Goshtoso</a>.</p>
 				</div>
 				<p>{ content.Meaning }</p>
+				<nav class="ahairu-footer-links" aria-label="Arai Hû"><a href={ templ.SafeURL(pathFor(PageBrand, page.Meta.Locale.Language)) }>Brand</a><a href={ templ.SafeURL(pathFor(PageLicense, page.Meta.Locale.Language)) }>License</a></nav>
 			</footer>
 		</body>
 	</html>
@@ -296,12 +290,12 @@ templ MoreProjectArt(content Content, project Project) {
 		<div class="more-art more-art--muamba" aria-hidden="true">
 			<b class="muamba-name">Muamba</b>
 			<div class="muamba-drops">
-				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
-				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
-				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
-				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
-				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
-				<img class="muamba-drop" src="/assets/logos/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/visuals/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/visuals/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/visuals/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/visuals/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/visuals/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
+				<img class="muamba-drop" src="/assets/visuals/muamba-mark.svg" alt="" width="64" height="64" decoding="async"/>
 			</div>
 		</div>
 	} else if project.Name == "Goshtoso App Shells" {

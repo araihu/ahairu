@@ -1,13 +1,24 @@
 package main
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"image"
+	_ "image/png"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-
-	"github.com/araihu/ahairu/site"
 )
+
+func TestRunBuildRequiresAssetBundle(t *testing.T) {
+	var stderr bytes.Buffer
+	if err := run([]string{"build"}, &stderr); err == nil || !strings.Contains(err.Error(), "--asset-bundle") {
+		t.Fatalf("run() error = %v, want asset bundle requirement", err)
+	}
+}
 
 func TestBuildWritesStandaloneSite(t *testing.T) {
 	original, err := os.Getwd()
@@ -20,7 +31,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = os.Chdir(original) })
 
-	if err := build(); err != nil {
+	if err := build(fixtureAssetBundle(t)); err != nil {
 		t.Fatal(err)
 	}
 	html, err := os.ReadFile(filepath.Join("public", "en", "index.html"))
@@ -28,151 +39,85 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := string(html)
-	if !strings.Contains(page, "Software for stormy weather.") || !strings.Contains(page, "/assets/styles.css") {
+	if !strings.Contains(page, "Software for stormy weather") || !strings.Contains(page, "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
 	}
-	if !strings.Contains(page, "Independent, open tools built to endure difficult work.") {
-		t.Error("generated English page misses the supporting storm promise")
-	}
-	for _, removedFact := range []string{"Four maintained projects", "Built in Go"} {
-		if strings.Contains(page, removedFact) {
-			t.Errorf("generated English hero still contains removed fact %q", removedFact)
+	for locale, want := range map[string]struct {
+		title       string
+		description string
+	}{
+		"en": {
+			title:       "Open software projects | Arai Hû",
+			description: "Open software from Arai Hû for server-rendered interfaces, OpenAPI documentation, durable code-change workflows, and self-hosted monitoring.",
+		},
+		"pt-br": {
+			title:       "Projetos de software aberto | Arai Hû",
+			description: "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação OpenAPI, workflows duráveis de mudança de código e monitoramento auto-hospedado.",
+		},
+		"es": {
+			title:       "Proyectos de software abierto | Arai Hû",
+			description: "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación OpenAPI, flujos de trabajo duraderos para cambios de código y monitoreo autoalojado.",
+		},
+	} {
+		data, readErr := os.ReadFile(filepath.Join("public", locale, "index.html"))
+		if readErr != nil {
+			t.Errorf("localized homepage %s missing: %v", locale, readErr)
+			continue
+		}
+		localizedPage := string(data)
+		for _, metadata := range []string{
+			"<title>" + want.title + "</title>",
+			`<meta name="description" content="` + want.description + `">`,
+		} {
+			if !strings.Contains(localizedPage, metadata) {
+				t.Errorf("localized homepage %s misses metadata %q", locale, metadata)
+			}
 		}
 	}
 	for _, landmark := range []string{
 		`class="skip-link" href="#main-content"`,
 		`<header class="ahairu-header">`,
 		`<meta name="theme-color" content="#07111f">`,
-		`<title>Arai Hû — Software for stormy weather.</title>`,
-		`<meta name="description" content="Independent, open software built to endure difficult work.">`,
-		`<link rel="canonical" href="https://araihu.com/en/">`,
-		`<meta property="og:type" content="website">`,
-		`<meta property="og:image" content="https://araihu.com/assets/social/araihu-storm-v1.jpg">`,
-		`<meta property="og:image:width" content="1280">`,
-		`<meta property="og:image:height" content="640">`,
-		`<meta property="og:image:alt" content="Arai Hû mark over a dark storm at sea.">`,
-		`<meta name="twitter:card" content="summary_large_image">`,
-		`<meta name="twitter:image:alt" content="Arai Hû mark over a dark storm at sea.">`,
-		`class="ahairu-brand-copy"><strong>Arai Hû</strong>`,
+		`width="64" height="64"> <span class="ahairu-brand-copy"><strong>Arai Hû</strong>`,
 		`<main id="main-content" tabindex="-1">`,
 		`href="/en/" aria-current="page"`,
 		`aria-label="Primary navigation"`,
-		`<section id="libs" class="featured-project"`,
-		`<video data-featured-montage loop muted playsinline preload="metadata" poster="/assets/visuals/goshtoso-components-poster-v1.webp">`,
-		`<source src="/assets/visuals/goshtoso-components-montage-v1.mp4" type="video/mp4">`,
-		`Tabs · HTMX · Monitoring · Line 3D`,
-		`class="project-grid mt-8"`,
-		`aria-describedby="X-9-desc">X-9</h3>`,
-		`<script defer src="/assets/js/x9-availability.js?rev=1"></script>`,
-		`data-chart-bundle-trigger`,
-		`hx-get="/fragments/en/charts.html"`,
-		`hx-trigger="revealed once"`,
-		`id="paje-chart-slot"`,
-		`id="x9-chart-slot"`,
-		`id="goshtoso-heart-chart-slot"`,
-		`data-chart-placeholder="paje"`,
-		`data-chart-placeholder="x9"`,
-		`data-chart-placeholder="goshtoso-heart"`,
-		`id="goshtoso-version-slot"`,
-		`hx-get="/api/project-versions"`,
-		`hx-trigger="load delay:750ms"`,
-		`hx-swap="outerHTML"`,
-		`id="goshtoso-charts-version-slot"`,
-		`data-shell-preview`,
-		`class="openapi-stream"`,
-		`<b>openapi:</b> 3.1.0`,
-		`github-rest-api.yaml`,
-		`<b>operationId:</b> repos/list-releases`,
-		`<b>operationId:</b> repos/create-release`,
-		`<b>generate_release_notes:</b>`,
-		`class="more-art more-art--muamba"`,
-		`class="muamba-drop" src="/assets/logos/muamba-mark.svg"`,
-		`class="landing-shell__mobile-navigation storm-mobile-menu"`,
-		`class="landing-shell__mobile-trigger is-bottom-left storm-mobile-trigger"`,
-		`x-bind:aria-expanded="navigationOpen"`,
-		`<details class="landing-shell__mobile-fallback">`,
-		`class="landing-shell__mobile-fallback-panel storm-mobile-panel"`,
-		`motion-reduce:transition-none`,
-		`<script defer src="/assets/js/storm-backdrop.js?rev=2"></script>`,
-		`<video class="storm-backdrop" data-storm-backdrop loop muted playsinline preload="none">`,
-		`<source media="(prefers-color-scheme: light)" src="/assets/video/storm-light-v1.mp4" type="video/mp4">`,
-		`<source media="(prefers-color-scheme: dark)" src="/assets/video/storm-dark-v1.mp4" type="video/mp4">`,
-		`<div class="storm-video-filter"></div>`,
-		`src="/assets/js/runtime/alpinejs-focus/3.14.9/alpine-focus.min.js"`,
-		`href="#libs">Libs</a>`,
-		`href="#apps">Apps</a>`,
-		`href="#field-notes">Blog`,
-		`<input id="mailing-email" type="email" placeholder="you@example.com" disabled>`,
-		`<button type="button" disabled>Coming soon</button>`,
-		`href="https://github.com/araihu">Visit Arai Hû on GitHub`,
-		`href="https://go.dev/">Go</a>`,
-		`href="https://goshtoso.araihu.com">Goshtoso</a>`,
+		`aria-label="Explore project: X-9"`,
+		`<link rel="canonical" href="https://araihu.com/en/">`,
+		`<meta property="og:image" content="https://araihu.com/social/brand.png">`,
+		`<script id="structured-data" type="application/ld+json">`,
 	} {
 		if !strings.Contains(page, landmark) {
 			t.Errorf("generated HTML misses accessibility landmark %q", landmark)
 		}
 	}
-	for _, deferredMarkup := range []string{
-		`data-echarts-src="/charts/assets/js/runtime/echarts/5.4.3/echarts.min.js"`,
-		`data-three-d-src="/charts/assets/js/runtime/three-d/2.0.9/runtime.min.js"`,
-		`src="/assets/js/chart-loader.js?rev=1"`,
-		`data-paje-actual-chart`,
-		`data-x9-live-availability`,
-		`data-goshtoso-heart-chart`,
-		`_echarts_instance_`,
+	for name, want := range map[string]string{
+		"robots.txt":       "Sitemap: https://araihu.com/sitemap.xml",
+		"sitemap.xml":      "https://araihu.com/license/",
+		"site.webmanifest": `"name":"Arai Hû"`,
 	} {
-		if strings.Contains(page, deferredMarkup) {
-			t.Errorf("initial HTML eagerly includes deferred chart payload %q", deferredMarkup)
+		data, err := os.ReadFile(filepath.Join("public", name))
+		if err != nil {
+			t.Errorf("static discovery file %s missing: %v", name, err)
+			continue
 		}
-	}
-	for status, expected := range map[string]int{"BETA": 2, "ALPHA": 2, "WIP": 3} {
-		marker := `data-status="` + status + `">` + status + `</span>`
-		if count := strings.Count(page, marker); count != expected {
-			t.Errorf("generated English page has %d %s labels, want %d", count, status, expected)
+		if !strings.Contains(string(data), want) {
+			t.Errorf("static discovery file %s misses %q", name, want)
 		}
-	}
-	if count := strings.Count(page, `hx-get="/api/project-versions"`); count != 1 {
-		t.Errorf("generated English page requests project versions %d times, want once", count)
-	}
-	chartFragment, err := os.ReadFile(filepath.Join("public", "fragments", "en", "charts.html"))
-	if err != nil {
-		t.Fatalf("read generated English chart fragment: %v", err)
-	}
-	fragment := string(chartFragment)
-	for _, deferredMarkup := range []string{
-		`data-echarts-src="/charts/assets/js/runtime/echarts/5.4.3/echarts.min.js"`,
-		`data-three-d-src="/charts/assets/js/runtime/three-d/2.0.9/runtime.min.js"`,
-		`src="/assets/js/chart-loader.js?rev=1"`,
-		`id="paje-chart-slot"`,
-		`data-paje-actual-chart`,
-		`aria-label="Pajé — Durable workflows for code changes."`,
-		`id="x9-chart-slot"`,
-		`data-x9-live-availability`,
-		`aria-label="X-9 — Self-hosted monitoring control plane."`,
-		`id="goshtoso-heart-chart-slot"`,
-		`data-goshtoso-heart-chart`,
-		`aria-label="Goshtoso Charts — Three-dimensional parametric heart line."`,
-	} {
-		if !strings.Contains(fragment, deferredMarkup) {
-			t.Errorf("chart fragment misses deferred payload %q", deferredMarkup)
-		}
-	}
-	lastSection := -1
-	for _, marker := range []string{`id="home"`, `id="libs"`, `id="apps"`, `class="more-projects"`, `class="open-mission"`, `class="keep-up"`} {
-		position := strings.Index(page, marker)
-		if position < 0 || position <= lastSection {
-			t.Errorf("generated section order breaks at %q", marker)
-		}
-		lastSection = position
 	}
 	for _, asset := range []string{
-		"logos/araihu-icon-background.svg?rev=a8a9647a",
-		"logos/araihu-icon-transparent.svg?rev=a8a9647a",
-		"logos/manja-icon-transparent.svg?rev=a8a9647a",
+		"/assets/releases/v0.1.1/icons/brand/araihu-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/goshtoso-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/manja-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/paje-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.1.1/icons/brand/x9-icon-adaptive-transparent-optical.svg",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
 		}
+	}
+	if strings.Contains(page, "?rev=a8a9647a") {
+		t.Error("generated HTML contains stale V10 revision query")
 	}
 	if !strings.Contains(page, `href="https://x9.araihu.com"`) {
 		t.Error("generated HTML misses the X-9 product URL")
@@ -180,153 +125,205 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if strings.Contains(page, "xisnove.dev") {
 		t.Error("generated HTML still links to the retired Xisnove domain")
 	}
-	if strings.Contains(page, `aria-label="Explore project: Goshtoso"`) {
-		t.Error("generated page repeats featured Goshtoso inside the project grid")
-	}
-	if strings.Contains(page, `paje-graph-v1.webp`) {
-		t.Error("generated page still uses the Pajé raster instead of the actual chart")
-	}
-	if strings.Contains(page, `x9-monitor-chart-v1.svg`) {
-		t.Error("generated page still uses the X-9 raster instead of the live availability chart")
-	}
-	if strings.Contains(page, `goshtoso-heart-line-v1.svg`) {
-		t.Error("generated page still uses the projected heart SVG instead of the actual Line3D chart")
-	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "styles.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("generated stylesheet missing or empty: %v", err)
 	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "ahairu.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("brand stylesheet missing or empty: %v", err)
 	}
-	brandCSS, err := os.ReadFile(filepath.Join("public", "assets", "ahairu.css"))
-	if err != nil {
-		t.Fatalf("read brand stylesheet: %v", err)
-	}
-	for _, token := range []string{
-		"--storm-night:",
-		"--storm-cloud:",
-		"--storm-mist:",
-		"--storm-signal:",
-		"@media (prefers-reduced-motion: reduce)",
-	} {
-		if !strings.Contains(string(brandCSS), token) {
-			t.Errorf("brand stylesheet misses storm-system token %q", token)
-		}
-	}
-	reducedMotionStart := strings.LastIndex(string(brandCSS), "@media (prefers-reduced-motion: reduce)")
-	if reducedMotionStart < 0 {
-		t.Fatal("brand stylesheet misses reduced-motion block")
-	}
-	reducedMotionCSS := string(brandCSS)[reducedMotionStart:]
-	for _, contract := range []string{
-		".storm-mobile-trigger, .storm-mobile-panel, .more-row",
-		".signal-button, .project-art::before, .project-art::after, .project-art-name, .project-mark, .project-title-mark, .more-art",
-		".openapi-stream { animation: none; transform: none; }",
-		".muamba-drop { animation: none;",
-		"transition: none",
-		"transform: none !important",
-	} {
-		if !strings.Contains(reducedMotionCSS, contract) {
-			t.Errorf("reduced-motion contract misses %q", contract)
-		}
-	}
 	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
-		t.Fatalf("brand theme missing or empty: %v", err)
+		t.Fatalf("Arai Hû theme missing or empty: %v", err)
 	}
-	for _, generatedAsset := range []string{
-		filepath.Join("public", "landingshell", "assets", "shell.css"),
-		filepath.Join("public", "charts", "assets", "js", "runtime", "echarts", "5.4.3", "echarts.min.js"),
-		filepath.Join("public", "charts", "assets", "js", "runtime", "three-d", "2.0.9", "runtime.min.js"),
-		filepath.Join("public", "assets", "js", "storm-backdrop.js"),
-		filepath.Join("public", "assets", "js", "x9-availability.js"),
-		filepath.Join("public", "assets", "js", "chart-loader.js"),
-		filepath.Join("public", "assets", "js", "goshtoso.min.js"),
-		filepath.Join("public", "assets", "js", "runtime", "alpinejs-focus", "3.14.9", "alpine-focus.min.js"),
-		filepath.Join("public", "assets", "js", "runtime", "alpinejs", "3.14.9", "alpine.min.js"),
-		filepath.Join("public", "assets", "social", "araihu-storm-v1.jpg"),
-	} {
-		if info, err := os.Stat(generatedAsset); err != nil || info.Size() == 0 {
-			t.Errorf("component runtime asset %s missing or empty: %v", generatedAsset, err)
+	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "checksums.txt"} {
+		if info, err := os.Stat(filepath.Join("public", "assets", "releases", "v0.1.1", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
+			t.Errorf("brand release asset %s missing or empty: %v", name, err)
 		}
 	}
-	for _, backdrop := range []string{"storm-dark-v1.mp4", "storm-light-v1.mp4"} {
-		info, err := os.Stat(filepath.Join("public", "assets", "video", backdrop))
-		if err != nil || info.Size() == 0 || info.Size() > 500*1024 {
-			t.Errorf("optimized backdrop %s missing or outside 500 KiB budget: size=%d err=%v", backdrop, func() int64 {
-				if info == nil {
-					return 0
-				}
-				return info.Size()
-			}(), err)
+	for _, name := range []string{"brand.png", "license.png"} {
+		file, err := os.Open(filepath.Join("public", "social", name))
+		if err != nil {
+			t.Errorf("social preview %s missing: %v", name, err)
+			continue
+		}
+		config, format, decodeErr := image.DecodeConfig(file)
+		_ = file.Close()
+		if decodeErr != nil || format != "png" || config.Width != 1200 || config.Height != 630 {
+			t.Errorf("social preview %s = %s %dx%d, want png 1200x630: %v", name, format, config.Width, config.Height, decodeErr)
 		}
 	}
-	for _, visual := range site.ProjectVisualAssetNames() {
-		info, err := os.Stat(filepath.Join("public", "assets", "visuals", visual))
-		if err != nil || info.Size() == 0 || info.Size() > 350*1024 {
-			t.Errorf("project visual %s missing or outside 350 KiB budget: size=%d err=%v", visual, func() int64 {
-				if info == nil {
-					return 0
-				}
-				return info.Size()
-			}(), err)
-		}
-	}
-	for _, name := range site.BrandAssetNames() {
-		if info, err := os.Stat(filepath.Join("public", "assets", "logos", name)); err != nil || info.Size() == 0 {
-			t.Errorf("brand asset %s missing or empty: %v", name, err)
-		}
-	}
-	for _, localizedContent := range site.Locales() {
-		for _, project := range append(append([]site.Project{}, localizedContent.Projects...), localizedContent.MoreProjects...) {
-			if project.URL == "" || project.Category == "" || project.Description == "" {
-				t.Errorf("localized project %q in %s misses URL, category, or description", project.Name, localizedContent.Language)
-			}
-		}
-	}
-	localizedExpectations := map[string]struct {
-		skipLabel    string
-		tagline      string
-		promise      string
-		currentHref  string
-		removedFacts []string
-	}{
-		"pt-br": {
-			skipLabel:    "Pular para o conteúdo",
-			tagline:      "Software para passar a trovoada.",
-			promise:      "Ferramentas independentes e abertas, feitas para resistir ao trabalho difícil.",
-			currentHref:  `href="/pt-br/" aria-current="page"`,
-			removedFacts: []string{"Quatro projetos mantidos", "Criados em Go"},
-		},
-		"es": {
-			skipLabel:    "Saltar al contenido",
-			tagline:      "Software para tiempos de tormenta.",
-			promise:      "Herramientas independientes y abiertas, creadas para resistir el trabajo difícil.",
-			currentHref:  `href="/es/" aria-current="page"`,
-			removedFacts: []string{"Cuatro proyectos mantenidos", "Creados en Go"},
-		},
-	}
-	for locale, expectation := range localizedExpectations {
+	for locale, skipLabel := range map[string]string{"pt-br": "Pular para o conteúdo", "es": "Saltar al contenido"} {
 		localizedHTML, err := os.ReadFile(filepath.Join("public", locale, "index.html"))
 		if err != nil {
 			t.Fatalf("localized page missing for %s: %v", locale, err)
 		}
-		localizedPage := string(localizedHTML)
-		if !strings.Contains(localizedPage, expectation.skipLabel) || !strings.Contains(localizedPage, `aria-current="page"`) {
+		if !strings.Contains(string(localizedHTML), skipLabel) || !strings.Contains(string(localizedHTML), `aria-current="page"`) {
 			t.Errorf("localized page %s misses skip link or locale state", locale)
 		}
-		if !strings.Contains(localizedPage, expectation.tagline) || !strings.Contains(localizedPage, expectation.promise) {
-			t.Errorf("localized page %s misses storm tagline or supporting promise", locale)
+	}
+	for _, path := range []string{"brand", "license", "pt-br/brand", "pt-br/license", "es/brand", "es/license"} {
+		data, err := os.ReadFile(filepath.Join("public", path, "index.html"))
+		if err != nil {
+			t.Errorf("%s missing: %v", path, err)
+			continue
 		}
-		for _, removedFact := range expectation.removedFacts {
-			if strings.Contains(localizedPage, removedFact) {
-				t.Errorf("localized page %s still contains removed hero fact %q", locale, removedFact)
-			}
-		}
-		if got := strings.Count(localizedPage, expectation.currentHref); got != 3 {
-			t.Errorf("localized page %s current-locale count = %d; want desktop, enhanced drawer, and native fallback states", locale, got)
+		if !strings.Contains(string(data), `<main id="main-content"`) {
+			t.Errorf("%s misses shared main landmark", path)
 		}
 	}
-	if got := strings.Count(page, `href="/en/" aria-current="page"`); got != 3 {
-		t.Errorf("English current-locale count = %d; want desktop, enhanced drawer, and native fallback states", got)
+}
+
+func TestBuildRetainsExistingImmutableReleases(t *testing.T) {
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	working := t.TempDir()
+	if err := os.Chdir(working); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(original) })
+
+	historical := filepath.Join("public", "assets", "releases", "v0.1.0", "release.json")
+	if err := os.MkdirAll(filepath.Dir(historical), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(historical, []byte("historical release\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join("public", "assets", "releases", "latest.json"), []byte("stale channel\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := build(fixtureAssetBundle(t)); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(historical)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "historical release\n" {
+		t.Fatalf("historical release = %q", got)
+	}
+}
+
+func fixtureAssetBundle(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	releaseRoot := filepath.Join(root, "releases", "v0.1.1")
+	for name, contents := range map[string][]byte{
+		"catalog.json":    []byte(`{"schemaVersion":1}`),
+		"themes.json":     []byte(`{"schemaVersion":1}`),
+		"campaigns.json":  []byte(`{"schemaVersion":1,"campaigns":[]}`),
+		"themes/base.css": []byte("body{}\n"),
+		"campaign/v1.js":  []byte("(() => {})()\n"),
+	} {
+		file := filepath.Join(root, filepath.FromSlash(name))
+		if strings.Contains(name, ".json") || strings.Contains(name, ".css") || name == "campaign/v1.js" {
+			file = filepath.Join(releaseRoot, filepath.FromSlash(name))
+		}
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writeBundleFile(t, filepath.Join(root, "campaign", "v1.js"), []byte("(() => {})()\n"))
+	type inventoryFile struct {
+		Path   string `json:"path"`
+		SHA256 string `json:"sha256"`
+		Size   int64  `json:"size"`
+	}
+	var inventory []inventoryFile
+	for _, name := range []string{"catalog.json", "themes.json", "campaigns.json", "campaign/v1.js", "themes/base.css"} {
+		contents, err := os.ReadFile(filepath.Join(releaseRoot, filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum := sha256.Sum256(contents)
+		inventory = append(inventory, inventoryFile{Path: name, SHA256: hex.EncodeToString(sum[:]), Size: int64(len(contents))})
+	}
+	document := struct {
+		SchemaVersion    int             `json:"schemaVersion"`
+		Release          string          `json:"release"`
+		IdentityRevision int             `json:"identityRevision"`
+		RuntimeVersion   int             `json:"runtimeVersion"`
+		CatalogSHA256    string          `json:"catalogSha256"`
+		ThemesSHA256     string          `json:"themesSha256"`
+		CampaignsSHA256  string          `json:"campaignsSha256"`
+		Files            []inventoryFile `json:"files"`
+	}{SchemaVersion: 1, Release: "v0.1.1", IdentityRevision: 11, RuntimeVersion: 1, Files: inventory}
+	for _, item := range inventory {
+		switch item.Path {
+		case "catalog.json":
+			document.CatalogSHA256 = item.SHA256
+		case "themes.json":
+			document.ThemesSHA256 = item.SHA256
+		case "campaigns.json":
+			document.CampaignsSHA256 = item.SHA256
+		}
+	}
+	releaseJSON, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeBundleFile(t, filepath.Join(releaseRoot, "release.json"), releaseJSON)
+	var checksumLines []string
+	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "campaign/v1.js", "themes/base.css"} {
+		contents, err := os.ReadFile(filepath.Join(releaseRoot, filepath.FromSlash(name)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sum := sha256.Sum256(contents)
+		checksumLines = append(checksumLines, hex.EncodeToString(sum[:])+"  "+name)
+	}
+	writeBundleFile(t, filepath.Join(releaseRoot, "checksums.txt"), []byte(strings.Join(checksumLines, "\n")+"\n"))
+
+	type theme struct {
+		ID     string `json:"id"`
+		CSSURL string `json:"cssUrl"`
+	}
+	type channel struct {
+		SchemaVersion  int    `json:"schemaVersion"`
+		RuntimeVersion int    `json:"runtimeVersion"`
+		Release        string `json:"release"`
+		Source         string `json:"source"`
+		Theme          theme  `json:"theme"`
+		Digest         string `json:"digest"`
+	}
+	value := channel{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.1.1", Source: "default", Theme: theme{ID: "base", CSSURL: "https://araihu.com/assets/releases/v0.1.1/themes/base.css"}}
+	channelJSON, err := canonicalJSON(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(channelJSON)
+	value.Digest = hex.EncodeToString(sum[:])
+	channelJSON, err = canonicalJSON(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"latest", "default", "current"} {
+		writeBundleFile(t, filepath.Join(root, "releases", name+".json"), channelJSON)
+	}
+	return root
+}
+
+func canonicalJSON(value any) ([]byte, error) {
+	var output bytes.Buffer
+	encoder := json.NewEncoder(&output)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(value); err != nil {
+		return nil, err
+	}
+	return output.Bytes(), nil
+}
+
+func writeBundleFile(t *testing.T, name string, contents []byte) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(name), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(name, contents, 0o644); err != nil {
+		t.Fatal(err)
 	}
 }

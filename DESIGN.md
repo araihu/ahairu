@@ -1,4 +1,4 @@
-# Arai Hu design system
+# Arai Hû design system
 
 ## Visual world
 
@@ -16,6 +16,24 @@ Use the installed Goshtoso system face. Display type is heavy, tight, and oversi
 
 The storm field frames one sharp organization statement, then yields quickly to the work. Projects use an uneven editorial grid: each card has its own composition, but shares the same metadata, purpose, and full-card link contract. Goshtoso opens the collection; Manja, Pajé, and X-9 show the ecosystem's range. Locale switcher stays compact and functional.
 
+Brand and license pages extend that world as a Calibration Bench: measured rules, specimen surfaces, numbered annotations, release facts, and deliberately uneven editorial groupings. This page-specific art direction stays in Arai Hû. Goshtoso supplies reusable layout, panel, icon, theme, and typography primitives without absorbing brand names or identity rules.
+
+## Identity specimens
+
+Use only cataloged V11 SVGs. Light, dark, monochrome/transparent, and designed-tint examples remain on explicit contrasting surfaces with identical specimen geometry. The protected variants keep embedded colors; only the designated monochrome asset may inherit presentation color. Downloads always retain immutable v0.1.1 release paths and point to the license terms.
+
+## Released themes and campaigns
+
+Theme manifests, theme CSS, campaign manifests, and the campaign runtime are
+release artifacts, not ad-hoc page styling. `current` may select an eligible
+campaign, but it can only point at assets in a retained immutable release.
+Default appearance remains the safe first paint; campaign enhancement is
+deferred, optional, and reversible.
+
+## Responsive behavior
+
+The content remains a single reading flow at narrow widths. Two-column identity, specimen, context, integration, and terms layouts collapse by 800px; navigation wraps by 700px. Nothing may create horizontal document overflow at 375px. The quality review uses 375, 768, 1280, and 1440px viewports in both light and dark schemes.
+
 ## Interaction
 
 The weather video uses bounded parallax only when motion is allowed and does not load for reduced-motion or data-saving users. Project cards move toward the surface and compress their shadows on hover, retain visible keyboard focus, and stop moving under reduced-motion preferences. No separate CSS weather animation competes with navigation.
@@ -23,3 +41,13 @@ The weather video uses bounded parallax only when motion is allowed and does not
 ## Accessibility
 
 High-contrast text, semantic headings and lists, reduced-motion support, no essential information inside decorative cloud forms.
+
+The skip link is the first keyboard stop. Every actionable mark has an accessible name or intentionally empty decorative alternative. Reduced motion removes cloud drift and translation while preserving hierarchy and focus feedback.
+
+## Social previews
+
+Brand and home use the paper Calibration Bench card; license uses the midnight terms card. Both are inspected 1200×630, opaque 8-bit RGB PNGs composed from approved SVG identity and system-font text. Generated output must preserve the Arai Hû accent and fill the full canvas.
+
+## Goshtoso parity findings
+
+The static pages reach the intended hierarchy and interaction quality without a client runtime. Goshtoso's generic icon, panel, page-header, styles, and theme contracts are sufficient reusable primitives. Calibration measurements, release specimens, artifact-link groupings, and license authority notices are intentionally site-owned because making them generic would leak Arai Hû semantics into the component library. No structural Goshtoso blocker was found in the browser review.
