@@ -166,8 +166,12 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
 
     const reducedPage = await browser.newPage();
     const reducedVideoRequests = [];
+    const reducedMontageRequests = [];
     reducedPage.on("request", (request) => {
       if (request.url().includes("/assets/video/storm-")) reducedVideoRequests.push(request.url());
+      if (request.url().includes("/assets/visuals/goshtoso-components-montage-v2")) {
+        reducedMontageRequests.push(request.url());
+      }
     });
     await reducedPage.emulateMediaFeatures([
       { name: "prefers-color-scheme", value: "dark" },
@@ -185,6 +189,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
     });
     assert.deepEqual(reducedState, { paused: true, montagePaused: true, stage: "none", parallax: "" });
     assert.deepEqual(reducedVideoRequests, [], "reduced motion must not request storm video bytes");
+    assert.deepEqual(reducedMontageRequests, [], "reduced motion must not request montage video bytes");
   } finally {
     await browser.close();
     await server.close();
@@ -200,6 +205,10 @@ test("featured Goshtoso montage fills the lead family card without the former CS
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
     await page.$eval(".featured-demo", (element) => element.scrollIntoView({ block: "center" }));
     await page.waitForFunction(() => document.querySelector("[data-featured-montage]").currentSrc);
+    await page.waitForFunction(() => {
+      const video = document.querySelector("[data-featured-montage]");
+      return video.videoWidth === 1280 && video.videoHeight === 720;
+    });
     const state = await page.evaluate(() => {
       const visual = document.querySelector(".featured-family-card--goshtoso .featured-family-media").getBoundingClientRect();
       const demo = document.querySelector(".featured-demo").getBoundingClientRect();
@@ -211,13 +220,31 @@ test("featured Goshtoso montage fills the lead family card without the former CS
         leadIsWider: lead.width > supporting.width,
         formerWindow: Boolean(document.querySelector(".featured-window")),
         source: document.querySelector("[data-featured-montage]").currentSrc,
+        sources: [...document.querySelectorAll("[data-featured-montage] source")].map((source) => ({
+          src: new URL(source.src).pathname,
+          type: source.type,
+        })),
+        videoWidth: document.querySelector("[data-featured-montage]").videoWidth,
+        videoHeight: document.querySelector("[data-featured-montage]").videoHeight,
+        preload: document.querySelector("[data-featured-montage]").preload,
+        autoplay: document.querySelector("[data-featured-montage]").autoplay,
       };
     });
     assert.equal(state.sameWidth, true);
     assert.equal(state.sameHeight, true);
     assert.equal(state.leadIsWider, true);
     assert.equal(state.formerWindow, false);
-    assert.match(state.source, /goshtoso-components-montage-v1\.mp4$/);
+    assert.match(state.source, /goshtoso-components-montage-v2(?:-av1)?\.mp4$/);
+    assert.deepEqual(state.sources, [
+      {
+        src: "/assets/visuals/goshtoso-components-montage-v2-av1.mp4",
+        type: 'video/mp4; codecs="av01.0.05M.08"',
+      },
+      { src: "/assets/visuals/goshtoso-components-montage-v2.mp4", type: "video/mp4" },
+    ]);
+    assert.deepEqual([state.videoWidth, state.videoHeight], [1280, 720]);
+    assert.equal(state.preload, "none");
+    assert.equal(state.autoplay, false);
     assert.doesNotMatch(css, /\.featured-window/);
   } finally {
     await browser.close();

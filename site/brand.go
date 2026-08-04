@@ -140,7 +140,12 @@ func ProjectVisualAsset(name string) ([]byte, error) {
 
 // ProjectVisualAssetNames returns every generated showcase asset.
 func ProjectVisualAssetNames() []string {
-	return []string{"goshtoso-components-montage-v1.mp4", "goshtoso-components-poster-v1.webp", "muamba-mark.svg"}
+	return []string{
+		"goshtoso-components-montage-v2-av1.mp4",
+		"goshtoso-components-montage-v2.mp4",
+		"goshtoso-components-poster-v2.webp",
+		"muamba-mark.svg",
+	}
 }
 
 // SocialAsset reads one organization social-preview image.
