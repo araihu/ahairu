@@ -22,10 +22,12 @@ templ Metadata(page Page) {
 		}
 	}
 	<meta property="og:image" content={ page.Meta.SocialImageURL }/>
+	<meta property="og:image:alt" content={ page.Meta.SocialImageAlt }/>
 	<meta name="twitter:card" content="summary_large_image"/>
 	<meta name="twitter:title" content={ page.Meta.Title }/>
 	<meta name="twitter:description" content={ page.Meta.Description }/>
 	<meta name="twitter:image" content={ page.Meta.SocialImageURL }/>
+	<meta name="twitter:image:alt" content={ page.Meta.SocialImageAlt }/>
 	@templ.JSONScript("structured-data", page.Meta.StructuredData).WithType("application/ld+json")
 }
 

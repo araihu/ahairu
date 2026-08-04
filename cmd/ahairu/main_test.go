@@ -39,7 +39,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		t.Fatal(err)
 	}
 	page := string(html)
-	if !strings.Contains(page, "Open software for building") || !strings.Contains(page, "/assets/styles.css") {
+	if !strings.Contains(page, "Software for stormy weather") || !strings.Contains(page, "/assets/styles.css") {
 		t.Fatalf("generated HTML misses site content or stylesheet: %s", html)
 	}
 	for locale, want := range map[string]struct {
@@ -78,12 +78,11 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		`class="skip-link" href="#main-content"`,
 		`<header class="ahairu-header">`,
 		`<meta name="theme-color" content="#07111f">`,
-		`width="64" height="64"> <span>Arai Hû</span>`,
-		`<span>Arai Hû</span>`,
-		`<main id="main-content" class="ahairu-shell mx-auto px-6 md:px-10" tabindex="-1">`,
+		`width="64" height="64"> <span class="ahairu-brand-copy"><strong>Arai Hû</strong>`,
+		`<main id="main-content" tabindex="-1">`,
 		`href="/en/" aria-current="page"`,
 		`aria-label="Primary navigation"`,
-		`<h3 class="project-name">X-9</h3>`,
+		`aria-label="Explore project: X-9"`,
 		`<link rel="canonical" href="https://araihu.com/en/">`,
 		`<meta property="og:image" content="https://araihu.com/social/brand.png">`,
 		`<script id="structured-data" type="application/ld+json">`,

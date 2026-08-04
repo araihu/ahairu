@@ -89,6 +89,7 @@ func newPage(kind PageKind, locale Locale) Page {
 			Title:          pageTitle(kind, locale),
 			Description:    pageDescription(kind, locale),
 			SocialImageURL: CanonicalSiteURL + socialImagePath(kind),
+			SocialImageAlt: socialImageAlt(kind, locale),
 			Robots:         "index,follow",
 			Alternates:     alternatesFor(kind),
 		},
@@ -111,13 +112,19 @@ func newPage(kind PageKind, locale Locale) Page {
 }
 
 func socialImagePath(kind PageKind) string {
-	// Home intentionally reuses the brand card. Locale variants share the
-	// PageKind card; their page-specific title, description, URL, and locale
-	// remain in metadata.
+	// Locale variants share the PageKind card; page-specific title,
+	// description, URL, and locale remain in metadata.
 	if kind == PageLicense {
 		return "/social/license.png"
 	}
 	return "/social/brand.png"
+}
+
+func socialImageAlt(kind PageKind, locale Locale) string {
+	if kind == PageHome {
+		return homeContent(locale.Key).SocialImageAlt
+	}
+	return localizedHeading(kind, locale.Key) + " — Arai Hû"
 }
 
 func pathFor(kind PageKind, language string) string {

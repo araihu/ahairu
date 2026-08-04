@@ -8,6 +8,9 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +18,8 @@ import (
 
 	"github.com/araihu/ahairu/internal/assetbundle"
 	"github.com/araihu/ahairu/site"
+	shellassets "github.com/araihu/goshtoso-app-shells/landingshell/assets"
+	chartassets "github.com/araihu/goshtoso-charts/assets"
 	"github.com/araihu/goshtoso/assets"
 )
 
@@ -167,6 +172,22 @@ func buildAt(output string, bundle fs.FS) error {
 	if err := os.WriteFile(filepath.Join(assetsDirectory, "styles.css"), css, 0o644); err != nil {
 		return err
 	}
+	for _, runtimeAsset := range assets.DefaultRuntimeManifest().Dependencies {
+		if runtimeAsset.Enabled {
+			if err := writeHandlerAsset(filepath.Join(output, "public"), assets.Handler(), runtimeAsset.LocalURL); err != nil {
+				return err
+			}
+		}
+	}
+	if err := writeHandlerAsset(filepath.Join(output, "public"), shellassets.Handler("/landingshell/assets/"), shellassets.StylesheetURL("/landingshell/assets/")); err != nil {
+		return err
+	}
+	if err := writeHandlerAsset(filepath.Join(output, "public"), chartassets.Handler(), chartassets.RuntimeURL); err != nil {
+		return err
+	}
+	if err := writeHandlerAsset(filepath.Join(output, "public"), chartassets.Handler(), chartassets.ThreeDRuntimeURL); err != nil {
+		return err
+	}
 	if err := os.WriteFile(filepath.Join(assetsDirectory, "ahairu.css"), site.BrandCSS(), 0o644); err != nil {
 		return err
 	}
@@ -181,6 +202,47 @@ func buildAt(output string, bundle fs.FS) error {
 	if err := assetbundle.Assemble(context.Background(), bundle, root); err != nil {
 		return fmt.Errorf("assemble verified asset bundle: %w", err)
 	}
+	jsDir := filepath.Join(assetsDirectory, "js")
+	if err := os.MkdirAll(jsDir, 0o755); err != nil {
+		return err
+	}
+	for name, data := range map[string][]byte{
+		"storm-backdrop.js":  site.StormBackdropJS(),
+		"x9-availability.js": site.X9AvailabilityJS(),
+		"chart-loader.js":    site.ChartLoaderJS(),
+	} {
+		if err := os.WriteFile(filepath.Join(jsDir, name), data, 0o644); err != nil {
+			return err
+		}
+	}
+	for directory, names := range map[string][]string{
+		"video":   site.BackdropAssetNames(),
+		"visuals": site.ProjectVisualAssetNames(),
+		"social":  site.SocialAssetNames(),
+	} {
+		target := filepath.Join(assetsDirectory, directory)
+		if err := os.MkdirAll(target, 0o755); err != nil {
+			return err
+		}
+		for _, name := range names {
+			var data []byte
+			var err error
+			switch directory {
+			case "video":
+				data, err = site.BackdropAsset(name)
+			case "visuals":
+				data, err = site.ProjectVisualAsset(name)
+			default:
+				data, err = site.SocialAsset(name)
+			}
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(filepath.Join(target, name), data, 0o644); err != nil {
+				return err
+			}
+		}
+	}
 	if err := site.CopyBundledSocialImages(filepath.Join(output, "public", "social")); err != nil {
 		return fmt.Errorf("copy social previews: %w", err)
 	}
@@ -188,11 +250,33 @@ func buildAt(output string, bundle fs.FS) error {
 		if err := render(output, page); err != nil {
 			return err
 		}
+		if page.Meta.Kind == site.PageHome && page.Home != nil {
+			if err := renderChartFragment(output, *page.Home); err != nil {
+				return err
+			}
+		}
 	}
 	if err := writeStaticPages(output, site.Pages()); err != nil {
 		return err
 	}
 	return nil
+}
+
+func writeHandlerAsset(publicRoot string, handler http.Handler, assetURL string) error {
+	parsed, err := url.Parse(assetURL)
+	if err != nil {
+		return fmt.Errorf("parse asset URL %q: %w", assetURL, err)
+	}
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, parsed.RequestURI(), nil))
+	if recorder.Code != http.StatusOK {
+		return fmt.Errorf("read embedded asset %q: status %d", assetURL, recorder.Code)
+	}
+	destination := filepath.Join(publicRoot, filepath.FromSlash(strings.TrimPrefix(parsed.Path, "/")))
+	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(destination, recorder.Body.Bytes(), 0o644)
 }
 
 func render(output string, page site.Page) error {
@@ -227,4 +311,17 @@ func writeStaticPages(output string, pages []site.Page) error {
 		}
 	}
 	return nil
+}
+
+func renderChartFragment(output string, content site.Content) error {
+	destination := filepath.Join(output, "public", "fragments", strings.Trim(content.Path, "/"), "charts.html")
+	if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+		return err
+	}
+	file, err := os.Create(destination)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	return site.ChartFragment(content).Render(context.Background(), file)
 }

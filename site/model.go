@@ -26,7 +26,7 @@ type PageMeta struct {
 	Kind                                   PageKind
 	Locale                                 Locale
 	Path, CanonicalURL, Title, Description string
-	SocialImageURL, Robots                 string
+	SocialImageURL, SocialImageAlt, Robots string
 	Alternates                             []Alternate
 	StructuredData                         any
 }
