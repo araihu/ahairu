@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "templ generate && go run ./cmd/ahairu build --asset-bundle \"$ASSET_BUNDLE\"",
-    "capture:visuals": "node scripts/capture-project-visuals.mjs",
+    "capture:visuals": "node scripts/capture-goshtoso-montage-v2.mjs",
     "test:design": "node --test src/design.test.js",
     "test:metadata": "go test ./site -run 'Metadata|StructuredData|Sitemap|Manifest' -count=1",
     "test:routes": "node --test src/worker.test.js",
