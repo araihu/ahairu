@@ -365,6 +365,26 @@ func TestCheckAcceptsNormalHTMLWithOptionalEndTags(t *testing.T) {
 	}
 }
 
+func TestRejectDuplicateHTMLAttributesUsesRawTokens(t *testing.T) {
+	for _, source := range []string{
+		`<html lang="en" LANG="es"></html>`,
+		`<input disabled disabled>`,
+		`<img alt=first alt=second/>`,
+	} {
+		if err := rejectDuplicateHTMLAttributes([]byte(source)); err == nil || !strings.Contains(err.Error(), "duplicate") {
+			t.Errorf("rejectDuplicateHTMLAttributes(%q) error = %v, want duplicate", source, err)
+		}
+	}
+	for _, source := range []string{
+		`<div title="lang=en lang=es" data-value='x=y'></div>`,
+		`<img src=/assets/icons/a/b.svg alt=icon>`,
+	} {
+		if err := rejectDuplicateHTMLAttributes([]byte(source)); err != nil {
+			t.Errorf("rejectDuplicateHTMLAttributes(%q) error = %v", source, err)
+		}
+	}
+}
+
 func TestCheckRejectsMissingOrWrongSizedSocialImages(t *testing.T) {
 	root := writeValidPublic(t)
 	if err := os.Remove(filepath.Join(root, "social", "brand.png")); err != nil {
