@@ -211,7 +211,8 @@ func assertPinnedActions(t *testing.T, name, workflow string) {
 		if !strings.HasPrefix(line, "- uses: ") {
 			continue
 		}
-		parts := strings.SplitN(strings.TrimPrefix(line, "- uses: "), "@", 2)
+		actionSpec := strings.Fields(strings.TrimPrefix(line, "- uses: "))[0]
+		parts := strings.SplitN(actionSpec, "@", 2)
 		if len(parts) != 2 || len(parts[1]) != 40 {
 			t.Errorf("%s action is not pinned to a full SHA: %q", name, line)
 			continue
