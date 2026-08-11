@@ -20,8 +20,8 @@
     "check": "npm run build && go test ./... -count=1 && go run ./cmd/checksite public && npm run test:routes && npm run test:design && npm run test:visual && wrangler deploy --dry-run"
   },
   "allowScripts": {
-    "puppeteer@25.4.0": true,
+    "puppeteer@25.5.0": true,
     "esbuild@0.28.1": true,
-    "workerd@1.20260722.1": true
+    "workerd@1.20260801.1": true
   }
 }
