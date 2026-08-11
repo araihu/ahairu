@@ -11,5 +11,5 @@ require (
 
 require (
 	github.com/go-echarts/go-echarts/v2 v2.7.2 // indirect
-	golang.org/x/net v0.51.0
+	golang.org/x/net v0.57.0
 )

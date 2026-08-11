@@ -25,17 +25,28 @@ import (
 func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 	ci := readWorkflow(t, "ci.yml")
 	for _, want := range []string{
-		"repository_dispatch:",
 		"go-version: 1.26.5",
 		"node-version: 24",
-		"actions/create-github-app-token@",
-		"actions/upload-artifact@",
 	} {
 		if !strings.Contains(ci, want) {
 			t.Errorf("CI misses %q", want)
 		}
 	}
 	assertPinnedActions(t, "ci.yml", ci)
+
+	acceptedAssets := readWorkflow(t, "accepted-assets.yml")
+	for _, want := range []string{
+		"repository_dispatch:",
+		"go-version: 1.26.5",
+		"node-version: 24",
+		"actions/create-github-app-token@",
+		"actions/upload-artifact@",
+	} {
+		if !strings.Contains(acceptedAssets, want) {
+			t.Errorf("accepted-assets misses %q", want)
+		}
+	}
+	assertPinnedActions(t, "accepted-assets.yml", acceptedAssets)
 
 	deploy := readWorkflow(t, "deploy.yml")
 	for _, want := range []string{
@@ -53,7 +64,7 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 }
 
 func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
-	ci := readWorkflow(t, "ci.yml")
+	acceptedAssets := readWorkflow(t, "accepted-assets.yml")
 	for _, want := range []string{
 		"if: github.event_name == 'repository_dispatch'",
 		"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
@@ -66,24 +77,24 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"--accepted-output \"$ACCEPTED_ASSETS\"",
 		"npm run test:workflow",
 	} {
-		if !strings.Contains(ci, want) {
-			t.Errorf("CI misses %q", want)
+		if !strings.Contains(acceptedAssets, want) {
+			t.Errorf("accepted-assets misses %q", want)
 		}
 	}
-	if strings.Contains(ci, "assets-release-promoted") || strings.Contains(ci, "assets_release_") || strings.Contains(ci, "assets_channel_") {
-		t.Error("CI retains the obsolete flat Assets dispatch schema")
+	if strings.Contains(acceptedAssets, "assets-release-promoted") || strings.Contains(acceptedAssets, "assets_release_") || strings.Contains(acceptedAssets, "assets_channel_") {
+		t.Error("accepted-assets retains the obsolete flat Assets dispatch schema")
 	}
-	if strings.Contains(ci, "client_payload.assets_") || strings.Contains(ci, "|| vars") {
-		t.Error("CI allows repository variables to fill a dispatch payload")
+	if strings.Contains(acceptedAssets, "client_payload.assets_") || strings.Contains(acceptedAssets, "|| vars") {
+		t.Error("accepted-assets allows repository variables to fill a dispatch payload")
 	}
-	if got := strings.Count(ci, "github.event.client_payload"); got != 1 {
-		t.Errorf("CI has %d dispatch payload references, want exactly one full handoff", got)
+	if got := strings.Count(acceptedAssets, "github.event.client_payload"); got != 1 {
+		t.Errorf("accepted-assets has %d dispatch payload references, want exactly one full handoff", got)
 	}
-	if got := strings.Count(ci, "vars.ASSETS_"); got != 2 {
-		t.Errorf("CI has %d main-promotion variable references, want the handoff and its non-empty guard", got)
+	if got := strings.Count(acceptedAssets, "vars.ASSETS_"); got != 2 {
+		t.Errorf("accepted-assets has %d main-promotion variable references, want the handoff and its non-empty guard", got)
 	}
-	if got := strings.Count(ci, "permission-actions: read"); got != 1 || strings.Count(ci, "permission-contents: read") != 1 {
-		t.Error("CI Assets token does not request least Actions and Contents read")
+	if got := strings.Count(acceptedAssets, "permission-actions: read"); got != 1 || strings.Count(acceptedAssets, "permission-contents: read") != 1 {
+		t.Error("accepted-assets token does not request least Actions and Contents read")
 	}
 
 	deploy := readWorkflow(t, "deploy.yml")
@@ -140,7 +151,7 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 }
 
 func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
-	ci := readWorkflow(t, "ci.yml")
+	acceptedAssets := readWorkflow(t, "accepted-assets.yml")
 	for _, want := range []string{
 		"araihu-assets-released",
 		"toJSON(github.event.client_payload)",
@@ -151,8 +162,8 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 		"npm run check",
 		"name: accepted-assets",
 	} {
-		if !strings.Contains(ci, want) {
-			t.Errorf("CI misses %q", want)
+		if !strings.Contains(acceptedAssets, want) {
+			t.Errorf("accepted-assets misses %q", want)
 		}
 	}
 	deploy := readWorkflow(t, "deploy.yml")
@@ -172,7 +183,7 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	}
 	for _, workflow := range []struct {
 		name, contents string
-	}{{"CI", ci}, {"deploy", deploy}} {
+	}{{"accepted-assets", acceptedAssets}, {"deploy", deploy}} {
 		for _, forbidden := range []string{"CLOUDFLARE_DEPLOY_HOOK", "ASSETS_CLOUDFLARE"} {
 			if strings.Contains(workflow.contents, forbidden) {
 				t.Errorf("%s retains forbidden secret %q", workflow.name, forbidden)
@@ -362,6 +373,26 @@ func TestCheckAcceptsNormalHTMLWithOptionalEndTags(t *testing.T) {
 	})
 	if err := Check(root); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestRejectDuplicateHTMLAttributesUsesRawTokens(t *testing.T) {
+	for _, source := range []string{
+		`<html lang="en" LANG="es"></html>`,
+		`<input disabled disabled>`,
+		`<img alt=first alt=second/>`,
+	} {
+		if err := rejectDuplicateHTMLAttributes([]byte(source)); err == nil || !strings.Contains(err.Error(), "duplicate") {
+			t.Errorf("rejectDuplicateHTMLAttributes(%q) error = %v, want duplicate", source, err)
+		}
+	}
+	for _, source := range []string{
+		`<div title="lang=en lang=es" data-value='x=y'></div>`,
+		`<img src=/assets/icons/a/b.svg alt=icon>`,
+	} {
+		if err := rejectDuplicateHTMLAttributes([]byte(source)); err != nil {
+			t.Errorf("rejectDuplicateHTMLAttributes(%q) error = %v", source, err)
+		}
 	}
 }
 

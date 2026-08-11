@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/url"
 	"os"
@@ -754,6 +755,9 @@ func (document htmlDocument) metaValues(selector, name string) []string {
 }
 
 func parseHTML(source []byte) (htmlDocument, error) {
+	if err := rejectDuplicateHTMLAttributes(source); err != nil {
+		return htmlDocument{}, err
+	}
 	root, err := html.Parse(bytes.NewReader(source))
 	if err != nil {
 		return htmlDocument{}, err
@@ -763,6 +767,89 @@ func parseHTML(source []byte) (htmlDocument, error) {
 		return htmlDocument{}, err
 	}
 	return document, nil
+}
+
+func rejectDuplicateHTMLAttributes(source []byte) error {
+	tokenizer := html.NewTokenizer(bytes.NewReader(source))
+	for {
+		switch tokenizer.Next() {
+		case html.ErrorToken:
+			if err := tokenizer.Err(); err != io.EOF {
+				return err
+			}
+			return nil
+		case html.StartTagToken, html.SelfClosingTagToken:
+			if err := rejectDuplicateAttributesInTag(tokenizer.Raw()); err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func rejectDuplicateAttributesInTag(raw []byte) error {
+	position := 1
+	for position < len(raw) && !isHTMLSpace(raw[position]) && raw[position] != '/' && raw[position] != '>' {
+		position++
+	}
+	element := strings.ToLower(string(raw[1:position]))
+	seen := map[string]struct{}{}
+	for position < len(raw) {
+		for position < len(raw) && isHTMLSpace(raw[position]) {
+			position++
+		}
+		if position >= len(raw) || raw[position] == '>' || raw[position] == '/' && position+1 < len(raw) && raw[position+1] == '>' {
+			return nil
+		}
+
+		start := position
+		for position < len(raw) && !isHTMLSpace(raw[position]) && raw[position] != '=' && raw[position] != '/' && raw[position] != '>' {
+			position++
+		}
+		if start == position {
+			position++
+			continue
+		}
+		name := strings.ToLower(string(raw[start:position]))
+		if _, duplicate := seen[name]; duplicate {
+			return fmt.Errorf("<%s>: duplicate attribute %q", element, name)
+		}
+		seen[name] = struct{}{}
+
+		for position < len(raw) && isHTMLSpace(raw[position]) {
+			position++
+		}
+		if position >= len(raw) || raw[position] != '=' {
+			continue
+		}
+		position++
+		for position < len(raw) && isHTMLSpace(raw[position]) {
+			position++
+		}
+		if position < len(raw) && (raw[position] == '\'' || raw[position] == '"') {
+			quote := raw[position]
+			position++
+			for position < len(raw) && raw[position] != quote {
+				position++
+			}
+			if position < len(raw) {
+				position++
+			}
+			continue
+		}
+		for position < len(raw) && !isHTMLSpace(raw[position]) && raw[position] != '>' {
+			position++
+		}
+	}
+	return nil
+}
+
+func isHTMLSpace(value byte) bool {
+	switch value {
+	case ' ', '\t', '\n', '\f', '\r':
+		return true
+	default:
+		return false
+	}
 }
 
 func collectHTML(node *html.Node, document *htmlDocument) error {
