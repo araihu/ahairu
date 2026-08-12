@@ -121,7 +121,7 @@ export class Ahairu {
     cloudflareAccountId: Secret,
     runNonce: string,
   ): File {
-    const container = this.projectContainer(source)
+    const container = this.projectContainer(source, "deploy")
       .withFile("/tmp/accepted-assets.json", acceptedAssets)
       .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
       .withEnvVariable("AHAIRU_RUN_NONCE", runNonce)
@@ -264,31 +264,27 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
   }
 
   private sourceContainer(source: Directory): Container {
-    // Pull-request code controls this module. Do not mount any persistent cache
-    // until the runner provides a host-owned PR/trusted Engine boundary.
-    return this.projectContainer(source, false)
+    // The host-owned hostinger-vps-pr lane has a dedicated Engine. Workflow
+    // input never chooses the trust boundary; every PR uses this constant.
+    return this.projectContainer(source, "pr")
   }
 
   private acceptedAssets(source: Directory, assetsGithubToken: Secret): Container {
-    return this.projectContainer(source)
+    return this.projectContainer(source, "assets")
       .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
   }
 
-  private projectContainer(source: Directory, persistentCaches = true): Container {
-    const npmCache = dag.cacheVolume("ahairu-npm-v1")
-    const goBuildCache = dag.cacheVolume("ahairu-go-build-v1")
-    const goModuleCache = dag.cacheVolume("ahairu-go-mod-v1")
-    const puppeteerCache = dag.cacheVolume("ahairu-puppeteer-v1")
-    const templBuildCache = dag.cacheVolume("ahairu-templ-go-build-v1")
-    const templModuleCache = dag.cacheVolume("ahairu-templ-go-mod-v1")
+  private projectContainer(source: Directory, cacheNamespace: "pr" | "assets" | "deploy"): Container {
+    const npmCache = dag.cacheVolume(`ahairu-${cacheNamespace}-npm-v1`)
+    const goBuildCache = dag.cacheVolume(`ahairu-${cacheNamespace}-go-build-v1`)
+    const goModuleCache = dag.cacheVolume(`ahairu-${cacheNamespace}-go-mod-v1`)
+    const puppeteerCache = dag.cacheVolume(`ahairu-${cacheNamespace}-puppeteer-v1`)
+    const templBuildCache = dag.cacheVolume(`ahairu-${cacheNamespace}-templ-go-build-v1`)
+    const templModuleCache = dag.cacheVolume(`ahairu-${cacheNamespace}-templ-go-mod-v1`)
     const goDistribution = dag.container().from(GO_IMAGE).directory("/usr/local/go")
-    let templBuilder = dag.container().from(GO_IMAGE)
-    if (persistentCaches) {
-      templBuilder = templBuilder
-        .withMountedCache("/go/pkg/mod", templModuleCache)
-        .withMountedCache("/root/.cache/go-build", templBuildCache)
-    }
-    const templ = templBuilder
+    const templ = dag.container().from(GO_IMAGE)
+      .withMountedCache("/go/pkg/mod", templModuleCache)
+      .withMountedCache("/root/.cache/go-build", templBuildCache)
       .withExec(["go", "install", "github.com/a-h/templ/cmd/templ@v0.3.1020"])
       .file("/go/bin/templ")
 
@@ -332,13 +328,11 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
       .withWorkdir("/work")
       .withFile("/usr/local/bin/templ", templ, { permissions: 0o755 })
 
-    if (persistentCaches) {
-      project = project
-        .withMountedCache("/home/node/.npm", npmCache, { owner: "node:node" })
-        .withMountedCache("/home/node/.cache/go-build", goBuildCache, { owner: "node:node" })
-        .withMountedCache("/home/node/go/pkg/mod", goModuleCache, { owner: "node:node" })
-        .withMountedCache("/home/node/.cache/puppeteer", puppeteerCache, { owner: "node:node" })
-    }
+    project = project
+      .withMountedCache("/home/node/.npm", npmCache, { owner: "node:node" })
+      .withMountedCache("/home/node/.cache/go-build", goBuildCache, { owner: "node:node" })
+      .withMountedCache("/home/node/go/pkg/mod", goModuleCache, { owner: "node:node" })
+      .withMountedCache("/home/node/.cache/puppeteer", puppeteerCache, { owner: "node:node" })
 
     return project
       .withEnvVariable("HOME", "/home/node")

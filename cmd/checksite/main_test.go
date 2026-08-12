@@ -229,10 +229,10 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 		`withSecretVariable("ASSETS_GITHUB_TOKEN"`,
 		`withSecretVariable("CLOUDFLARE_API_TOKEN"`,
 		`withSecretVariable("GH_TOKEN"`,
-		`cacheVolume("ahairu-npm-v1")`,
-		`cacheVolume("ahairu-go-build-v1")`,
-		`cacheVolume("ahairu-go-mod-v1")`,
-		`cacheVolume("ahairu-puppeteer-v1")`,
+		`cacheVolume(` + "`ahairu-${cacheNamespace}-npm-v1`" + `)`,
+		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-build-v1`" + `)`,
+		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-mod-v1`" + `)`,
+		`cacheVolume(` + "`ahairu-${cacheNamespace}-puppeteer-v1`" + `)`,
 	} {
 		if !strings.Contains(module, want) {
 			t.Errorf("Dagger module misses %q", want)
@@ -473,17 +473,22 @@ func TestDaggerTypeScriptRuntimePackageContract(t *testing.T) {
 	}
 }
 
-func TestDaggerPullRequestSourceUsesNoPersistentCache(t *testing.T) {
+func TestDaggerPullRequestSourceUsesHostIsolatedPersistentCache(t *testing.T) {
 	data, err := os.ReadFile("../../.dagger/src/index.ts")
 	if err != nil {
 		t.Fatal(err)
 	}
 	source := string(data)
-	if !strings.Contains(source, "return this.projectContainer(source, false)") {
-		t.Fatal("pull-request source function does not explicitly disable persistent caches")
+	if !strings.Contains(source, `return this.projectContainer(source, "pr")`) {
+		t.Fatal("pull-request source function does not use the stable host-isolated pr namespace")
 	}
-	if !strings.Contains(source, "if (persistentCaches)") {
-		t.Fatal("project container does not guard persistent cache mounts")
+	for _, want := range []string{"hostinger-vps-pr", `ahairu-${cacheNamespace}-npm-v1`, `.withMountedCache("/home/node/.npm"`} {
+		if !strings.Contains(readWorkflow(t, "ci.yml")+source, want) {
+			t.Errorf("PR cache boundary misses %q", want)
+		}
+	}
+	if strings.Contains(readWorkflow(t, "ci.yml"), `"hostinger-vps"`) {
+		t.Fatal("legacy shared Hostinger label remains")
 	}
 }
 
