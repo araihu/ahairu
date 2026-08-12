@@ -1,0 +1,10 @@
+{
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@dagger.io/dagger": "0.21.8"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

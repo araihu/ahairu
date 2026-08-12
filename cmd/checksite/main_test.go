@@ -13,6 +13,7 @@ import (
 	"image/png"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -25,8 +26,10 @@ import (
 func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 	ci := readWorkflow(t, "ci.yml")
 	for _, want := range []string{
-		"go-version: 1.26.5",
-		"node-version: 24",
+		"RUNNER_ENVIRONMENT: ${{ runner.environment }}",
+		"run: bash .github/scripts/setup-dagger.sh",
+		"dagger call source",
+		"--run-nonce='${{ github.run_id }}-${{ github.run_attempt }}'",
 	} {
 		if !strings.Contains(ci, want) {
 			t.Errorf("CI misses %q", want)
@@ -37,10 +40,11 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 	acceptedAssets := readWorkflow(t, "accepted-assets.yml")
 	for _, want := range []string{
 		"repository_dispatch:",
-		"go-version: 1.26.5",
-		"node-version: 24",
+		"run: bash .github/scripts/setup-dagger.sh",
 		"actions/create-github-app-token@",
 		"actions/upload-artifact@",
+		"accepted-assets-dispatch",
+		"accepted-assets-main",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
 			t.Errorf("accepted-assets misses %q", want)
@@ -53,6 +57,8 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 		"group: ahairu-production",
 		"cancel-in-progress: false",
 		"environment: production",
+		"workflows: [Accepted assets]",
+		"run: bash .github/scripts/setup-dagger.sh",
 		"actions/create-github-app-token@",
 		"actions/download-artifact@",
 	} {
@@ -70,12 +76,13 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 		"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
 		"permission-actions: read",
 		"- araihu-assets-released",
-		"DISPATCH_EVENT_TYPE: ${{ github.event.action }}",
+		"--dispatch-event-type='${{ github.event.action }}'",
 		"ASSETS_HANDOFF_JSON: ${{ toJSON(github.event.client_payload) }}",
 		"ASSETS_HANDOFF_JSON: ${{ vars.ASSETS_RELEASE_HANDOFF_JSON }}",
-		"--handoff-json \"$ASSETS_HANDOFF_JSON\"",
-		"--accepted-output \"$ACCEPTED_ASSETS\"",
-		"npm run test:workflow",
+		"--handoff-json=env://ASSETS_HANDOFF_JSON",
+		"--assets-github-token=env://ASSETS_GITHUB_TOKEN",
+		"--run-nonce='${{ github.run_id }}-${{ github.run_attempt }}'",
+		"export --path='${{ runner.temp }}/accepted-assets.json'",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
 			t.Errorf("accepted-assets misses %q", want)
@@ -99,36 +106,26 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 
 	deploy := readWorkflow(t, "deploy.yml")
 	for _, want := range []string{
+		"workflows: [Accepted assets]",
 		"github.event.workflow_run.event == 'repository_dispatch'",
 		"vars.ASSETS_RELEASE_HANDOFF_JSON != ''",
 		"permission-actions: read",
-		"WRANGLER_OUTPUT_FILE_PATH=\"$RUNNER_TEMP/wrangler-version-upload.jsonl\"",
-		"wrangler versions upload",
-		"wrangler versions deploy --version-id \"$UPLOADED_VERSION\" --percentage 100 --yes",
-		"wrangler deployments status --json",
-		"--upload \"$RUNNER_TEMP/wrangler-version-upload.jsonl\"",
-		"--uploaded-version \"$UPLOADED_VERSION\"",
-		"scripts/select_deployed_version.mjs",
-		"set -o pipefail",
 		"permission-contents: read",
 		"permission-contents: write",
-		"scripts/accepted_assets_state.py",
-		"AHAIRU_REPOSITORY: araihu/ahairu",
-		"STATE_REF: automation/araihu-assets-state",
-		"STATE_PATH: .automation/araihu-assets/accepted-channel-v1.json",
-		"wrangler deployments status --json",
-		"Create dedicated accepted-state ref failed",
-		"Create accepted state conflicted or failed",
-		"Update accepted state conflicted or failed",
-		"if [[ -z \"$state_sha\" ]]; then",
-		"test \"$update_status\" = 201",
-		"test \"$update_status\" = 200",
+		"deploy",
+		"--accepted-assets='${{ runner.temp }}/accepted-assets/accepted-assets.json'",
+		"--cloudflare-api-token=env://CLOUDFLARE_API_TOKEN",
+		"--run-nonce='${{ github.run_id }}-${{ github.run_attempt }}'",
+		"export --path='${{ runner.temp }}/deployed-version.txt'",
+		"Deployed Worker version: %s\\n",
+		"accept-deployed-assets-state",
+		"--state-base-sha='${{ github.event.workflow_run.head_sha }}'",
 	} {
 		if !strings.Contains(deploy, want) {
 			t.Errorf("deploy misses %q", want)
 		}
 	}
-	for _, forbidden := range []string{"wrangler deploy ", "wrangler versions list", "worker-versions-before.json", "worker-versions-after.json"} {
+	for _, forbidden := range []string{"workflows: [CI]", "wrangler deploy ", "wrangler versions list", "worker-versions-before.json", "worker-versions-after.json"} {
 		if strings.Contains(deploy, forbidden) {
 			t.Errorf("deploy retains ambiguous Worker version inference %q", forbidden)
 		}
@@ -136,17 +133,11 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	if got := strings.Count(deploy, "permission-actions: read"); got != 1 || strings.Count(deploy, "permission-contents: read") != 1 || strings.Count(deploy, "permission-contents: write") != 1 {
 		t.Error("deploy tokens do not use least Assets read and post-promotion Ahairu write permissions")
 	}
-	if strings.Index(deploy, "wrangler deployments status --json") > strings.Index(deploy, "Mint post-promotion state token") || strings.Index(deploy, "Mint post-promotion state token") > strings.Index(deploy, "Durably accept verified deployed Assets channel") {
+	if strings.Index(deploy, "Reacquire, validate, and promote exact Worker") > strings.Index(deploy, "Mint post-promotion state token") || strings.Index(deploy, "Mint post-promotion state token") > strings.Index(deploy, "Durably accept verified deployed Assets channel") {
 		t.Error("accepted state must be written only after deployed Worker version is verified active")
 	}
 	if strings.Contains(deploy, "refs/heads/main") || strings.Contains(deploy, "contents/.github/") {
 		t.Error("deploy state write must never target main or a mutable workflow path")
-	}
-	createBranch := strings.Index(deploy, "if [[ -z \"$state_sha\" ]]; then")
-	createStatus := strings.Index(deploy, "test \"$update_status\" = 201")
-	updateBranch := strings.Index(deploy, "else\n            test \"$update_status\" = 200")
-	if createBranch < 0 || createStatus < createBranch || updateBranch < createStatus {
-		t.Error("accepted-state Contents PUT must require 201 for creates and 200 for updates")
 	}
 }
 
@@ -156,10 +147,9 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 		"araihu-assets-released",
 		"toJSON(github.event.client_payload)",
 		"ASSETS_RELEASE_HANDOFF_JSON",
-		"scripts/prepare_asset_bundle.py",
-		"--handoff-json",
-		"--accepted-output",
-		"npm run check",
+		"accepted-assets-dispatch",
+		"accepted-assets-main",
+		"--handoff-json=env://ASSETS_HANDOFF_JSON",
 		"name: accepted-assets",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
@@ -170,11 +160,8 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	for _, want := range []string{
 		"run-id: ${{ github.event.workflow_run.id }}",
 		"name: accepted-assets",
-		"scripts/prepare_asset_bundle.py",
-		"--handoff-file \"$ACCEPTED_ASSETS\"",
-		"npm run check",
-		"wrangler versions upload",
-		"wrangler versions deploy",
+		"--accepted-assets='${{ runner.temp }}/accepted-assets/accepted-assets.json'",
+		"--assets-github-token=env://ASSETS_GITHUB_TOKEN",
 		"CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}",
 	} {
 		if !strings.Contains(deploy, want) {
@@ -195,6 +182,251 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	}
 }
 
+func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.T) {
+	module := readDaggerSource(t)
+	for _, test := range []struct {
+		name      string
+		operation string
+	}{
+		{"source", `withExec(["npm", "audit", "--audit-level=high"])`},
+		{"acceptedAssetsDispatch", "scripts/prepare_asset_bundle.py"},
+		{"acceptedAssetsMain", "scripts/prepare_asset_bundle.py"},
+		{"deploy", "scripts/prepare_asset_bundle.py"},
+		{"acceptDeployedAssetsState", `.withExec(["bash", "-c", script])`},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			function := daggerFunctionSource(t, module, test.name)
+			if !strings.HasPrefix(strings.TrimSpace(function), `@func({ cache: "never" })`) {
+				t.Error("function is not explicitly cache=never")
+			}
+			if !strings.Contains(function, "runNonce: string") {
+				t.Error("function does not require a run nonce")
+			}
+			nonce := strings.Index(function, `withEnvVariable("AHAIRU_RUN_NONCE", runNonce)`)
+			operation := strings.Index(function, test.operation)
+			if nonce < 0 || operation < 0 || nonce > operation {
+				t.Errorf("nonce must be bound before fresh operation %q", test.operation)
+			}
+		})
+	}
+
+	deploy := daggerFunctionSource(t, module, "deploy")
+	assertOrdered(t, deploy,
+		`withEnvVariable("AHAIRU_RUN_NONCE", runNonce)`,
+		"scripts/prepare_asset_bundle.py",
+		`withExec(["npm", "run", "check"])`,
+		`"wrangler", "versions", "upload"`,
+		"wrangler versions deploy --version-id",
+		`"deployments",`,
+		`"status",`,
+		`return container.file("/tmp/uploaded-version")`,
+	)
+	for _, want := range []string{
+		"scripts/accepted_assets_state.py",
+		"automation/araihu-assets-state",
+		"Create accepted state conflicted or failed",
+		"Update accepted state conflicted or failed",
+		`withSecretVariable("ASSETS_GITHUB_TOKEN"`,
+		`withSecretVariable("CLOUDFLARE_API_TOKEN"`,
+		`withSecretVariable("GH_TOKEN"`,
+		`cacheVolume("ahairu-npm-v1")`,
+		`cacheVolume("ahairu-go-build-v1")`,
+		`cacheVolume("ahairu-go-mod-v1")`,
+		`cacheVolume("ahairu-puppeteer-v1")`,
+	} {
+		if !strings.Contains(module, want) {
+			t.Errorf("Dagger module misses %q", want)
+		}
+	}
+}
+
+func TestDeployExportsVerifiedVersionThenAdapterWritesSummary(t *testing.T) {
+	deploy := readWorkflow(t, "deploy.yml")
+	assertOrdered(t, deploy,
+		"Reacquire, validate, and promote exact Worker with Dagger",
+		"export --path='${{ runner.temp }}/deployed-version.txt'",
+		"Summarize verified production version",
+		"Deployed Worker version: %s\\n",
+		"Mint post-promotion state token scoped to Ahairu",
+	)
+	if got := strings.Count(deploy, "dagger call deploy"); got != 1 {
+		t.Errorf("deploy adapter invokes deploy function %d times, want once", got)
+	}
+	moduleDeploy := daggerFunctionSource(t, readDaggerSource(t), "deploy")
+	if got := strings.Count(moduleDeploy, "scripts/select_deployed_version.mjs"); got != 2 {
+		t.Fatalf("deploy verifies uploaded version %d times, want capture then active-deployment verification", got)
+	}
+	status := strings.Index(moduleDeploy, `"status",`)
+	verification := strings.LastIndex(moduleDeploy, "scripts/select_deployed_version.mjs")
+	result := strings.Index(moduleDeploy, `return container.file("/tmp/uploaded-version")`)
+	if status < 0 || verification < status || result < verification {
+		t.Error("deploy must verify active deployment before exposing uploaded version ID")
+	}
+}
+
+func TestEveryDaggerAdapterCallUsesAttemptUniqueNonce(t *testing.T) {
+	for _, test := range []struct {
+		workflow string
+		calls    int
+	}{
+		{"ci.yml", 1},
+		{"accepted-assets.yml", 3},
+		{"deploy.yml", 2},
+	} {
+		contents := readWorkflow(t, test.workflow)
+		if got := strings.Count(contents, "dagger call "); got != test.calls {
+			t.Errorf("%s has %d Dagger calls, want %d", test.workflow, got, test.calls)
+		}
+		if got := strings.Count(contents, "--run-nonce='${{ github.run_id }}-${{ github.run_attempt }}'"); got != test.calls {
+			t.Errorf("%s has %d attempt-unique nonces, want %d", test.workflow, got, test.calls)
+		}
+	}
+	readme, err := os.ReadFile(filepath.Join("..", "..", "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(readme), "--run-nonce=local") || strings.Count(string(readme), `RUN_NONCE="$(uuidgen)"`) < 2 {
+		t.Error("local documentation must generate a fresh nonce for every attempt")
+	}
+}
+
+func TestWorkflowsUseExactCLIWithoutDaggerForGithub(t *testing.T) {
+	for _, test := range []struct {
+		workflow string
+		setups   int
+	}{
+		{"ci.yml", 1},
+		{"accepted-assets.yml", 2},
+		{"deploy.yml", 1},
+	} {
+		contents := readWorkflow(t, test.workflow)
+		if strings.Contains(contents, "dagger/dagger-for-github") {
+			t.Errorf("%s still delegates version selection to dagger-for-github", test.workflow)
+		}
+		if got := strings.Count(contents, "run: bash .github/scripts/setup-dagger.sh"); got != test.setups {
+			t.Errorf("%s has %d exact CLI setup gates, want %d", test.workflow, got, test.setups)
+		}
+		firstSetup := strings.Index(contents, "run: bash .github/scripts/setup-dagger.sh")
+		firstCall := strings.Index(contents, "dagger call ")
+		if firstSetup < 0 || firstCall < firstSetup {
+			t.Errorf("%s calls Dagger before exact version gate", test.workflow)
+		}
+	}
+
+	script, err := os.ReadFile(filepath.Join("..", "..", ".github", "scripts", "setup-dagger.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contents := string(script)
+	for _, want := range []string{
+		`expected_version="v0.21.8"`,
+		`RUNNER_ENVIRONMENT:?RUNNER_ENVIRONMENT is required}" == "github-hosted"`,
+		`RUNNER_ENVIRONMENT" != "self-hosted"`,
+		"dagger_v0.21.8_linux_amd64.tar.gz",
+		"53e226c7da8fb75171e58c35759d736d961ce8b3a12db0baa7b7107954fccc5a",
+		"sha256sum --check --strict",
+		`resolved_version="$(dagger_version)"`,
+		`[[ "$resolved_version" != "$expected_version" ]]`,
+	} {
+		if !strings.Contains(contents, want) {
+			t.Errorf("exact Dagger setup script misses %q", want)
+		}
+	}
+	download := strings.Index(contents, "curl --fail")
+	selfHosted := strings.Index(contents, `"self-hosted"`)
+	versionGate := strings.Index(contents, `resolved_version="$(dagger_version)"`)
+	if download < 0 || selfHosted < download || versionGate < selfHosted {
+		t.Error("setup must download only on GitHub-hosted, accept self-hosted without install, then enforce exact version")
+	}
+}
+
+func TestSelfHostedDaggerSetupAcceptsOnlyExactVersion(t *testing.T) {
+	root := filepath.Join("..", "..")
+	script := filepath.Join(root, ".github", "scripts", "setup-dagger.sh")
+	for _, test := range []struct {
+		name    string
+		version string
+		ok      bool
+	}{
+		{"exact", "v0.21.8", true},
+		{"newer", "v0.22.0", false},
+		{"older", "v0.21.7", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			bin := t.TempDir()
+			dagger := filepath.Join(bin, "dagger")
+			if err := os.WriteFile(dagger, []byte("#!/bin/sh\nprintf 'dagger "+test.version+" (test) linux/amd64\\n'\n"), 0o755); err != nil {
+				t.Fatal(err)
+			}
+			command := exec.Command("bash", script)
+			command.Env = append(os.Environ(),
+				"PATH="+bin+":"+os.Getenv("PATH"),
+				"RUNNER_ENVIRONMENT=self-hosted",
+			)
+			output, err := command.CombinedOutput()
+			if test.ok && err != nil {
+				t.Fatalf("exact version rejected: %v\n%s", err, output)
+			}
+			if !test.ok && err == nil {
+				t.Fatalf("mismatched version accepted:\n%s", output)
+			}
+		})
+	}
+}
+
+func TestDeployWorkflowIsReachableOnlyFromAcceptedAssets(t *testing.T) {
+	accepted := readWorkflow(t, "accepted-assets.yml")
+	deploy := readWorkflow(t, "deploy.yml")
+	if !strings.Contains(accepted, "name: Accepted assets") {
+		t.Fatal("accepted-assets workflow name changed without updating deploy listener")
+	}
+	if !strings.Contains(deploy, "workflows: [Accepted assets]") {
+		t.Fatal("deploy workflow is not listening to successful Accepted assets runs")
+	}
+	if strings.Contains(deploy, "workflows: [CI]") {
+		t.Fatal("deploy listens to PR-only CI, which cannot produce accepted-assets artifact")
+	}
+}
+
+func TestCIAuthorialFilesContainNoCodeRabbit(t *testing.T) {
+	root := filepath.Join("..", "..")
+	paths := []string{filepath.Join(root, "dagger.json")}
+	workflows, err := filepath.Glob(filepath.Join(root, ".github", "workflows", "*.yml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths = append(paths, workflows...)
+	scripts, err := filepath.Glob(filepath.Join(root, ".github", "scripts", "*.sh"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths = append(paths, scripts...)
+	err = filepath.WalkDir(filepath.Join(root, ".dagger"), func(path string, entry fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() && entry.Name() == "node_modules" {
+			return filepath.SkipDir
+		}
+		if !entry.IsDir() {
+			paths = append(paths, path)
+		}
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range paths {
+		contents, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(strings.ToLower(string(contents)), "coderabbit") {
+			t.Errorf("%s retains CodeRabbit integration", path)
+		}
+	}
+}
+
 func readWorkflow(t *testing.T, name string) string {
 	t.Helper()
 	contents, err := os.ReadFile(filepath.Join("..", "..", ".github", "workflows", name))
@@ -202,6 +434,54 @@ func readWorkflow(t *testing.T, name string) string {
 		t.Fatal(err)
 	}
 	return string(contents)
+}
+
+func readDaggerSource(t *testing.T) string {
+	t.Helper()
+	contents, err := os.ReadFile(filepath.Join("..", "..", ".dagger", "src", "index.ts"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(contents)
+}
+
+func daggerFunctionSource(t *testing.T, module, name string) string {
+	t.Helper()
+	start := strings.Index(module, "\n  async "+name+"(")
+	if start < 0 {
+		start = strings.Index(module, "\n  "+name+"(")
+	}
+	if start < 0 {
+		t.Fatalf("Dagger function %s not found", name)
+	}
+	annotation := strings.LastIndex(module[:start], "\n  @func")
+	if annotation < 0 {
+		t.Fatalf("Dagger function %s annotation not found", name)
+	}
+	endOffset := strings.Index(module[start+1:], "\n  @func")
+	if endOffset < 0 {
+		endOffset = strings.Index(module[start+1:], "\n  private ")
+	}
+	if endOffset < 0 {
+		endOffset = len(module) - start - 1
+	}
+	return module[annotation+1 : start+1+endOffset]
+}
+
+func assertOrdered(t *testing.T, document string, values ...string) {
+	t.Helper()
+	previous := -1
+	for _, value := range values {
+		index := strings.Index(document, value)
+		if index < 0 {
+			t.Errorf("missing ordered value %q", value)
+			continue
+		}
+		if index <= previous {
+			t.Errorf("value %q is out of order", value)
+		}
+		previous = index
+	}
 }
 
 func assertPinnedActions(t *testing.T, name, workflow string) {

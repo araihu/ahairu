@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: [CI]
+    workflows: [Accepted assets]
     types: [completed]
 
 permissions:
@@ -24,13 +24,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
-      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
-        with:
-          go-version: 1.26.5
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
-        with:
-          node-version: 24
-          cache: npm
+      - name: Install or verify exact Dagger CLI
+        env:
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
+        run: bash .github/scripts/setup-dagger.sh
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: accepted-assets
@@ -46,34 +43,23 @@ jobs:
           repositories: assets
           permission-actions: read
           permission-contents: read
-      - run: npm ci
-      - run: go install github.com/a-h/templ/cmd/templ@v0.3.1020
-      - name: Reacquire exact accepted assets and verify hashes before extraction
+      - name: Reacquire, validate, and promote exact Worker with Dagger
         env:
           ASSETS_GITHUB_TOKEN: ${{ steps.assets-token.outputs.token }}
-          ACCEPTED_ASSETS: ${{ runner.temp }}/accepted-assets/accepted-assets.json
-          ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
-        run: |
-          python3 scripts/prepare_asset_bundle.py \
-            --handoff-file "$ACCEPTED_ASSETS" \
-            --output "$ASSET_BUNDLE"
-      - name: Assemble and validate exact Worker bundle
-        env:
-          ASSET_BUNDLE: ${{ runner.temp }}/asset-bundle
-        run: npm run check
-      - name: Deploy protected production Worker
-        env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          set -o pipefail
-          WRANGLER_OUTPUT_FILE_PATH="$RUNNER_TEMP/wrangler-version-upload.jsonl" npm exec -- wrangler versions upload
-          UPLOADED_VERSION="$(node scripts/select_deployed_version.mjs --upload "$RUNNER_TEMP/wrangler-version-upload.jsonl")"
-          npm exec -- wrangler versions deploy --version-id "$UPLOADED_VERSION" --percentage 100 --yes
-          npm exec -- wrangler deployments status --json > "$RUNNER_TEMP/worker-deployment.json"
-          node scripts/select_deployed_version.mjs \
-            --uploaded-version "$UPLOADED_VERSION" \
-            --deployment "$RUNNER_TEMP/worker-deployment.json"
+          dagger call deploy \
+            --source=. \
+            --accepted-assets='${{ runner.temp }}/accepted-assets/accepted-assets.json' \
+            --assets-github-token=env://ASSETS_GITHUB_TOKEN \
+            --cloudflare-api-token=env://CLOUDFLARE_API_TOKEN \
+            --cloudflare-account-id=env://CLOUDFLARE_ACCOUNT_ID \
+            --run-nonce='${{ github.run_id }}-${{ github.run_attempt }}' \
+            export --path='${{ runner.temp }}/deployed-version.txt'
+      - name: Summarize verified production version
+        run: |
+          printf 'Deployed Worker version: %s\n' "$(tr -d '\n' < '${{ runner.temp }}/deployed-version.txt')" >> "$GITHUB_STEP_SUMMARY"
       - name: Mint post-promotion state token scoped to Ahairu
         id: state-token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
@@ -83,78 +69,13 @@ jobs:
           owner: araihu
           repositories: ahairu
           permission-contents: write
-      - name: Durably accept verified deployed Assets channel
+      - name: Durably accept verified deployed Assets channel with Dagger
         env:
-          GH_TOKEN: ${{ steps.state-token.outputs.token }}
-          ACCEPTED_ASSETS: ${{ runner.temp }}/accepted-assets/accepted-assets.json
-          ACCEPTED_STATE: ${{ runner.temp }}/accepted-channel-v1.json
-          AHAIRU_REPOSITORY: araihu/ahairu
-          STATE_REF: automation/araihu-assets-state
-          STATE_PATH: .automation/araihu-assets/accepted-channel-v1.json
-          STATE_BASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          AHAIRU_GITHUB_TOKEN: ${{ steps.state-token.outputs.token }}
         run: |
-          set -euo pipefail
-          python3 scripts/accepted_assets_state.py \
-            --handoff-file "$ACCEPTED_ASSETS" \
-            --output "$ACCEPTED_STATE"
-          headers=(
-            --header "Accept: application/vnd.github+json"
-            --header "Authorization: Bearer ${GH_TOKEN}"
-            --header "X-GitHub-Api-Version: 2022-11-28"
-          )
-          ref_url="${GITHUB_API_URL}/repos/${AHAIRU_REPOSITORY}/git/ref/heads/${STATE_REF}"
-          ref_response="${RUNNER_TEMP}/accepted-state-ref.json"
-          ref_status=$(curl --silent --show-error --output "$ref_response" --write-out '%{http_code}' "${headers[@]}" "$ref_url")
-          if [[ "$ref_status" == 404 ]]; then
-            create_ref="${RUNNER_TEMP}/accepted-state-ref-create.json"
-            python3 - "$create_ref" "$STATE_REF" "$STATE_BASE_SHA" <<'PY'
-          import json, sys
-          path, ref, sha = sys.argv[1:]
-          with open(path, "x", encoding="utf-8") as output:
-              json.dump({"ref": "refs/heads/" + ref, "sha": sha}, output, separators=(",", ":"))
-          PY
-            create_status=$(curl --silent --show-error --output "${RUNNER_TEMP}/accepted-state-ref-created.json" --write-out '%{http_code}' \
-              --request POST "${headers[@]}" --data-binary "@$create_ref" "${GITHUB_API_URL}/repos/${AHAIRU_REPOSITORY}/git/refs")
-            if [[ "$create_status" == 422 ]]; then
-              ref_status=$(curl --silent --show-error --output "$ref_response" --write-out '%{http_code}' "${headers[@]}" "$ref_url")
-            elif [[ "$create_status" != 201 ]]; then
-              echo "Create dedicated accepted-state ref failed (HTTP $create_status)" >&2
-              exit 1
-            else
-              ref_status=200
-            fi
-          fi
-          test "$ref_status" = 200 || { echo "Dedicated accepted-state ref is unavailable (HTTP $ref_status)" >&2; exit 1; }
-
-          state_response="${RUNNER_TEMP}/accepted-state-existing.json"
-          state_status=$(curl --silent --show-error --output "$state_response" --write-out '%{http_code}' "${headers[@]}" \
-            "${GITHUB_API_URL}/repos/${AHAIRU_REPOSITORY}/contents/${STATE_PATH}?ref=${STATE_REF}")
-          state_sha=""
-          case "$state_status" in
-            200) state_sha=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["sha"])' "$state_response") ;;
-            404) ;;
-            *) echo "Read accepted state failed (HTTP $state_status)" >&2; exit 1 ;;
-          esac
-          update_payload="${RUNNER_TEMP}/accepted-state-update.json"
-          python3 - "$update_payload" "$STATE_REF" "$STATE_PATH" "$state_sha" "$ACCEPTED_STATE" <<'PY'
-          import base64, json, pathlib, sys
-          output, ref, path, sha, state_path = sys.argv[1:]
-          state = pathlib.Path(state_path).read_bytes()
-          payload = {
-              "message": "automation: accept deployed Assets channel",
-              "content": base64.b64encode(state).decode("ascii"),
-              "branch": ref,
-          }
-          if sha:
-              payload["sha"] = sha
-          with open(output, "x", encoding="utf-8") as stream:
-              json.dump(payload, stream, separators=(",", ":"))
-          PY
-          update_status=$(curl --silent --show-error --output "${RUNNER_TEMP}/accepted-state-updated.json" --write-out '%{http_code}' \
-            --request PUT "${headers[@]}" --data-binary "@$update_payload" \
-            "${GITHUB_API_URL}/repos/${AHAIRU_REPOSITORY}/contents/${STATE_PATH}")
-          if [[ -z "$state_sha" ]]; then
-            test "$update_status" = 201 || { echo "Create accepted state conflicted or failed (HTTP $update_status)" >&2; exit 1; }
-          else
-            test "$update_status" = 200 || { echo "Update accepted state conflicted or failed (HTTP $update_status)" >&2; exit 1; }
-          fi
+          dagger call accept-deployed-assets-state \
+            --source=. \
+            --accepted-assets='${{ runner.temp }}/accepted-assets/accepted-assets.json' \
+            --ahairu-github-token=env://AHAIRU_GITHUB_TOKEN \
+            --state-base-sha='${{ github.event.workflow_run.head_sha }}' \
+            --run-nonce='${{ github.run_id }}-${{ github.run_attempt }}'
