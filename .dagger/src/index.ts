@@ -264,7 +264,9 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
   }
 
   private sourceContainer(source: Directory): Container {
-    return this.projectContainer(source)
+    // Pull-request code controls this module. Do not mount any persistent cache
+    // until the runner provides a host-owned PR/trusted Engine boundary.
+    return this.projectContainer(source, false)
   }
 
   private acceptedAssets(source: Directory, assetsGithubToken: Secret): Container {
@@ -272,7 +274,7 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
       .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
   }
 
-  private projectContainer(source: Directory): Container {
+  private projectContainer(source: Directory, persistentCaches = true): Container {
     const npmCache = dag.cacheVolume("ahairu-npm-v1")
     const goBuildCache = dag.cacheVolume("ahairu-go-build-v1")
     const goModuleCache = dag.cacheVolume("ahairu-go-mod-v1")
@@ -280,15 +282,17 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
     const templBuildCache = dag.cacheVolume("ahairu-templ-go-build-v1")
     const templModuleCache = dag.cacheVolume("ahairu-templ-go-mod-v1")
     const goDistribution = dag.container().from(GO_IMAGE).directory("/usr/local/go")
-    const templ = dag
-      .container()
-      .from(GO_IMAGE)
-      .withMountedCache("/go/pkg/mod", templModuleCache)
-      .withMountedCache("/root/.cache/go-build", templBuildCache)
+    let templBuilder = dag.container().from(GO_IMAGE)
+    if (persistentCaches) {
+      templBuilder = templBuilder
+        .withMountedCache("/go/pkg/mod", templModuleCache)
+        .withMountedCache("/root/.cache/go-build", templBuildCache)
+    }
+    const templ = templBuilder
       .withExec(["go", "install", "github.com/a-h/templ/cmd/templ@v0.3.1020"])
       .file("/go/bin/templ")
 
-    return dag
+    let project = dag
       .container()
       .from(NODE_IMAGE)
       .withExec(["apt-get", "update"])
@@ -327,10 +331,16 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
       .withDirectory("/usr/local/go", goDistribution)
       .withWorkdir("/work")
       .withFile("/usr/local/bin/templ", templ, { permissions: 0o755 })
-      .withMountedCache("/home/node/.npm", npmCache, { owner: "node:node" })
-      .withMountedCache("/home/node/.cache/go-build", goBuildCache, { owner: "node:node" })
-      .withMountedCache("/home/node/go/pkg/mod", goModuleCache, { owner: "node:node" })
-      .withMountedCache("/home/node/.cache/puppeteer", puppeteerCache, { owner: "node:node" })
+
+    if (persistentCaches) {
+      project = project
+        .withMountedCache("/home/node/.npm", npmCache, { owner: "node:node" })
+        .withMountedCache("/home/node/.cache/go-build", goBuildCache, { owner: "node:node" })
+        .withMountedCache("/home/node/go/pkg/mod", goModuleCache, { owner: "node:node" })
+        .withMountedCache("/home/node/.cache/puppeteer", puppeteerCache, { owner: "node:node" })
+    }
+
+    return project
       .withEnvVariable("HOME", "/home/node")
       .withEnvVariable("GOCACHE", "/home/node/.cache/go-build")
       .withEnvVariable("GOPATH", "/home/node/go")

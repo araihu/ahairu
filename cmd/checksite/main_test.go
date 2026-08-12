@@ -473,6 +473,20 @@ func TestDaggerTypeScriptRuntimePackageContract(t *testing.T) {
 	}
 }
 
+func TestDaggerPullRequestSourceUsesNoPersistentCache(t *testing.T) {
+	data, err := os.ReadFile("../../.dagger/src/index.ts")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(data)
+	if !strings.Contains(source, "return this.projectContainer(source, false)") {
+		t.Fatal("pull-request source function does not explicitly disable persistent caches")
+	}
+	if !strings.Contains(source, "if (persistentCaches)") {
+		t.Fatal("project container does not guard persistent cache mounts")
+	}
+}
+
 func readJSONFile(t *testing.T, path string, target any) {
 	t.Helper()
 	contents, err := os.ReadFile(path)
