@@ -1,6 +1,7 @@
 /public/
 /dist/
 /node_modules/
+/.dagger/node_modules/
 /.wrangler/
 .DS_Store
 __pycache__/

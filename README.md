@@ -27,6 +27,33 @@ npm run test:visual
 ASSET_BUNDLE=/absolute/path/to/verified-assets npm run check
 ```
 
+The same CI entry points run locally through Dagger 0.21.8. Dagger owns the Go
+1.26.5, Node 24, templ 0.3.1020, browser, and package-manager environments, so
+the host only needs a compatible Dagger CLI and container runner.
+
+```sh
+RUN_NONCE="$(uuidgen)"
+dagger call source --source=. --run-nonce="$RUN_NONCE"
+
+export ASSETS_HANDOFF_JSON="$(< /absolute/path/to/assets-handoff.json)"
+export ASSETS_GITHUB_TOKEN="..."
+RUN_NONCE="$(uuidgen)"
+dagger call accepted-assets-main \
+  --source=. \
+  --handoff-json=env://ASSETS_HANDOFF_JSON \
+  --assets-github-token=env://ASSETS_GITHUB_TOKEN \
+  --run-nonce="$RUN_NONCE" \
+  export --path=./accepted-assets.json
+```
+
+Generate a new `RUN_NONCE` for every local attempt. GitHub Actions uses the
+unique `${{ github.run_id }}-${{ github.run_attempt }}` pair.
+
+`deploy` and `accept-deployed-assets-state` are explicit, uncached effectful
+functions. They are reserved for the protected production workflow; calling
+them locally performs real Cloudflare or GitHub writes when valid credentials
+are supplied.
+
 `--asset-bundle` is required: the build never silently substitutes the embedded
 brand subset for a deployable Assets bundle. `npm run check` performs the
 deterministic build, complete Go suite, generated-output checker, Worker routes,
@@ -39,8 +66,8 @@ The build writes localized standalone files, Goshtoso CSS, site CSS, two social
 previews, and the verified Assets release/channel bundle to ignored `public/`.
 `src/worker.js` serves `en`, `pt-br`, and `es`. The root route selects the
 closest supported locale from `Accept-Language`; explicit locale routes stay
-fixed, and unsupported preferences fall back to English. A successful `main` CI
-run deploys the complete checked Worker version directly.
+fixed, and unsupported preferences fall back to English. A successful protected
+`Accepted assets` run on `main` deploys the complete checked Worker version.
 
 Social previews deliberately use two PageKind assets: home and brand pages share `social/brand.png`, while license pages use `social/license.png`. Each localized page retains its own canonical URL, title, description, and Open Graph locale.
 
