@@ -659,8 +659,24 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
     const activeTick = await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick);
     await page.mouse.move(0, 0);
     await page.waitForFunction(() => !document.querySelector(".project-tile--4 .project-card")?.matches(":hover"));
-    await new Promise((resolve) => setTimeout(resolve, 2_200));
-    assert.equal(await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick), activeTick);
+    await page.evaluate(() => {
+      delete window.__x9StoppedTick;
+    });
+    await page.waitForFunction(() => {
+      const art = document.querySelector("[data-x9-live-availability]");
+      if (!art) return false;
+      const tick = art.dataset.x9Tick;
+      const now = performance.now();
+      const previous = window.__x9StoppedTick;
+      if (!previous || previous.tick !== tick) {
+        window.__x9StoppedTick = { tick, since: now };
+        return false;
+      }
+      return now - previous.since >= 2_200;
+    });
+    const stoppedTick = await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick);
+    assert.notEqual(activeTick, idleTick);
+    assert.ok(stoppedTick);
   } finally {
     await browser.close();
     await server.close();
@@ -830,17 +846,24 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
       return { translate: card.translate, shadow: card.boxShadow };
     });
     await page.hover(".project-card-surface");
-    await page.waitForFunction(() => document.querySelector(".project-card-surface")?.matches(":hover"));
-    await page.waitForFunction(() => getComputedStyle(document.querySelector(".project-art"), "::before").transform !== "none");
-    await new Promise((resolve) => setTimeout(resolve, 220));
+    await page.waitForFunction((beforeTranslate, beforeShadow) => {
+      const surface = document.querySelector(".project-card-surface");
+      const art = document.querySelector(".project-art");
+      if (!surface?.matches(":hover")) return false;
+      const card = getComputedStyle(surface);
+      return getComputedStyle(art, "::before").transform !== "none" &&
+        card.translate !== beforeTranslate && card.boxShadow !== beforeShadow;
+    }, {}, before.translate, before.shadow);
     const after = await page.evaluate(() => {
       const card = getComputedStyle(document.querySelector(".project-card-surface"));
       return {
+        hovered: document.querySelector(".project-card-surface")?.matches(":hover"),
         translate: card.translate,
         shadow: card.boxShadow,
         art: getComputedStyle(document.querySelector(".project-art"), "::before").transform,
       };
     });
+    assert.equal(after.hovered, true);
     assert.notEqual(after.translate, before.translate);
     assert.notEqual(after.shadow, before.shadow);
     assert.notEqual(after.art, "none");
