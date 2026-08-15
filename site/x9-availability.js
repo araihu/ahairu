@@ -73,6 +73,10 @@
       let engaged = trigger.matches(":hover") || trigger.contains(document.activeElement);
       let visible = false;
       let interval = 0;
+      // A headless browser can expose touch media while still dispatching an
+      // explicit mouse/focus interaction. Once that happens, honor the
+      // interaction's enter/leave lifecycle instead of viewport autoplay.
+      let interactionOverride = false;
       const stopTicks = () => {
         if (!interval) return;
         window.clearInterval(interval);
@@ -81,7 +85,7 @@
       const syncTicks = () => {
         const rect = trigger.getBoundingClientRect();
         const visibleInViewport = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
-        const active = (visible || visibleInViewport) && (touchInput.matches || engaged);
+        const active = (visible || visibleInViewport) && (interactionOverride ? engaged : (touchInput.matches || engaged));
         if (!active || reducedMotion.matches) {
           stopTicks();
           return;
@@ -90,18 +94,19 @@
         tick();
         interval = window.setInterval(tick, tickMilliseconds);
       };
-      const setEngaged = (nextEngaged) => {
+      const setEngaged = (nextEngaged, override = false) => {
+        if (override) interactionOverride = true;
         engaged = nextEngaged;
         if (nextEngaged) visible = true;
         syncTicks();
       };
 
       tick();
-      trigger.addEventListener("pointerenter", () => setEngaged(true));
-      trigger.addEventListener("pointerleave", () => setEngaged(false));
-      trigger.addEventListener("focusin", () => setEngaged(true));
+      trigger.addEventListener("pointerenter", (event) => setEngaged(true, event.pointerType !== "touch"));
+      trigger.addEventListener("pointerleave", (event) => setEngaged(false, event.pointerType !== "touch"));
+      trigger.addEventListener("focusin", () => setEngaged(true, true));
       trigger.addEventListener("focusout", (event) => {
-        if (!trigger.contains(event.relatedTarget)) setEngaged(false);
+        if (!trigger.contains(event.relatedTarget)) setEngaged(false, true);
       });
       reducedMotion.addEventListener("change", syncTicks);
       touchInput.addEventListener("change", syncTicks);
