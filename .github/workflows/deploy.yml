@@ -13,8 +13,7 @@ jobs:
   cloudflare:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
-      (github.event.workflow_run.event == 'repository_dispatch' ||
-      (github.event.workflow_run.head_branch == 'main' && vars.ASSETS_RELEASE_HANDOFF_JSON != ''))
+      github.event.workflow_run.event == 'repository_dispatch'
     runs-on: ubuntu-latest
     environment: production
     concurrency:

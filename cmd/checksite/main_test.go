@@ -44,7 +44,6 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 		"actions/create-github-app-token@",
 		"actions/upload-artifact@",
 		"accepted-assets-dispatch",
-		"accepted-assets-main",
 		"timeout-minutes: 20",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
@@ -74,12 +73,10 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	acceptedAssets := readWorkflow(t, "accepted-assets.yml")
 	for _, want := range []string{
 		"if: github.event_name == 'repository_dispatch'",
-		"if: github.event_name == 'push' && github.ref == 'refs/heads/main'",
 		"permission-actions: read",
 		"- araihu-assets-released",
 		"--dispatch-event-type='${{ github.event.action }}'",
 		"ASSETS_HANDOFF_JSON: ${{ toJSON(github.event.client_payload) }}",
-		"ASSETS_HANDOFF_JSON: ${{ vars.ASSETS_RELEASE_HANDOFF_JSON }}",
 		"--handoff-json=env://ASSETS_HANDOFF_JSON",
 		"--assets-github-token=env://ASSETS_GITHUB_TOKEN",
 		"--run-nonce='${{ github.run_id }}-${{ github.run_attempt }}'",
@@ -98,8 +95,13 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	if got := strings.Count(acceptedAssets, "github.event.client_payload"); got != 1 {
 		t.Errorf("accepted-assets has %d dispatch payload references, want exactly one full handoff", got)
 	}
-	if got := strings.Count(acceptedAssets, "vars.ASSETS_"); got != 2 {
-		t.Errorf("accepted-assets has %d main-promotion variable references, want the handoff and its non-empty guard", got)
+	if got := strings.Count(acceptedAssets, "vars.ASSETS_"); got != 0 {
+		t.Errorf("accepted-assets has %d repository Assets variable references, want none", got)
+	}
+	for _, forbidden := range []string{"ASSETS_RELEASE_HANDOFF_JSON", "accepted-assets-main", "github.ref == 'refs/heads/main'"} {
+		if strings.Contains(acceptedAssets, forbidden) {
+			t.Errorf("accepted-assets retains removed promotion path %q", forbidden)
+		}
 	}
 	if got := strings.Count(acceptedAssets, "permission-actions: read"); got != 1 || strings.Count(acceptedAssets, "permission-contents: read") != 1 {
 		t.Error("accepted-assets token does not request least Actions and Contents read")
@@ -109,7 +111,6 @@ func TestWorkflowPromotionAndDeploymentSecurityContracts(t *testing.T) {
 	for _, want := range []string{
 		"workflows: [Accepted assets]",
 		"github.event.workflow_run.event == 'repository_dispatch'",
-		"vars.ASSETS_RELEASE_HANDOFF_JSON != ''",
 		"permission-actions: read",
 		"permission-contents: read",
 		"permission-contents: write",
@@ -147,15 +148,16 @@ func TestDeployWorkflowAssemblesVerifiedAssetBundleDirectly(t *testing.T) {
 	for _, want := range []string{
 		"araihu-assets-released",
 		"toJSON(github.event.client_payload)",
-		"ASSETS_RELEASE_HANDOFF_JSON",
 		"accepted-assets-dispatch",
-		"accepted-assets-main",
 		"--handoff-json=env://ASSETS_HANDOFF_JSON",
 		"name: accepted-assets",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
 			t.Errorf("accepted-assets misses %q", want)
 		}
+	}
+	if strings.Contains(acceptedAssets, "ASSETS_RELEASE_HANDOFF_JSON") || strings.Contains(acceptedAssets, "accepted-assets-main") {
+		t.Error("accepted-assets retains the removed repository-variable promotion path")
 	}
 	deploy := readWorkflow(t, "deploy.yml")
 	for _, want := range []string{
@@ -191,7 +193,6 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 	}{
 		{"source", `withExec(["npm", "audit", "--audit-level=high"])`},
 		{"acceptedAssetsDispatch", "scripts/prepare_asset_bundle.py"},
-		{"acceptedAssetsMain", "scripts/prepare_asset_bundle.py"},
 		{"deploy", "scripts/prepare_asset_bundle.py"},
 		{"acceptDeployedAssetsState", `.withExec(["bash", "-c", script])`},
 	} {
@@ -210,7 +211,7 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 			}
 		})
 	}
-	for _, name := range []string{"acceptedAssetsDispatch", "acceptedAssetsMain", "deploy"} {
+	for _, name := range []string{"acceptedAssetsDispatch", "deploy"} {
 		function := daggerFunctionSource(t, module, name)
 		browser := strings.Index(function, "this.withBrowserRuntime(")
 		handoff := strings.Index(function, `withSecretVariable("ASSETS_HANDOFF_JSON"`)
@@ -297,7 +298,7 @@ func TestEveryDaggerAdapterCallUsesAttemptUniqueNonce(t *testing.T) {
 		calls    int
 	}{
 		{"ci.yml", 1},
-		{"accepted-assets.yml", 3},
+		{"accepted-assets.yml", 2},
 		{"deploy.yml", 2},
 	} {
 		contents := readWorkflow(t, test.workflow)

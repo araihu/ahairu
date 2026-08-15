@@ -38,7 +38,7 @@ dagger call source --source=. --run-nonce="$RUN_NONCE"
 export ASSETS_HANDOFF_JSON="$(< /absolute/path/to/assets-handoff.json)"
 export ASSETS_GITHUB_TOKEN="..."
 RUN_NONCE="$(uuidgen)"
-dagger call accepted-assets-main \
+dagger call accepted-assets-dispatch \
   --source=. \
   --handoff-json=env://ASSETS_HANDOFF_JSON \
   --assets-github-token=env://ASSETS_GITHUB_TOKEN \
@@ -67,7 +67,8 @@ previews, and the verified Assets release/channel bundle to ignored `public/`.
 `src/worker.js` serves `en`, `pt-br`, and `es`. The root route selects the
 closest supported locale from `Accept-Language`; explicit locale routes stay
 fixed, and unsupported preferences fall back to English. A successful protected
-`Accepted assets` run on `main` deploys the complete checked Worker version.
+`Accepted assets` run from the validated `araihu-assets-released` dispatch
+deploys the complete checked Worker version.
 
 Social previews deliberately use two PageKind assets: home and brand pages share `social/brand.png`, while license pages use `social/license.png`. Each localized page retains its own canonical URL, title, description, and Open Graph locale.
 
@@ -128,10 +129,11 @@ then runs the same full check before `wrangler` deploy in protected
 `production`. Only after the uploaded Worker version is verified active does a
 separate Ahairu-scoped `contents: write` token create or update the dedicated
 accepted-state ref with optimistic Contents API collision checks; it never
-writes `main`. Dispatch never reads repository variables.
-For a `main` push, CI may use only one documented repository variable,
-`ASSETS_RELEASE_HANDOFF_JSON`, containing that same complete JSON object; it
-never accepts the retired six flat variables. Cloudflare credentials are only
+writes `main`. Promotion is dispatch-only: pushes to `main` run source
+validation but cannot promote Assets. The dispatch handoff is accepted only
+when every release tag is canonical `vMAJOR.MINOR.PATCH` SemVer (with normal
+prerelease/build metadata), and it never reads repository variables.
+Cloudflare credentials are only
 `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` there; Assets never owns a
 Cloudflare secret.
 
