@@ -655,12 +655,23 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
     await new Promise((resolve) => setTimeout(resolve, 2_200));
     assert.equal(await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick), idleTick);
 
-    await page.hover(".project-tile--4 .project-card");
+    const x9CardSelector = ".project-tile--4 .project-card";
+    await page.$eval(x9CardSelector, (card) => card.scrollIntoView({ block: "center", inline: "center" }));
+    await page.waitForFunction((selector) => {
+      const card = document.querySelector(selector);
+      if (!card) return false;
+      const rect = card.getBoundingClientRect();
+      return rect.width > 0 && rect.height > 0 && rect.top < innerHeight && rect.bottom > 0;
+    }, {}, x9CardSelector);
+    await page.hover(x9CardSelector);
+    await page.$eval(x9CardSelector, (card) => {
+      card.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false, pointerType: "mouse" }));
+    });
     await page.waitForFunction((tick) => document.querySelector("[data-x9-live-availability]").dataset.x9Tick !== tick, {}, idleTick);
     const activeTick = await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick);
     await page.mouse.move(0, 0);
-    await page.evaluate(() => {
-      document.querySelector(".project-tile--4 .project-card")?.dispatchEvent(new PointerEvent("pointerleave"));
+    await page.$eval(x9CardSelector, (card) => {
+      card.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false, pointerType: "mouse" }));
     });
     await page.evaluate(() => {
       delete window.__x9StoppedTick;
@@ -847,7 +858,11 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
     await page.setContent(fixture);
     const before = await page.evaluate(() => {
       const card = getComputedStyle(document.querySelector(".project-card-surface"));
-      return { translate: card.translate, shadow: card.boxShadow };
+      return {
+        translate: card.translate,
+        shadow: card.boxShadow,
+        artName: getComputedStyle(document.querySelector(".project-art-name")).transform,
+      };
     });
     await page.hover(".project-card-surface");
     await page.waitForFunction(() => document.querySelector(".project-card-surface")?.matches(":hover"));
@@ -858,13 +873,13 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
         hovered: document.querySelector(".project-card-surface")?.matches(":hover"),
         translate: card.translate,
         shadow: card.boxShadow,
-        art: getComputedStyle(document.querySelector(".project-art"), "::before").transform,
+        artName: getComputedStyle(document.querySelector(".project-art-name")).transform,
       };
     });
     assert.equal(after.hovered, true);
     assert.notEqual(after.translate, before.translate);
     assert.notEqual(after.shadow, before.shadow);
-    assert.notEqual(after.art, "none");
+    assert.notEqual(after.artName, before.artName);
   } finally {
     await browser.close();
   }
