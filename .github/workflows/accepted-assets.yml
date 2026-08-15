@@ -28,6 +28,7 @@ jobs:
 
   accepted-assets:
     needs: source
+    timeout-minutes: 20
     if: >-
       github.event_name == 'repository_dispatch' ||
       (github.ref == 'refs/heads/main' && vars.ASSETS_RELEASE_HANDOFF_JSON != '')

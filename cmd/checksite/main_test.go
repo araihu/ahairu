@@ -45,6 +45,7 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 		"actions/upload-artifact@",
 		"accepted-assets-dispatch",
 		"accepted-assets-main",
+		"timeout-minutes: 20",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
 			t.Errorf("accepted-assets misses %q", want)
@@ -209,6 +210,15 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 			}
 		})
 	}
+	for _, name := range []string{"acceptedAssetsDispatch", "acceptedAssetsMain"} {
+		function := daggerFunctionSource(t, module, name)
+		handoff := strings.Index(function, `withSecretVariable("ASSETS_HANDOFF_JSON"`)
+		assetsToken := strings.Index(function, `withSecretVariable("ASSETS_GITHUB_TOKEN"`)
+		prepare := strings.Index(function, "scripts/prepare_asset_bundle.py")
+		if handoff < 0 || assetsToken < 0 || prepare < 0 || handoff > assetsToken || assetsToken > prepare {
+			t.Errorf("%s must attach both handoff secrets immediately before bundle preparation", name)
+		}
+	}
 
 	deploy := daggerFunctionSource(t, module, "deploy")
 	assertOrdered(t, deploy,
@@ -232,7 +242,10 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-npm-v1`" + `)`,
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-build-v1`" + `)`,
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-mod-v1`" + `)`,
-		`cacheVolume(` + "`ahairu-${cacheNamespace}-puppeteer-v1`" + `)`,
+		`cacheVolume(` + "`ahairu-${cacheNamespace}-puppeteer-v2`" + `)`,
+		`PUPPETEER_CACHE_DIR`,
+		`"puppeteer", "browsers", "install", "chrome"`,
+		`Puppeteer Chromium ready`,
 	} {
 		if !strings.Contains(module, want) {
 			t.Errorf("Dagger module misses %q", want)

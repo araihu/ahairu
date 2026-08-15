@@ -1,6 +1,7 @@
 import {
   argument,
   dag,
+  CacheSharingMode,
   Container,
   Directory,
   File,
@@ -71,10 +72,12 @@ export class Ahairu {
     if (dispatchEventType !== "araihu-assets-released") {
       throw new Error(`unexpected dispatch event type: ${dispatchEventType}`)
     }
-    return this.acceptedAssets(source, assetsGithubToken)
-      .withEnvVariable("AHAIRU_RUN_NONCE", runNonce)
+    return this.withBrowserRuntime(
+      this.acceptedAssets(source).withEnvVariable("AHAIRU_RUN_NONCE", runNonce),
+    )
       .withExec(["npm", "audit", "--audit-level=high"])
       .withSecretVariable("ASSETS_HANDOFF_JSON", handoffJson)
+      .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
       .withExec([
         "bash",
         "-euo",
@@ -95,10 +98,12 @@ export class Ahairu {
     assetsGithubToken: Secret,
     runNonce: string,
   ): File {
-    return this.acceptedAssets(source, assetsGithubToken)
-      .withEnvVariable("AHAIRU_RUN_NONCE", runNonce)
+    return this.withBrowserRuntime(
+      this.acceptedAssets(source).withEnvVariable("AHAIRU_RUN_NONCE", runNonce),
+    )
       .withExec(["npm", "audit", "--audit-level=high"])
       .withSecretVariable("ASSETS_HANDOFF_JSON", handoffJson)
+      .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
       .withExec([
         "bash",
         "-euo",
@@ -121,10 +126,12 @@ export class Ahairu {
     cloudflareAccountId: Secret,
     runNonce: string,
   ): File {
-    const container = this.projectContainer(source, "deploy")
-      .withFile("/tmp/accepted-assets.json", acceptedAssets)
+    const container = this.withBrowserRuntime(
+      this.projectContainer(source, "deploy")
+        .withFile("/tmp/accepted-assets.json", acceptedAssets)
+        .withEnvVariable("AHAIRU_RUN_NONCE", runNonce),
+    )
       .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
-      .withEnvVariable("AHAIRU_RUN_NONCE", runNonce)
       .withExec([
         "python3",
         "scripts/prepare_asset_bundle.py",
@@ -269,16 +276,27 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
     return this.projectContainer(source, "pr")
   }
 
-  private acceptedAssets(source: Directory, assetsGithubToken: Secret): Container {
+  private acceptedAssets(source: Directory): Container {
     return this.projectContainer(source, "assets")
-      .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
+  }
+
+  private withBrowserRuntime(container: Container): Container {
+    return container
+      .withEnvVariable("PUPPETEER_CACHE_DIR", "/home/node/.cache/puppeteer")
+      .withExec(["npm", "exec", "--", "puppeteer", "browsers", "install", "chrome"])
+      .withExec([
+        "node",
+        "--input-type=module",
+        "--eval",
+        'import puppeteer from "puppeteer"; import { access } from "node:fs/promises"; const executable = await puppeteer.executablePath(); await access(executable); console.log(`Puppeteer Chromium ready: ${executable}`)',
+      ])
   }
 
   private projectContainer(source: Directory, cacheNamespace: "pr" | "assets" | "deploy"): Container {
     const npmCache = dag.cacheVolume(`ahairu-${cacheNamespace}-npm-v1`)
     const goBuildCache = dag.cacheVolume(`ahairu-${cacheNamespace}-go-build-v1`)
     const goModuleCache = dag.cacheVolume(`ahairu-${cacheNamespace}-go-mod-v1`)
-    const puppeteerCache = dag.cacheVolume(`ahairu-${cacheNamespace}-puppeteer-v1`)
+    const puppeteerCache = dag.cacheVolume(`ahairu-${cacheNamespace}-puppeteer-v2`)
     const templBuildCache = dag.cacheVolume(`ahairu-${cacheNamespace}-templ-go-build-v1`)
     const templModuleCache = dag.cacheVolume(`ahairu-${cacheNamespace}-templ-go-mod-v1`)
     const goDistribution = dag.container().from(GO_IMAGE).directory("/usr/local/go")
@@ -332,7 +350,10 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
       .withMountedCache("/home/node/.npm", npmCache, { owner: "node:node" })
       .withMountedCache("/home/node/.cache/go-build", goBuildCache, { owner: "node:node" })
       .withMountedCache("/home/node/go/pkg/mod", goModuleCache, { owner: "node:node" })
-      .withMountedCache("/home/node/.cache/puppeteer", puppeteerCache, { owner: "node:node" })
+      .withMountedCache("/home/node/.cache/puppeteer", puppeteerCache, {
+        owner: "node:node",
+        sharing: CacheSharingMode.Locked,
+      })
 
     return project
       .withEnvVariable("HOME", "/home/node")
