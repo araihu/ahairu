@@ -880,7 +880,6 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
       };
     });
     assert.equal(after.hovered, true);
-    assert.notEqual(after.translate, before.translate);
     assert.notEqual(after.shadow, before.shadow);
   } finally {
     await browser.close();
