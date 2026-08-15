@@ -92,6 +92,7 @@
       };
       const setEngaged = (nextEngaged) => {
         engaged = nextEngaged;
+        if (nextEngaged) visible = true;
         syncTicks();
       };
 
