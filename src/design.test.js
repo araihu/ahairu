@@ -56,6 +56,16 @@ async function launchBrowser(options = {}) {
   return puppeteer.launch({ ...options, args });
 }
 
+async function assertTouchNoHover(page) {
+  const input = await page.evaluate(() => ({
+    hover: window.matchMedia("(hover: hover)").matches,
+    none: window.matchMedia("(hover: none)").matches,
+    coarse: window.matchMedia("(pointer: coarse)").matches,
+  }));
+  assert.equal(input.hover, false);
+  assert.ok(input.none || input.coarse);
+}
+
 const fixture = `<!doctype html>
 <style>${componentCSS}\n${shellCSS}\n${css}</style>
 <header class="ahairu-header"><nav class="ahairu-primary-links" aria-label="Project navigation"><a href="#home">Home</a><a href="#libs">Libs</a><a href="#apps">Apps</a><a href="#blog">Blog</a></nav></header>
@@ -641,13 +651,14 @@ test("X-9 availability chart fills its media area", { timeout: 30_000 }, async (
   }
 });
 
-test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () => {
+test("X-9 honors explicit pointer engagement on touch/no-hover cards", { timeout: 30_000 }, async () => {
   const server = await servePublic();
   const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-    await page.setViewport({ width: 884, height: 781 });
+    await page.setViewport({ width: 884, height: 781, hasTouch: true });
+    await assertTouchNoHover(page);
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
     await revealCharts(page);
     await page.waitForFunction(() => document.querySelector("[data-x9-live-availability]")?.dataset.x9Tick);
@@ -854,32 +865,42 @@ test("Goshtoso App Shells art previews desktop and mobile shell composition", { 
   }
 });
 
-test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_000 }, async () => {
+test("Goshtoso pressed card owns the whole-card hover response on touch/no-hover", { timeout: 30_000 }, async () => {
   const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
+    await page.setViewport({ width: 1280, height: 720, hasTouch: true });
+    await assertTouchNoHover(page);
     await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
-    await page.setViewport({ width: 1280, height: 720 });
     await page.setContent(fixture);
     const before = await page.evaluate(() => {
-      const card = getComputedStyle(document.querySelector(".project-card-surface"));
+      const card = document.querySelector(".project-card-surface");
+      const style = getComputedStyle(card);
+      const rect = card?.getBoundingClientRect();
       return {
-        translate: card.translate,
-        shadow: card.boxShadow,
+        documentTop: rect ? rect.top + window.scrollY : undefined,
+        shadow: style.boxShadow,
       };
     });
     await page.hover(".project-card");
     await page.waitForFunction(() => document.querySelector(".project-card")?.matches(":hover"));
-    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    await page.waitForFunction((beforeTop) => {
+      const card = document.querySelector(".project-card-surface");
+      const rect = card?.getBoundingClientRect();
+      return rect && Math.abs(rect.top + window.scrollY - beforeTop) > 0.5;
+    }, {}, before.documentTop);
     const after = await page.evaluate(() => {
-      const card = getComputedStyle(document.querySelector(".project-card-surface"));
+      const card = document.querySelector(".project-card-surface");
+      const style = getComputedStyle(card);
+      const rect = card?.getBoundingClientRect();
       return {
-        hovered: document.querySelector(".project-card-surface")?.matches(":hover"),
-        translate: card.translate,
-        shadow: card.boxShadow,
+        hovered: card?.matches(":hover"),
+        documentTop: rect ? rect.top + window.scrollY : undefined,
+        shadow: style.boxShadow,
       };
     });
     assert.equal(after.hovered, true);
+    assert.ok(after.documentTop > before.documentTop, `expected hover movement below ${before.documentTop}, got ${after.documentTop}`);
     assert.notEqual(after.shadow, before.shadow);
   } finally {
     await browser.close();
