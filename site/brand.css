@@ -272,9 +272,15 @@ html { scroll-behavior: smooth; }
    response observable on touch/no-hover pointers that still dispatch :hover. */
 .project-card:not(:active):hover .project-card-surface,
 .featured-family-card:not(:active):hover .featured-family-card-surface {
-  --tw-translate-y: calc(var(--spacing) * 1.5);
-  translate: var(--tw-translate-x) var(--tw-translate-y);
   --tw-shadow: 0 1px 3px 0 rgb(0 0 0 / .1), 0 1px 2px -1px rgb(0 0 0 / .1);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .project-card:not(:active):hover .project-card-surface,
+  .featured-family-card:not(:active):hover .featured-family-card-surface {
+    --tw-translate-y: calc(var(--spacing) * 1.5);
+    translate: var(--tw-translate-x) var(--tw-translate-y);
+  }
 }
 
 .project-showcase { background: #f3f2e9; color: #07111f; padding: clamp(4rem, 8vw, 7.5rem) 0; position: relative; }

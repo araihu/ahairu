@@ -1009,7 +1009,8 @@ test("Goshtoso Charts art leans left on row hover", { timeout: 30_000 }, async (
 test("reduced motion removes card movement", { timeout: 30_000 }, async () => {
   const browser = await launchBrowser({ headless: true });
   try {
-    const page = await reducedMotionPage(browser, { width: 1280, height: 720 });
+    const page = await reducedMotionPage(browser, { width: 1280, height: 720, hasTouch: true });
+    await assertTouchNoHover(page);
     const beforeHover = await page.evaluate(() => ({
       cardTransition: getComputedStyle(document.querySelector(".project-card-surface")).transitionProperty,
       cardTranslate: getComputedStyle(document.querySelector(".project-card-surface")).translate,
