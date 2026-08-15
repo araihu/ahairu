@@ -274,6 +274,7 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
     // The host-owned hostinger-vps-pr lane has a dedicated Engine. Workflow
     // input never chooses the trust boundary; every PR uses this constant.
     return this.projectContainer(source, "pr")
+      .withEnvVariable("PUPPETEER_SKIP_DOWNLOAD", "1")
   }
 
   private acceptedAssets(source: Directory): Container {

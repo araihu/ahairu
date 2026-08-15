@@ -229,6 +229,9 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 	if !strings.Contains(module, "await access(executable)") {
 		t.Error("browser runtime must verify the resolved executable path")
 	}
+	if !strings.Contains(module, "return this.projectContainer(source, \"pr\")\n      .withEnvVariable(\"PUPPETEER_SKIP_DOWNLOAD\", \"1\")") {
+		t.Error("source validation must not download Puppeteer during npm ci")
+	}
 
 	deploy := daggerFunctionSource(t, module, "deploy")
 	assertOrdered(t, deploy,
