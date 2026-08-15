@@ -60,7 +60,7 @@ export class Ahairu {
       .stdout()
   }
 
-  /** Materialize a dispatch handoff, run the complete safe gate, and return normalized handoff JSON. */
+  /** Materialize a dispatch handoff, enforce canonical release tags, and run the complete safe gate. */
   @func({ cache: "never" })
   async acceptedAssetsDispatch(
     @argument({ defaultPath: ".", ignore: SOURCE_EXCLUDES }) source: Directory,
@@ -72,32 +72,6 @@ export class Ahairu {
     if (dispatchEventType !== "araihu-assets-released") {
       throw new Error(`unexpected dispatch event type: ${dispatchEventType}`)
     }
-    return this.withBrowserRuntime(
-      this.acceptedAssets(source).withEnvVariable("AHAIRU_RUN_NONCE", runNonce),
-    )
-      .withExec(["npm", "audit", "--audit-level=high"])
-      .withSecretVariable("ASSETS_HANDOFF_JSON", handoffJson)
-      .withSecretVariable("ASSETS_GITHUB_TOKEN", assetsGithubToken)
-      .withExec([
-        "bash",
-        "-euo",
-        "pipefail",
-        "-c",
-        'python3 scripts/prepare_asset_bundle.py --handoff-json "$ASSETS_HANDOFF_JSON" --accepted-output /tmp/accepted-assets.json --output /tmp/asset-bundle',
-      ])
-      .withEnvVariable("ASSET_BUNDLE", "/tmp/asset-bundle")
-      .withExec(["npm", "run", "check"])
-      .file("/tmp/accepted-assets.json")
-  }
-
-  /** Materialize a main-promotion handoff, run the complete safe gate, and return normalized handoff JSON. */
-  @func({ cache: "never" })
-  acceptedAssetsMain(
-    @argument({ defaultPath: ".", ignore: SOURCE_EXCLUDES }) source: Directory,
-    handoffJson: Secret,
-    assetsGithubToken: Secret,
-    runNonce: string,
-  ): File {
     return this.withBrowserRuntime(
       this.acceptedAssets(source).withEnvVariable("AHAIRU_RUN_NONCE", runNonce),
     )
