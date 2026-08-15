@@ -646,6 +646,7 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
   const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
+    await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
     await page.setViewport({ width: 884, height: 781 });
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
     await revealCharts(page);
@@ -841,6 +842,7 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
   const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
+    await page.emulateMediaFeatures([{ name: "prefers-reduced-motion", value: "no-preference" }]);
     await page.setViewport({ width: 1280, height: 720 });
     await page.setContent(fixture);
     const before = await page.evaluate(() => {

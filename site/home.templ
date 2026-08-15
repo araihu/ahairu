@@ -30,6 +30,23 @@ templ HomeDocument(page Page, content Content) {
 			<script defer src="/assets/js/storm-backdrop.js?rev=3"></script>
 			<script defer src="/assets/js/x9-availability.js?rev=1"></script>
 			<script src="/assets/campaign/v1.js" data-channel="/assets/releases/current" defer integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n" crossorigin="anonymous"></script>
+			<script>
+				document.addEventListener("htmx:beforeRequest", (event) => {
+					const element = event.detail?.elt;
+					if (!(element instanceof Element) || !element.matches("[data-chart-bundle-trigger]")) return;
+					if (document.documentElement.dataset.chartBundleRequested === "true") {
+						event.preventDefault();
+						return;
+					}
+					document.documentElement.dataset.chartBundleRequested = "true";
+				});
+				document.addEventListener("htmx:afterRequest", (event) => {
+					const element = event.detail?.elt;
+					if (element instanceof Element && element.matches("[data-chart-bundle-trigger]") && !event.detail.successful) {
+						delete document.documentElement.dataset.chartBundleRequested;
+					}
+				});
+			</script>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
 			<a class="skip-link" href="#main-content">{ content.SkipLabel }</a>
