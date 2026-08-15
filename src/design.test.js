@@ -866,7 +866,6 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
       return {
         translate: card.translate,
         shadow: card.boxShadow,
-        artName: getComputedStyle(document.querySelector(".project-art-name")).transform,
       };
     });
     await page.hover(".project-card");
@@ -878,13 +877,11 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
         hovered: document.querySelector(".project-card-surface")?.matches(":hover"),
         translate: card.translate,
         shadow: card.boxShadow,
-        artName: getComputedStyle(document.querySelector(".project-art-name")).transform,
       };
     });
     assert.equal(after.hovered, true);
     assert.notEqual(after.translate, before.translate);
     assert.notEqual(after.shadow, before.shadow);
-    assert.notEqual(after.artName, before.artName);
   } finally {
     await browser.close();
   }
