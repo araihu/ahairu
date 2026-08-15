@@ -79,7 +79,9 @@
         interval = 0;
       };
       const syncTicks = () => {
-        const active = visible && (touchInput.matches || engaged);
+        const rect = trigger.getBoundingClientRect();
+        const visibleInViewport = rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+        const active = (visible || visibleInViewport) && (touchInput.matches || engaged);
         if (!active || reducedMotion.matches) {
           stopTicks();
           return;
