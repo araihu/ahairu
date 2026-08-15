@@ -658,6 +658,7 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
     await page.waitForFunction((tick) => document.querySelector("[data-x9-live-availability]").dataset.x9Tick !== tick, {}, idleTick);
     const activeTick = await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick);
     await page.mouse.move(0, 0);
+    await page.waitForFunction(() => !document.querySelector(".project-tile--4 .project-card")?.matches(":hover"));
     await new Promise((resolve) => setTimeout(resolve, 2_200));
     assert.equal(await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick), activeTick);
   } finally {
@@ -829,6 +830,8 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
       return { translate: card.translate, shadow: card.boxShadow };
     });
     await page.hover(".project-card-surface");
+    await page.waitForFunction(() => document.querySelector(".project-card-surface")?.matches(":hover"));
+    await page.waitForFunction(() => getComputedStyle(document.querySelector(".project-art"), "::before").transform !== "none");
     await new Promise((resolve) => setTimeout(resolve, 220));
     const after = await page.evaluate(() => {
       const card = getComputedStyle(document.querySelector(".project-card-surface"));
