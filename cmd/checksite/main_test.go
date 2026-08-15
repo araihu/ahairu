@@ -45,6 +45,7 @@ func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
 		"actions/upload-artifact@",
 		"accepted-assets-dispatch",
 		"accepted-assets-main",
+		"timeout-minutes: 20",
 	} {
 		if !strings.Contains(acceptedAssets, want) {
 			t.Errorf("accepted-assets misses %q", want)
@@ -209,6 +210,25 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 			}
 		})
 	}
+	for _, name := range []string{"acceptedAssetsDispatch", "acceptedAssetsMain", "deploy"} {
+		function := daggerFunctionSource(t, module, name)
+		browser := strings.Index(function, "this.withBrowserRuntime(")
+		handoff := strings.Index(function, `withSecretVariable("ASSETS_HANDOFF_JSON"`)
+		assetsToken := strings.Index(function, `withSecretVariable("ASSETS_GITHUB_TOKEN"`)
+		prepare := strings.Index(function, "scripts/prepare_asset_bundle.py")
+		if browser < 0 || assetsToken < 0 || prepare < 0 || browser > assetsToken || assetsToken > prepare {
+			t.Errorf("%s must bootstrap the browser before attaching the Assets token and preparing the bundle", name)
+		}
+		if name != "deploy" && (handoff < 0 || handoff > assetsToken) {
+			t.Errorf("%s must attach the handoff secret before the Assets token", name)
+		}
+	}
+	if !strings.Contains(module, "sharing: CacheSharingMode.Locked") {
+		t.Error("Puppeteer cache must use locked sharing")
+	}
+	if !strings.Contains(module, "await access(executable)") {
+		t.Error("browser runtime must verify the resolved executable path")
+	}
 
 	deploy := daggerFunctionSource(t, module, "deploy")
 	assertOrdered(t, deploy,
@@ -232,7 +252,10 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-npm-v1`" + `)`,
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-build-v1`" + `)`,
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-mod-v1`" + `)`,
-		`cacheVolume(` + "`ahairu-${cacheNamespace}-puppeteer-v1`" + `)`,
+		`cacheVolume(` + "`ahairu-${cacheNamespace}-puppeteer-v2`" + `)`,
+		`PUPPETEER_CACHE_DIR`,
+		`"puppeteer", "browsers", "install", "chrome"`,
+		`Puppeteer Chromium ready`,
 	} {
 		if !strings.Contains(module, want) {
 			t.Errorf("Dagger module misses %q", want)
