@@ -210,14 +210,24 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 			}
 		})
 	}
-	for _, name := range []string{"acceptedAssetsDispatch", "acceptedAssetsMain"} {
+	for _, name := range []string{"acceptedAssetsDispatch", "acceptedAssetsMain", "deploy"} {
 		function := daggerFunctionSource(t, module, name)
+		browser := strings.Index(function, "this.withBrowserRuntime(")
 		handoff := strings.Index(function, `withSecretVariable("ASSETS_HANDOFF_JSON"`)
 		assetsToken := strings.Index(function, `withSecretVariable("ASSETS_GITHUB_TOKEN"`)
 		prepare := strings.Index(function, "scripts/prepare_asset_bundle.py")
-		if handoff < 0 || assetsToken < 0 || prepare < 0 || handoff > assetsToken || assetsToken > prepare {
-			t.Errorf("%s must attach both handoff secrets immediately before bundle preparation", name)
+		if browser < 0 || assetsToken < 0 || prepare < 0 || browser > assetsToken || assetsToken > prepare {
+			t.Errorf("%s must bootstrap the browser before attaching the Assets token and preparing the bundle", name)
 		}
+		if name != "deploy" && (handoff < 0 || handoff > assetsToken) {
+			t.Errorf("%s must attach the handoff secret before the Assets token", name)
+		}
+	}
+	if !strings.Contains(module, "sharing: CacheSharingMode.Locked") {
+		t.Error("Puppeteer cache must use locked sharing")
+	}
+	if !strings.Contains(module, "await access(executable)") {
+		t.Error("browser runtime must verify the resolved executable path")
 	}
 
 	deploy := daggerFunctionSource(t, module, "deploy")
