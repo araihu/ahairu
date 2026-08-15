@@ -656,6 +656,7 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
     assert.equal(await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick), idleTick);
 
     const x9CardSelector = ".project-tile--4 .project-card";
+    await page.$eval("[data-x9-live-availability]", (art) => art.scrollIntoView({ block: "center", inline: "center" }));
     await page.$eval(x9CardSelector, (card) => card.scrollIntoView({ block: "center", inline: "center" }));
     await page.waitForFunction((selector) => {
       const card = document.querySelector(selector);
@@ -665,12 +666,16 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
     }, {}, x9CardSelector);
     await page.hover(x9CardSelector);
     await page.$eval(x9CardSelector, (card) => {
+      card.focus();
+      card.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
       card.dispatchEvent(new PointerEvent("pointerenter", { bubbles: false, pointerType: "mouse" }));
     });
     await page.waitForFunction((tick) => document.querySelector("[data-x9-live-availability]").dataset.x9Tick !== tick, {}, idleTick);
     const activeTick = await page.$eval("[data-x9-live-availability]", (art) => art.dataset.x9Tick);
     await page.mouse.move(0, 0);
     await page.$eval(x9CardSelector, (card) => {
+      card.blur();
+      card.dispatchEvent(new FocusEvent("focusout", { bubbles: true, relatedTarget: null }));
       card.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false, pointerType: "mouse" }));
     });
     await page.evaluate(() => {
@@ -864,8 +869,8 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
         artName: getComputedStyle(document.querySelector(".project-art-name")).transform,
       };
     });
-    await page.hover(".project-card-surface");
-    await page.waitForFunction(() => document.querySelector(".project-card-surface")?.matches(":hover"));
+    await page.hover(".project-card");
+    await page.waitForFunction(() => document.querySelector(".project-card")?.matches(":hover"));
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const after = await page.evaluate(() => {
       const card = getComputedStyle(document.querySelector(".project-card-surface"));
