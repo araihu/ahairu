@@ -282,6 +282,7 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
 
   private withBrowserRuntime(container: Container): Container {
     return container
+      .withEnvVariable("AHAIRU_DAGGER_BROWSER", "1")
       .withEnvVariable("PUPPETEER_CACHE_DIR", "/home/node/.cache/puppeteer")
       .withExec(["npm", "exec", "--", "puppeteer", "browsers", "install", "chrome"])
       .withExec([

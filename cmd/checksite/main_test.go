@@ -253,6 +253,7 @@ func TestDaggerEffectFunctionsNeverCacheAndNonceBeforeFreshOperation(t *testing.
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-build-v1`" + `)`,
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-go-mod-v1`" + `)`,
 		`cacheVolume(` + "`ahairu-${cacheNamespace}-puppeteer-v2`" + `)`,
+		`AHAIRU_DAGGER_BROWSER`,
 		`PUPPETEER_CACHE_DIR`,
 		`"puppeteer", "browsers", "install", "chrome"`,
 		`Puppeteer Chromium ready`,

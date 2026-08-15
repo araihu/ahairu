@@ -48,6 +48,14 @@ async function servePublic() {
   };
 }
 
+async function launchBrowser(options = {}) {
+  const args = [...(options.args ?? [])];
+  if (process.env.AHAIRU_DAGGER_BROWSER === "1") {
+    args.push("--no-sandbox", "--disable-setuid-sandbox");
+  }
+  return puppeteer.launch({ ...options, args });
+}
+
 const fixture = `<!doctype html>
 <style>${componentCSS}\n${shellCSS}\n${css}</style>
 <header class="ahairu-header"><nav class="ahairu-primary-links" aria-label="Project navigation"><a href="#home">Home</a><a href="#libs">Libs</a><a href="#apps">Apps</a><a href="#blog">Blog</a></nav></header>
@@ -84,7 +92,7 @@ async function revealCharts(page) {
 }
 
 test("desktop and mobile project navigation meet at the 640px shell boundary", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setContent(fixture);
@@ -109,7 +117,7 @@ test("desktop and mobile project navigation meet at the 640px shell boundary", {
 
 test("storm backdrop selects one theme video, covers the hero, and respects reduced motion", { timeout: 60_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     for (const theme of ["dark", "light"]) {
       const page = await browser.newPage();
@@ -198,7 +206,7 @@ test("storm backdrop selects one theme video, covers the hero, and respects redu
 
 test("featured Goshtoso montage fills the lead family card without the former CSS window", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
@@ -254,7 +262,7 @@ test("featured Goshtoso montage fills the lead family card without the former CS
 
 test("project maturity labels stay attached to the correct products", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     let versionRequests = 0;
@@ -304,7 +312,7 @@ test("project maturity labels stay attached to the correct products", { timeout:
 
 test("application marks sit beside their project names instead of inside the media", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -343,7 +351,7 @@ test("application marks sit beside their project names instead of inside the med
 
 test("Pajé metadata and WIP badge meet text contrast on the dark card", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -381,7 +389,7 @@ test("Pajé metadata and WIP badge meet text contrast on the dark card", { timeo
 
 test("featured Goshtoso family montage plays whenever its visual is in view", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
@@ -409,7 +417,7 @@ test("featured Goshtoso family montage plays whenever its visual is in view", { 
 
 test("chart runtimes and payload stay out of first paint until the HTMX reveal trigger", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
+  const browser = await launchBrowser({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
   try {
     const page = await browser.newPage();
     const requested = [];
@@ -454,7 +462,7 @@ test("chart runtimes and payload stay out of first paint until the HTMX reveal t
 
 test("restoring directly to a chart card still hydrates the shared chart bundle", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
+  const browser = await launchBrowser({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
   try {
     const page = await browser.newPage();
     const requested = [];
@@ -477,7 +485,7 @@ test("restoring directly to a chart card still hydrates the shared chart bundle"
 
 test("Pajé uses an undecorated actual chart that fills its media area", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -509,7 +517,7 @@ test("Pajé uses an undecorated actual chart that fills its media area", { timeo
 
 test("Pajé traces its deterministic lifecycle on every card hover", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -571,7 +579,7 @@ test("Pajé traces its deterministic lifecycle on every card hover", { timeout: 
 
 test("Pajé exposes the complete localized lifecycle with stable coordinates", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -602,7 +610,7 @@ test("Pajé exposes the complete localized lifecycle with stable coordinates", {
 
 test("X-9 availability chart fills its media area", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -635,7 +643,7 @@ test("X-9 availability chart fills its media area", { timeout: 30_000 }, async (
 
 test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -660,7 +668,7 @@ test("X-9 ticks only while its card is hovered", { timeout: 30_000 }, async () =
 
 test("Goshtoso Charts uses an actual solid Surface3D heart", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
+  const browser = await launchBrowser({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -715,7 +723,7 @@ test("Goshtoso Charts uses an actual solid Surface3D heart", { timeout: 30_000 }
 
 test("featured Surface3D heart rotates whenever visible on desktop and touch", { timeout: 60_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
+  const browser = await launchBrowser({ headless: true, args: ["--enable-webgl", "--ignore-gpu-blocklist"] });
   try {
     const desktop = await browser.newPage();
     await desktop.setViewport({ width: 1280, height: 800, isMobile: false, hasTouch: false });
@@ -782,7 +790,7 @@ test("featured Surface3D heart rotates whenever visible on desktop and touch", {
 
 test("Goshtoso App Shells art previews desktop and mobile shell composition", { timeout: 30_000 }, async () => {
   const server = await servePublic();
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 884, height: 781 });
@@ -811,7 +819,7 @@ test("Goshtoso App Shells art previews desktop and mobile shell composition", { 
 });
 
 test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
@@ -839,7 +847,7 @@ test("Goshtoso pressed card owns the whole-card hover response", { timeout: 30_0
 });
 
 test("Manja OpenAPI text scrolls only while its card is hovered", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setContent(fixture);
@@ -870,7 +878,7 @@ test("Manja OpenAPI text scrolls only while its card is hovered", { timeout: 30_
 });
 
 test("official Muamba crate marks fall only while their row is hovered", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setContent(fixture);
@@ -899,7 +907,7 @@ test("official Muamba crate marks fall only while their row is hovered", { timeo
 });
 
 test("secondary project art gains a visible border on row hover", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
@@ -920,7 +928,7 @@ test("secondary project art gains a visible border on row hover", { timeout: 30_
 });
 
 test("Goshtoso Charts art leans left on row hover", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 720 });
@@ -938,7 +946,7 @@ test("Goshtoso Charts art leans left on row hover", { timeout: 30_000 }, async (
 });
 
 test("reduced motion removes card movement", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await reducedMotionPage(browser, { width: 1280, height: 720 });
     const beforeHover = await page.evaluate(() => ({
@@ -976,7 +984,7 @@ test("reduced motion removes card movement", { timeout: 30_000 }, async () => {
 });
 
 test("reduced motion makes the mobile drawer and trigger instantaneous", { timeout: 30_000 }, async () => {
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await launchBrowser({ headless: true });
   try {
     const page = await reducedMotionPage(browser, { width: 390, height: 844 });
     const closed = await page.evaluate(() => ({
