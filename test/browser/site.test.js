@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import net from "node:net";
 import { after, before, test } from "node:test";
 
 import puppeteer from "puppeteer";
+
+import { browserLaunchOptions } from "./launch-options.js";
 
 const canonicalOrigin = "https://araihu.com";
 const pages = [
@@ -40,12 +41,7 @@ before(async () => {
   wranglerExit = childExit(wrangler);
   await waitForWrangler();
 
-  const localChromium = "/opt/homebrew/bin/chromium";
-  browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || (existsSync(localChromium) ? localChromium : undefined),
-    args: ["--no-sandbox"],
-  });
+  browser = await puppeteer.launch(browserLaunchOptions());
 });
 
 after(async () => {

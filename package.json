@@ -15,7 +15,7 @@
     "test:canary": "node --test scripts/seasonal_assets_canary.test.mjs",
     "canary:seasonal-assets": "node scripts/seasonal_assets_canary.mjs",
     "test:workflow": "node --test scripts/select_deployed_version.test.mjs && python3 scripts/prepare_asset_bundle_test.py && python3 scripts/accepted_assets_state_test.py && go test ./cmd/checksite -run TestWorkflow -count=1",
-    "test:visual": "node --test test/browser/site.test.js",
+    "test:visual": "node --test test/browser/launch-options.test.js test/browser/site.test.js",
     "test:worker": "npm run test:routes",
     "check": "npm run build && go test ./... -count=1 && go run ./cmd/checksite public && npm run test:routes && npm run test:design && npm run test:visual && wrangler deploy --dry-run"
   },
