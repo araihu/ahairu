@@ -12,7 +12,7 @@ English brand and license URLs omit `/en`. Their `/en/...` aliases and every no-
 
 ## Build and verification
 
-The build requires Go 1.26.5, templ 0.3.1020, and Node 24+. It consumes the
+The build requires Go 1.27.0, templ 0.3.1020, and Node 24+. It consumes the
 released Goshtoso module directly; no local `replace` or workspace file belongs
 in the repository.
 
@@ -28,7 +28,7 @@ ASSET_BUNDLE=/absolute/path/to/verified-assets npm run check
 ```
 
 The same CI entry points run locally through Dagger 0.21.8. Dagger owns the Go
-1.26.5, Node 24, templ 0.3.1020, browser, and package-manager environments, so
+1.27.0, Node 24, templ 0.3.1020, browser, and package-manager environments, so
 the host only needs a compatible Dagger CLI and container runner.
 
 ```sh
