@@ -348,7 +348,12 @@ templ MoreProjectArt(content Content, project Project) {
 			</div>
 		</div>
 	} else {
-		<div class="more-art" aria-hidden="true"><span>{ project.Name }</span></div>
+		<div class="more-art" aria-hidden="true">
+			if project.MarkURL != "" {
+				<img class="more-project-mark" src={ project.MarkURL } alt="" width="128" height="128" decoding="async"/>
+			}
+			<span>{ project.Name }</span>
+		</div>
 	}
 }
 

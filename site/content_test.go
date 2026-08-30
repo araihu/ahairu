@@ -29,3 +29,15 @@ func containsProject(projects map[string]string, name string) bool {
 	_, ok := projects[name]
 	return ok
 }
+
+func TestMargoAppearsInEveryLocale(t *testing.T) {
+	for _, content := range Locales() {
+		margo := content.MoreProjects[len(content.MoreProjects)-1]
+		if margo.Name != "Margo" || margo.URL != "https://margo.araihu.com" || margo.MarkURL != "/assets/visuals/margo-icon.svg" {
+			t.Errorf("Margo project in %s = %#v", content.Language, margo)
+		}
+		if margo.Category == "" || margo.Description == "" || margo.Status != "" {
+			t.Errorf("Margo presentation in %s = %#v", content.Language, margo)
+		}
+	}
+}
