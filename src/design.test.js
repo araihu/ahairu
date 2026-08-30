@@ -295,6 +295,7 @@ test("project maturity labels stay attached to the correct products", { timeout:
       chartsVersion: document.querySelector("#goshtoso-charts-version-slot")?.textContent.trim(),
       chartsURL: document.querySelector(".featured-family-card--charts")?.href,
       secondaryProjects: [...document.querySelectorAll(".more-list h3")].map((heading) => heading.textContent.trim()),
+      margoMark: document.querySelector('.more-list a[href="https://margo.araihu.com"]')?.closest(".more-row")?.querySelector(".more-project-mark")?.getAttribute("src"),
       familyRole: document.querySelector(".featured-family-grid")?.getAttribute("role"),
       nestedVersionLinks: document.querySelectorAll(".featured-family-card .project-version a").length,
     }));
@@ -309,7 +310,8 @@ test("project maturity labels stay attached to the correct products", { timeout:
       shellsVersion: "v0.1.3",
       chartsVersion: "v0.0.1",
       chartsURL: "https://charts.goshtoso.araihu.com/",
-      secondaryProjects: ["Muamba"],
+      secondaryProjects: ["Muamba", "Margo"],
+      margoMark: "/assets/visuals/margo-icon.svg",
       familyRole: "group",
       nestedVersionLinks: 0,
     });

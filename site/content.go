@@ -158,8 +158,8 @@ var contents = map[string]Content{
 			[]string{"A Go UI library for server-rendered applications.", "OpenAPI documentation and publishing workbench.", "Durable workflows for code changes.", "Self-hosted monitoring control plane."},
 		),
 		MoreProjects: moreProjects(
-			[]string{"UI foundations", "Data visualization", "Build tooling"},
-			[]string{"Reusable server-rendered application shell patterns built from Goshtoso primitives.", "Chart components for Go and templ applications, from static SVG to interactive exploration.", "Vendor remote build assets with explicit trust and integrity locks."},
+			[]string{"UI foundations", "Data visualization", "Build tooling", "Markdown publishing"},
+			[]string{"Reusable server-rendered application shell patterns built from Goshtoso primitives.", "Chart components for Go and templ applications, from static SVG to interactive exploration.", "Vendor remote build assets with explicit trust and integrity locks.", "Publish one Markdown source in the format your project needs."},
 		),
 	},
 	"pt-br": {
@@ -216,8 +216,8 @@ var contents = map[string]Content{
 			[]string{"Biblioteca de UI Go para aplicações renderizadas no servidor.", "Documentação OpenAPI e ambiente de publicação.", "Workflows duráveis para mudanças de código.", "Plano de controle de monitoramento auto-hospedado."},
 		),
 		MoreProjects: moreProjects(
-			[]string{"Fundações de UI", "Visualização de dados", "Ferramentas de build"},
-			[]string{"Padrões reutilizáveis de shells renderizados no servidor, criados com primitivas Goshtoso.", "Componentes de gráficos para Go e templ, de SVG estático à exploração interativa.", "Distribua assets remotos de build com confiança explícita e locks de integridade."},
+			[]string{"Fundações de UI", "Visualização de dados", "Ferramentas de build", "Publicação em Markdown"},
+			[]string{"Padrões reutilizáveis de shells renderizados no servidor, criados com primitivas Goshtoso.", "Componentes de gráficos para Go e templ, de SVG estático à exploração interativa.", "Distribua assets remotos de build com confiança explícita e locks de integridade.", "Publique uma única fonte Markdown no formato que seu projeto precisa."},
 		),
 	},
 	"es": {
@@ -274,8 +274,8 @@ var contents = map[string]Content{
 			[]string{"Biblioteca de UI Go para aplicaciones renderizadas en servidor.", "Documentación OpenAPI y espacio de publicación.", "Flujos de trabajo durables para cambios de código.", "Plano de control de monitoreo autoalojado."},
 		),
 		MoreProjects: moreProjects(
-			[]string{"Fundamentos de UI", "Visualización de datos", "Herramientas de build"},
-			[]string{"Patrones reutilizables de shells renderizados en servidor, creados con primitivas Goshtoso.", "Componentes de gráficos para Go y templ, desde SVG estático hasta exploración interactiva.", "Distribuye recursos remotos de build con confianza explícita y bloqueos de integridad."},
+			[]string{"Fundamentos de UI", "Visualización de datos", "Herramientas de build", "Publicación en Markdown"},
+			[]string{"Patrones reutilizables de shells renderizados en servidor, creados con primitivas Goshtoso.", "Componentes de gráficos para Go y templ, desde SVG estático hasta exploración interactiva.", "Distribuye recursos remotos de build con confianza explícita y bloqueos de integridad.", "Publica una única fuente Markdown en el formato que necesita tu proyecto."},
 		),
 	},
 }
@@ -294,6 +294,7 @@ func moreProjects(categories, descriptions []string) []Project {
 		{Name: "Goshtoso App Shells", Category: categories[0], Description: descriptions[0], URL: "https://github.com/araihu/goshtoso-app-shells", Status: "ALPHA"},
 		{Name: "Goshtoso Charts", Category: categories[1], Description: descriptions[1], URL: "https://charts.goshtoso.araihu.com", Status: "ALPHA"},
 		{Name: "Muamba", Category: categories[2], Description: descriptions[2], URL: "https://muamba.araihu.com"},
+		{Name: "Margo", Category: categories[3], Description: descriptions[3], URL: "https://margo.araihu.com", MarkURL: "/assets/visuals/margo-icon.svg"},
 	}
 }
 

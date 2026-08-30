@@ -144,6 +144,7 @@ func ProjectVisualAssetNames() []string {
 		"goshtoso-components-montage-v2-av1.mp4",
 		"goshtoso-components-montage-v2.mp4",
 		"goshtoso-components-poster-v2.webp",
+		"margo-icon.svg",
 		"muamba-mark.svg",
 	}
 }
