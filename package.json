@@ -3,8 +3,8 @@
   "type": "module",
   "devDependencies": {
     "playwright": "1.62.1",
-    "puppeteer": "^25.7.0",
-    "wrangler": "^4.123.0"
+    "puppeteer": "^25.9.0",
+    "wrangler": "^4.127.0"
   },
   "scripts": {
     "build": "templ generate && go run ./cmd/ahairu build --asset-bundle \"$ASSET_BUNDLE\"",
