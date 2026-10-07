@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	chartassets "github.com/araihu/goshtoso-charts/assets"
 )
 
 func TestRunBuildRequiresAssetBundle(t *testing.T) {
@@ -134,7 +136,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	if info, err := os.Stat(filepath.Join("public", "assets", "araihu-theme.css")); err != nil || info.Size() == 0 {
 		t.Fatalf("Arai Hû theme missing or empty: %v", err)
 	}
-	if info, err := os.Stat(filepath.Join("public", "charts", "assets", "js", "controls", "5", "controls.js")); err != nil || info.Size() == 0 {
+	if info, err := os.Stat(filepath.Join("public", filepath.FromSlash(strings.TrimPrefix(chartassets.ControlRuntimeURL, "/")))); err != nil || info.Size() == 0 {
 		t.Fatalf("Goshtoso Charts control runtime missing or empty: %v", err)
 	}
 	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "checksums.txt"} {
