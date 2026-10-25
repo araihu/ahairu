@@ -14,13 +14,13 @@ Use the installed Goshtoso system face. Display type is heavy, tight, and oversi
 
 ## Composition
 
-The storm field frames one sharp organization statement, then yields quickly to the work. Projects use an uneven editorial grid: each card has its own composition, but shares the same metadata, purpose, and full-card link contract. Goshtoso opens the collection; Manja, Pajé, and X-9 show the ecosystem's range. Locale switcher stays compact and functional.
+The storm field frames one sharp organization statement, then yields quickly to the work. Projects use an uneven editorial grid: each card has its own composition, but shares the same metadata, purpose, and full-card link contract. Goshtoso opens the collection; Manja and X-9 show the ecosystem's range. Locale switcher stays compact and functional.
 
 Brand and license pages extend that world as a Calibration Bench: measured rules, specimen surfaces, numbered annotations, release facts, and deliberately uneven editorial groupings. This page-specific art direction stays in Arai Hû. Goshtoso supplies reusable layout, panel, icon, theme, and typography primitives without absorbing brand names or identity rules.
 
 ## Identity specimens
 
-Use only cataloged V11 SVGs. Light, dark, monochrome/transparent, and designed-tint examples remain on explicit contrasting surfaces with identical specimen geometry. The protected variants keep embedded colors; only the designated monochrome asset may inherit presentation color. Downloads always retain immutable v0.1.1 release paths and point to the license terms.
+Use only cataloged V11 SVGs. Light, dark, monochrome/transparent, and designed-tint examples remain on explicit contrasting surfaces with identical specimen geometry. The protected variants keep embedded colors; only the designated monochrome asset may inherit presentation color. Downloads always retain immutable v0.2.5 release paths and point to the license terms.
 
 ## Released themes and campaigns
 

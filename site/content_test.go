@@ -8,7 +8,6 @@ func TestProjectLifecycleStatusesMatchPublicMaturity(t *testing.T) {
 		"Goshtoso App Shells": "ALPHA",
 		"Goshtoso Charts":     "ALPHA",
 		"Manja":               "WIP",
-		"Pajé":                "WIP",
 		"X-9":                 "WIP",
 	}
 

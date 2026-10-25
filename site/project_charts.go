@@ -1,7 +1,6 @@
 package site
 
 import (
-	"fmt"
 	"math"
 
 	"github.com/araihu/goshtoso-charts/components/chartcontrol"
@@ -14,60 +13,6 @@ const (
 	heartSurface3DRows    = 49
 	heartSurface3DColumns = 65
 )
-
-// PajeWorkflowGraph renders Pajé's deterministic software-delivery lifecycle.
-func PajeWorkflowGraph(project Project, labels PajeLifecycleLabels) interactive.Instance {
-	names := make([]string, 0, 12)
-	for index, label := range labels.ordered() {
-		names = append(names, fmt.Sprintf("%02d · %s", index+1, label))
-	}
-
-	node := func(index int, x, y, size float64, color string) interactive.Node {
-		return graphNode(names[index], x, y, size, color)
-	}
-	link := func(source, target int) interactive.Link {
-		return interactive.Link{Source: names[source], Target: names[target]}
-	}
-
-	return interactive.Graph(interactive.GraphConfig{
-		Label:  project.Name + " — " + project.Description,
-		Layout: interactive.GraphLayoutNone,
-		Nodes: []interactive.Node{
-			node(0, 8, 18, 29, "#7aa4df"),
-			node(1, 8, 50, 29, "#7aa4df"),
-			node(2, 8, 82, 31, "#ff8a3d"),
-			node(3, 27, 82, 36, "#c7ff4a"),
-			node(4, 41, 50, 42, "#ff8a3d"),
-			node(5, 57, 17, 30, "#ef476f"),
-			node(6, 57, 50, 32, "#ef476f"),
-			node(7, 57, 83, 30, "#7aa4df"),
-			node(8, 72, 33, 34, "#ef476f"),
-			node(9, 80, 69, 38, "#ef476f"),
-			node(10, 92, 69, 37, "#c7ff4a"),
-			node(11, 92, 31, 42, "#c7ff4a"),
-		},
-		Links: []interactive.Link{
-			link(0, 1), link(1, 2), link(2, 3), link(3, 4),
-			link(4, 5), link(4, 6), link(4, 7),
-			link(5, 8), link(6, 8), link(8, 9), link(7, 9),
-			link(9, 10), link(10, 11),
-		},
-		Draggable: interactive.Bool(false),
-		Width:     "100%",
-		Height:    "100%",
-		Options: interactive.ChartOptions{
-			Legend:   &interactive.LegendOptions{Show: interactive.Bool(false)},
-			Tooltip:  &interactive.TooltipOptions{Show: interactive.Bool(false)},
-			Controls: chartcontrol.Options{Expand: chartcontrol.Bool(false)},
-			Export:   &chartcontrol.ExportOptions{Disabled: true},
-		},
-		SeriesOptions: interactive.SeriesOptions{
-			Label:     &interactive.LabelOptions{Show: interactive.Bool(true), Position: "bottom", Color: "#f3f2e9", FontSize: 11},
-			LineStyle: &interactive.LineStyle{Color: "#718397", Width: 2, Opacity: interactive.Float(.72)},
-		},
-		Style: charttheme.Style{Palette: charttheme.PaletteAraiHu, Class: "paje-workflow-chart"},
-	})
-}
 
 // X9AvailabilityChart renders the same stacked availability model used by the
 // Goshtoso Charts live-availability example. Client-side ticks keep the static
@@ -207,19 +152,4 @@ func availabilityValue(active bool) float64 {
 		return 1
 	}
 	return 0
-}
-
-func graphNode(name string, x, y, size float64, color string) interactive.Node {
-	return interactive.Node{
-		Name:  name,
-		X:     &x,
-		Y:     &y,
-		Size:  size,
-		Fixed: interactive.Bool(true),
-		ItemStyle: &interactive.ItemStyle{
-			Color:       color,
-			BorderColor: "#07111f",
-			BorderWidth: 2,
-		},
-	}
 }

@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	BrandAssetsPublicPrefix   = "/assets/releases/v0.1.1/"
-	BrandAssetsRelease        = "v0.1.1"
-	BrandIconsGeneratorCommit = "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854"
-	BrandCatalogSHA256        = "bca54f24af0529ebe988c901c6786110f2006a5bcedbab5928ba2795e1cf7d7c"
-	BrandChecksumsSHA256      = "9031d8f7ddbfd0ca33ea8e74953cd1a7f0e198f55fdd8dfe8277f0e80a4bd5c4"
-	BrandSpriteSHA256         = "e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45"
+	BrandAssetsPublicPrefix   = "/assets/releases/v0.2.5/"
+	BrandAssetsRelease        = "v0.2.5"
+	BrandIconsGeneratorCommit = "b0f08d46bab278cef30c03cb77a51da8df5d9721"
+	BrandCatalogSHA256        = "c448e94d02ee3d8727ffa40fa38fae3319f178547c12376968c3ad58ff0b758b"
+	BrandChecksumsSHA256      = "444de3ca511255e9fce04546f8922963e26b6b04b81cff16df79fe813598b014"
+	BrandSpriteSHA256         = "2a0832eaa44148c89bb9edc4be768fb2c12058279ad8dec69062f5b0241b5970"
 )
 
 //go:embed brand.css
@@ -89,9 +89,9 @@ var releaseSupportPaths = []string{
 	"licenses/Apache-2.0.txt",
 	"licenses/heroicons-MIT.txt",
 	"platform/web/araihu/manifest-icons.json",
+	"platform/web/balemoh/manifest-icons.json",
 	"platform/web/goshtoso/manifest-icons.json",
 	"platform/web/manja/manifest-icons.json",
-	"platform/web/paje/manifest-icons.json",
 	"platform/web/x9/manifest-icons.json",
 }
 
@@ -155,7 +155,7 @@ func SocialAsset(name string) ([]byte, error) { return socialAssets.ReadFile("as
 // SocialAssetNames returns every social-preview image emitted by the static builder.
 func SocialAssetNames() []string { return []string{"araihu-storm-v1.jpg"} }
 
-// BrandAssets returns the immutable v0.1.1 release subset rooted at its release paths.
+// BrandAssets returns the immutable v0.2.5 release subset rooted at its release paths.
 func BrandAssets() fs.FS {
 	sub, err := fs.Sub(embeddedBrandAssets, "brand-assets")
 	if err != nil {
@@ -164,7 +164,7 @@ func BrandAssets() fs.FS {
 	return sub
 }
 
-// BrandCatalog parses the exact upstream v0.1.1 catalog.
+// BrandCatalog parses the exact upstream v0.2.5 catalog.
 func BrandCatalog() (Catalog, error) {
 	return brandCatalog(BrandAssets())
 }
@@ -182,7 +182,7 @@ func brandCatalog(fsys fs.FS) (Catalog, error) {
 	if err := json.Unmarshal(data, &catalog); err != nil {
 		return Catalog{}, fmt.Errorf("parse catalog: %w", err)
 	}
-	if catalog.SchemaVersion != 1 || catalog.Release != BrandAssetsRelease || catalog.IdentityRevision != 11 {
+	if catalog.SchemaVersion != 2 || catalog.Release != BrandAssetsRelease || catalog.IdentityRevision != 11 {
 		return Catalog{}, fmt.Errorf("unexpected catalog schema/release/revision: %d/%s/%d", catalog.SchemaVersion, catalog.Release, catalog.IdentityRevision)
 	}
 	return catalog, nil

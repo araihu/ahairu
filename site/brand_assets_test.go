@@ -25,7 +25,7 @@ func TestBundledBrandAssetsMatchReleaseChecksums(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got, want := len(paths), 174; got != want {
+	if got, want := len(paths), 492; got != want {
 		t.Fatalf("bundled asset count = %d, want %d", got, want)
 	}
 	for _, path := range paths {
@@ -104,34 +104,34 @@ func TestCatalogUsesPinnedReleaseAndPublicPrefix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if catalog.Release != "v0.1.1" || catalog.IdentityRevision != 11 {
+	if catalog.Release != "v0.2.5" || catalog.IdentityRevision != 11 {
 		t.Fatalf("catalog release = %q revision = %d", catalog.Release, catalog.IdentityRevision)
 	}
-	if BrandAssetsPublicPrefix != "/assets/releases/v0.1.1/" {
+	if BrandAssetsPublicPrefix != "/assets/releases/v0.2.5/" {
 		t.Fatalf("public prefix = %q", BrandAssetsPublicPrefix)
 	}
-	if got := BrandCatalogSHA256; got != "bca54f24af0529ebe988c901c6786110f2006a5bcedbab5928ba2795e1cf7d7c" {
+	if got := BrandCatalogSHA256; got != "c448e94d02ee3d8727ffa40fa38fae3319f178547c12376968c3ad58ff0b758b" {
 		t.Fatalf("catalog hash = %q", got)
 	}
-	if BrandAssetsRelease != "v0.1.1" {
+	if BrandAssetsRelease != "v0.2.5" {
 		t.Fatalf("assets release = %q", BrandAssetsRelease)
 	}
-	if BrandIconsGeneratorCommit != "d8d58c355a21fc5d17edeb3ef0340a5a3b2d6854" {
+	if BrandIconsGeneratorCommit != "b0f08d46bab278cef30c03cb77a51da8df5d9721" {
 		t.Fatalf("icon generator commit = %q", BrandIconsGeneratorCommit)
 	}
-	if BrandChecksumsSHA256 != "9031d8f7ddbfd0ca33ea8e74953cd1a7f0e198f55fdd8dfe8277f0e80a4bd5c4" {
+	if BrandChecksumsSHA256 != "444de3ca511255e9fce04546f8922963e26b6b04b81cff16df79fe813598b014" {
 		t.Fatalf("checksums hash = %q", BrandChecksumsSHA256)
 	}
-	if BrandSpriteSHA256 != "e0c98a783cf65cf52b0a57cca47b84704499200a7fdb113b751d8f6c5828ba45" {
+	if BrandSpriteSHA256 != "2a0832eaa44148c89bb9edc4be768fb2c12058279ad8dec69062f5b0241b5970" {
 		t.Fatalf("brand sprite hash = %q", BrandSpriteSHA256)
 	}
 }
 
 func TestBundledBrandAssetsMatchPinnedReleaseManifest(t *testing.T) {
-	if got, want := BrandAssetsPublicPrefix, "/assets/releases/v0.1.1/"; got != want {
+	if got, want := BrandAssetsPublicPrefix, "/assets/releases/v0.2.5/"; got != want {
 		t.Fatalf("public prefix = %q, want %q", got, want)
 	}
-	if got, want := BrandAssetsRelease, "v0.1.1"; got != want {
+	if got, want := BrandAssetsRelease, "v0.2.5"; got != want {
 		t.Fatalf("assets release = %q, want %q", got, want)
 	}
 
@@ -144,7 +144,7 @@ func TestBundledBrandAssetsMatchPinnedReleaseManifest(t *testing.T) {
 		t.Fatal(err)
 	}
 	gotRelease := sha256.Sum256(releaseData)
-	if got, want := hex.EncodeToString(gotRelease[:]), "eb2f556224ce1bcab979e3f1c8c8f05813dc0c3381b30ae757df32216027ebb9"; got != want {
+	if got, want := hex.EncodeToString(gotRelease[:]), "b749ac93b9a56a0884fa9345a4906b99e6b96df903311a5835af3cc4768b79c6"; got != want {
 		t.Fatalf("release.json hash = %s, want %s", got, want)
 	}
 	if got, want := checksums["release.json"], hex.EncodeToString(gotRelease[:]); got != want {
@@ -181,7 +181,7 @@ func TestBundledBrandAssetsMatchPinnedReleaseManifest(t *testing.T) {
 }
 
 func TestBrandPageLinksPinnedReleaseDocuments(t *testing.T) {
-	const prefix = "/assets/releases/v0.1.1/"
+	const prefix = "/assets/releases/v0.2.5/"
 	for _, path := range []string{"/brand/", "/pt-br/brand/", "/es/brand/"} {
 		html := renderComponent(t, BrandPage(pageForTest(t, path)))
 		for _, releasePath := range []string{

@@ -34,7 +34,7 @@ release tags.
 
 ## Embedded fallback release promotion
 
-Status: open. The site currently embeds and validates immutable `v0.1.1`
+Status: open. The site currently embeds and validates immutable `v0.2.5`
 brand paths for its no-JavaScript fallback. Promoting a newer runtime release
 as the default channel must first regenerate those embedded paths (and their
 generated tests/catalog metadata), or the assembled bundle will correctly fail

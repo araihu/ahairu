@@ -3,7 +3,7 @@ package brandicons
 import "testing"
 
 func TestGeneratedAraihuBrandCatalog(t *testing.T) {
-	if SpriteURL != "/assets/releases/v0.1.1/icons/brand/sprite.svg" {
+	if SpriteURL != "/assets/releases/v0.2.5/icons/brand/sprite.svg" {
 		t.Fatalf("SpriteURL = %q", SpriteURL)
 	}
 	if got, want := len(Glyphs), 19; got != want {

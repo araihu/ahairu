@@ -50,15 +50,15 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 	}{
 		"en": {
 			title:       "Open software projects | Arai Hû",
-			description: "Open software from Arai Hû for server-rendered interfaces, OpenAPI documentation, durable code-change workflows, and self-hosted monitoring.",
+			description: "Open software from Arai Hû for server-rendered interfaces, OpenAPI documentation, and self-hosted monitoring.",
 		},
 		"pt-br": {
 			title:       "Projetos de software aberto | Arai Hû",
-			description: "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação OpenAPI, workflows duráveis de mudança de código e monitoramento auto-hospedado.",
+			description: "Software aberto da Arai Hû para interfaces renderizadas no servidor, documentação OpenAPI e monitoramento auto-hospedado.",
 		},
 		"es": {
 			title:       "Proyectos de software abierto | Arai Hû",
-			description: "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación OpenAPI, flujos de trabajo duraderos para cambios de código y monitoreo autoalojado.",
+			description: "Software abierto de Arai Hû para interfaces renderizadas en servidor, documentación OpenAPI y monitoreo autoalojado.",
 		},
 	} {
 		data, readErr := os.ReadFile(filepath.Join("public", locale, "index.html"))
@@ -108,11 +108,10 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		}
 	}
 	for _, asset := range []string{
-		"/assets/releases/v0.1.1/icons/brand/araihu-icon-adaptive-transparent-optical.svg",
-		"/assets/releases/v0.1.1/icons/brand/goshtoso-icon-dark-plate-optical.svg",
-		"/assets/releases/v0.1.1/icons/brand/manja-icon-dark-plate-optical.svg",
-		"/assets/releases/v0.1.1/icons/brand/paje-icon-dark-transparent-optical.svg",
-		"/assets/releases/v0.1.1/icons/brand/x9-icon-dark-plate-optical.svg",
+		"/assets/releases/v0.2.5/icons/brand/araihu-icon-adaptive-transparent-optical.svg",
+		"/assets/releases/v0.2.5/icons/brand/goshtoso-icon-dark-plate-optical.svg",
+		"/assets/releases/v0.2.5/icons/brand/manja-icon-dark-plate-optical.svg",
+		"/assets/releases/v0.2.5/icons/brand/x9-icon-dark-plate-optical.svg",
 	} {
 		if !strings.Contains(page, asset) {
 			t.Errorf("generated HTML misses brand asset %q", asset)
@@ -140,7 +139,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		t.Fatalf("Goshtoso Charts control runtime missing or empty: %v", err)
 	}
 	for _, name := range []string{"release.json", "catalog.json", "themes.json", "campaigns.json", "checksums.txt"} {
-		if info, err := os.Stat(filepath.Join("public", "assets", "releases", "v0.1.1", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
+		if info, err := os.Stat(filepath.Join("public", "assets", "releases", "v0.2.5", filepath.FromSlash(name))); err != nil || info.Size() == 0 {
 			t.Errorf("brand release asset %s missing or empty: %v", name, err)
 		}
 	}
@@ -213,7 +212,7 @@ func TestBuildRetainsExistingImmutableReleases(t *testing.T) {
 func fixtureAssetBundle(t *testing.T) string {
 	t.Helper()
 	root := t.TempDir()
-	releaseRoot := filepath.Join(root, "releases", "v0.1.1")
+	releaseRoot := filepath.Join(root, "releases", "v0.2.5")
 	for name, contents := range map[string][]byte{
 		"catalog.json":    []byte(`{"schemaVersion":1}`),
 		"themes.json":     []byte(`{"schemaVersion":1}`),
@@ -256,7 +255,7 @@ func fixtureAssetBundle(t *testing.T) string {
 		ThemesSHA256     string          `json:"themesSha256"`
 		CampaignsSHA256  string          `json:"campaignsSha256"`
 		Files            []inventoryFile `json:"files"`
-	}{SchemaVersion: 1, Release: "v0.1.1", IdentityRevision: 11, RuntimeVersion: 1, Files: inventory}
+	}{SchemaVersion: 1, Release: "v0.2.5", IdentityRevision: 11, RuntimeVersion: 1, Files: inventory}
 	for _, item := range inventory {
 		switch item.Path {
 		case "catalog.json":
@@ -295,7 +294,7 @@ func fixtureAssetBundle(t *testing.T) string {
 		Theme          theme  `json:"theme"`
 		Digest         string `json:"digest"`
 	}
-	value := channel{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.1.1", Source: "default", Theme: theme{ID: "base", CSSURL: "https://araihu.com/assets/releases/v0.1.1/themes/base.css"}}
+	value := channel{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.2.5", Source: "default", Theme: theme{ID: "base", CSSURL: "https://araihu.com/assets/releases/v0.2.5/themes/base.css"}}
 	channelJSON, err := canonicalJSON(value)
 	if err != nil {
 		t.Fatal(err)

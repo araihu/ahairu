@@ -76,9 +76,9 @@ Social previews deliberately use two PageKind assets: home and brand pages share
 deployable bundle retains every immutable release below
 `/assets/releases/vMAJOR.MINOR.PATCH/`, plus `latest`, `default`, and `current`
 channel documents. Build-time validation rejects additions, omissions, and
-checksum drift. Brand downloads remain pinned to `/assets/releases/v0.1.1/`.
+checksum drift. Brand downloads remain pinned to `/assets/releases/v0.2.5/`.
 
-Current baseline provenance: Arai Hû Assets `v0.1.1`, Goshtoso `v0.1.1`.
+Current baseline provenance: Arai Hû Assets `v0.2.5`; application module versions are pinned in `go.mod`.
 
 ## Assets release and delivery contract
 

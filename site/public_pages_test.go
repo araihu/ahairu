@@ -107,7 +107,6 @@ func TestSharedChromeAndProjectMarksUseContextualAssets(t *testing.T) {
 	wantProjectMark := map[string]string{
 		"Goshtoso": "goshtoso-icon-dark-plate-optical.svg",
 		"Manja":    "manja-icon-dark-plate-optical.svg",
-		"Pajé":     "paje-icon-dark-transparent-optical.svg",
 		"X-9":      "x9-icon-dark-plate-optical.svg",
 	}
 	for _, home := range Locales() {
@@ -140,7 +139,6 @@ func TestSharedChromeAndProjectMarksUseContextualAssets(t *testing.T) {
 		"araihu-icon-adaptive-transparent-optical.svg",
 		"goshtoso-icon-dark-plate-optical.svg",
 		"manja-icon-dark-plate-optical.svg",
-		"paje-icon-dark-transparent-optical.svg",
 		"x9-icon-dark-plate-optical.svg",
 	} {
 		if !strings.Contains(homeHTML, want) {

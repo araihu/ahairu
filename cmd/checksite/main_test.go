@@ -849,7 +849,7 @@ func TestCheckRejectsMissingLocalDocumentResources(t *testing.T) {
 func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
 	root := writeValidPublic(t)
 	mutatePage(t, root, "/en/", func(document string) string {
-		return strings.Replace(document, "</body>", `<a href="/assets/releases/v0.1.1/NOTICE" download>NOTICE</a>`+"</body>", 1)
+		return strings.Replace(document, "</body>", `<a href="/assets/releases/v0.2.5/NOTICE" download>NOTICE</a>`+"</body>", 1)
 	})
 	if err := Check(root); err != nil {
 		t.Fatal(err)
@@ -858,8 +858,8 @@ func TestCheckAcceptsExistingDotlessVersionedAsset(t *testing.T) {
 
 func TestCheckRejectsExistingDotlessScriptAndImage(t *testing.T) {
 	for name, element := range map[string]string{
-		"script": `<script src="/assets/releases/v0.1.1/NOTICE"></script>`,
-		"image":  `<img src="/assets/releases/v0.1.1/NOTICE" alt="" width="1" height="1">`,
+		"script": `<script src="/assets/releases/v0.2.5/NOTICE"></script>`,
+		"image":  `<img src="/assets/releases/v0.2.5/NOTICE" alt="" width="1" height="1">`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			root := writeValidPublic(t)
@@ -875,7 +875,7 @@ func TestCheckRejectsExistingDotlessScriptAndImage(t *testing.T) {
 
 func TestCheckRejectsMissingDotlessAssetAndUnknownExtensionlessPage(t *testing.T) {
 	for _, resource := range []string{
-		"/assets/releases/v0.1.1/MISSING",
+		"/assets/releases/v0.2.5/MISSING",
 		"/unknown-extensionless-page",
 	} {
 		t.Run(resource, func(t *testing.T) {
@@ -1133,7 +1133,7 @@ func TestCheckRejectsInvalidAssetReleaseBundle(t *testing.T) {
 		{
 			name: "missing immutable release document",
 			mutate: func(t *testing.T, root string) {
-				if err := os.Remove(filepath.Join(root, "assets", "releases", "v0.1.1", "release.json")); err != nil {
+				if err := os.Remove(filepath.Join(root, "assets", "releases", "v0.2.5", "release.json")); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -1142,21 +1142,21 @@ func TestCheckRejectsInvalidAssetReleaseBundle(t *testing.T) {
 		{
 			name: "invalid release checksums",
 			mutate: func(t *testing.T, root string) {
-				writeFile(t, filepath.Join(root, "assets", "releases", "v0.1.1", "checksums.txt"), []byte("not a checksum\n"))
+				writeFile(t, filepath.Join(root, "assets", "releases", "v0.2.5", "checksums.txt"), []byte("not a checksum\n"))
 			},
 			want: "checksums",
 		},
 		{
 			name: "relative channel URL",
 			mutate: func(t *testing.T, root string) {
-				writeReleaseChannel(t, root, "current", "/assets/releases/v0.1.1/themes/base.css")
+				writeReleaseChannel(t, root, "current", "/assets/releases/v0.2.5/themes/base.css")
 			},
 			want: "absolute same-origin URL",
 		},
 		{
 			name: "invalid SemVer directory",
 			mutate: func(t *testing.T, root string) {
-				if err := os.Rename(filepath.Join(root, "assets", "releases", "v0.1.1"), filepath.Join(root, "assets", "releases", "v0.1.01")); err != nil {
+				if err := os.Rename(filepath.Join(root, "assets", "releases", "v0.2.5"), filepath.Join(root, "assets", "releases", "v0.1.01")); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -1165,7 +1165,7 @@ func TestCheckRejectsInvalidAssetReleaseBundle(t *testing.T) {
 		{
 			name: "missing retained inventory file",
 			mutate: func(t *testing.T, root string) {
-				if err := os.Remove(filepath.Join(root, "assets", "releases", "v0.1.1", "themes", "base.css")); err != nil {
+				if err := os.Remove(filepath.Join(root, "assets", "releases", "v0.2.5", "themes", "base.css")); err != nil {
 					t.Fatal(err)
 				}
 			},
@@ -1202,7 +1202,7 @@ func writeValidPublic(t *testing.T) string {
 	for _, page := range site.Pages() {
 		var content templ.Component = templ.NopComponent
 		if page.Meta.Kind == site.PageBrand {
-			content = templ.Raw(`<img src="/assets/releases/v0.1.1/brand/araihu/logo/tinted-transparent-optical.svg" alt="Arai Hû" width="720" height="134" data-asset-brand="logo">`)
+			content = templ.Raw(`<img src="/assets/releases/v0.2.5/brand/araihu/logo/tinted-transparent-optical.svg" alt="Arai Hû" width="720" height="134" data-asset-brand="logo">`)
 		}
 		var output strings.Builder
 		if err := site.Layout(page, content).Render(context.Background(), &output); err != nil {
@@ -1216,7 +1216,7 @@ func writeValidPublic(t *testing.T) string {
 
 func writeAssetReleaseBundle(t *testing.T, root string) {
 	t.Helper()
-	releaseRoot := filepath.Join(root, "assets", "releases", "v0.1.1")
+	releaseRoot := filepath.Join(root, "assets", "releases", "v0.2.5")
 	files := map[string][]byte{
 		"catalog.json":    []byte(`{"schemaVersion":1}`),
 		"themes.json":     []byte(`{"schemaVersion":1}`),
@@ -1278,7 +1278,7 @@ func writeAssetReleaseBundle(t *testing.T, root string) {
 		ThemesSHA256     string          `json:"themesSha256"`
 		CampaignsSHA256  string          `json:"campaignsSha256"`
 		Files            []inventoryFile `json:"files"`
-	}{SchemaVersion: 1, Release: "v0.1.1", IdentityRevision: 11, RuntimeVersion: 1, Files: inventory}
+	}{SchemaVersion: 1, Release: "v0.2.5", IdentityRevision: 11, RuntimeVersion: 1, Files: inventory}
 	for _, item := range inventory {
 		switch item.Path {
 		case "catalog.json":
@@ -1307,7 +1307,7 @@ func writeAssetReleaseBundle(t *testing.T, root string) {
 	writeFile(t, filepath.Join(releaseRoot, "checksums.txt"), []byte(strings.Join(checksums, "\n")+"\n"))
 	writeFile(t, filepath.Join(root, "assets", "campaign", "v1.js"), files["campaign/v1.js"])
 	for _, channel := range []string{"latest", "default", "current"} {
-		writeReleaseChannel(t, root, channel, "https://araihu.com/assets/releases/v0.1.1/themes/base.css")
+		writeReleaseChannel(t, root, channel, "https://araihu.com/assets/releases/v0.2.5/themes/base.css")
 	}
 }
 
@@ -1324,7 +1324,7 @@ func writeReleaseChannel(t *testing.T, root, channel, cssURL string) {
 		Source         string `json:"source"`
 		Theme          theme  `json:"theme"`
 		Digest         string `json:"digest"`
-	}{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.1.1", Source: "default", Theme: theme{ID: "base", CSSURL: cssURL}}
+	}{SchemaVersion: 1, RuntimeVersion: 1, Release: "v0.2.5", Source: "default", Theme: theme{ID: "base", CSSURL: cssURL}}
 	payload := canonicalJSON(t, value)
 	sum := sha256.Sum256(payload)
 	value.Digest = hex.EncodeToString(sum[:])
