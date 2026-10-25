@@ -295,7 +295,6 @@ html { scroll-behavior: smooth; }
 .project-tile { grid-column: span 6; min-width: 0; }
 #apps .project-tile--2 { grid-column: span 5; }
 #apps .project-tile--3 { grid-column: span 7; }
-#apps .project-tile--4 { grid-column: 2 / span 10; }
 .project-card { color: var(--storm-night); display: block; text-decoration: none; }
 .project-card-surface { background: #e4e8eb; border-color: #a3b0bf; border-radius: 1.2rem; color: var(--storm-night); min-height: 32rem; max-width: none; padding: .85rem; }
 .project-media { display: flex; flex-direction: column; height: auto; min-height: 18rem; overflow: visible; }
@@ -344,33 +343,15 @@ html { scroll-behavior: smooth; }
 .openapi-block .indent-3 { padding-left: 3.6rem; }
 .openapi-block .indent-4 { padding-left: 4.8rem; }
 .openapi-block .indent-5 { padding-left: 6rem; }
-.project-tile--3 .project-card-surface { background: #173b72; border-color: #31588f; color: #f3f2e9; }
-.project-tile--3 .project-art { background: #07111f; }
-.project-tile--3 .project-art::before { height: 10rem; right: 28%; top: 38%; width: 10rem; }
-.project-tile--3 .project-card-surface > div:last-child > span:first-child { color: #aab7c8; }
-.project-tile--3 .project-card-surface p { color: #d5ddeb; }
-.project-tile--3 .project-title-mark { background: #07111f; border-color: #aab7c8; box-shadow: .18rem .2rem 0 rgba(243, 242, 233, .18); }
-.project-tile--3 .project-card-surface .project-status[data-status="WIP"] { color: #d5ddeb; }
-.project-tile--3 .project-action { color: #c7ff4a; }
-.project-tile--3 .project-media { min-height: clamp(24rem, 46vw, 32rem); }
-.project-art--graph { background: #07111f; display: block; padding: 0; }
 .chart-bundle-trigger { height: 1px; left: 0; pointer-events: none; position: absolute; top: 0; width: 1px; }
 .chart-placeholder { align-items: center; display: flex; justify-content: center; }
 .chart-placeholder-pulse { background: linear-gradient(90deg, rgba(113,131,151,.16), rgba(199,255,74,.32), rgba(113,131,151,.16)); border-radius: 999px; display: block; height: 3px; width: 42%; }
-.project-art--graph::before, .project-art--graph::after { display: none; }
-.project-art--graph > .goshtoso-charts-control-wrapper { inset: 0; position: absolute; }
-.project-art--graph > .goshtoso-charts-control-wrapper,
-.project-art--graph .goshtoso-charts-control-content,
-.project-art--graph .paje-workflow-chart,
-.project-art--graph .paje-workflow-chart > .container,
-.project-art--graph .paje-workflow-chart > .container > .item { height: 100%; margin: 0; max-width: none; overflow: hidden; width: 100%; }
-.project-art--graph .paje-workflow-chart { --color-chart-surface: #07111f; --color-chart-surface-alt: #10233d; --color-chart-outline: #718397; --color-chart-grid: #31588f; --color-chart-text: #f3f2e9; }
-.project-tile--4 .project-card-surface { background: #e7edc9; }
-.project-tile--4 .project-art { background: #31588f; }
-.project-tile--4 .project-art-name { font-family: var(--font-mono); }
-.project-tile--4 .project-art::before { border-radius: .75rem; height: 75%; right: 8%; top: 12%; transform: rotate(8deg); width: 3.4rem; }
-.project-tile--4 .project-mark { transform: rotate(-4deg); }
-.project-tile--4 .project-card:hover .project-mark, .project-tile--4 .project-card[data-card-viewport-active] .project-mark { transform: rotate(4deg) scale(1.08); }
+.project-tile--3 .project-card-surface { background: #e7edc9; }
+.project-tile--3 .project-art { background: #31588f; }
+.project-tile--3 .project-art-name { font-family: var(--font-mono); }
+.project-tile--3 .project-art::before { border-radius: .75rem; height: 75%; right: 8%; top: 12%; transform: rotate(8deg); width: 3.4rem; }
+.project-tile--3 .project-mark { transform: rotate(-4deg); }
+.project-tile--3 .project-card:hover .project-mark, .project-tile--3 .project-card[data-card-viewport-active] .project-mark { transform: rotate(4deg) scale(1.08); }
 .project-art--monitor { background: #07111f; display: block; padding: 0; }
 .project-art--monitor::before, .project-art--monitor::after { display: none; }
 .project-art--monitor > .goshtoso-charts-control-wrapper { inset: 0; position: absolute; }
@@ -484,7 +465,7 @@ html { scroll-behavior: smooth; }
 	.featured-family-card { grid-column: span 1; }
 	.featured-family-card--goshtoso { grid-column: 1 / -1; grid-row: auto; }
 	.featured-family-card--goshtoso .featured-demo { aspect-ratio: 16 / 9; min-height: 0; }
-	#apps .project-tile--2, #apps .project-tile--3, #apps .project-tile--4 { grid-column: span 12; }
+	#apps .project-tile--2, #apps .project-tile--3 { grid-column: span 12; }
 	.more-row { grid-template-columns: 2rem minmax(9rem, 13rem) minmax(0, 1fr) auto; }
 }
 

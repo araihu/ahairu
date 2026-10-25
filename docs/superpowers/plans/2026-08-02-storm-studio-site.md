@@ -65,7 +65,7 @@
 
 - [x] Test the required section order: hero, featured Goshtoso, libraries, applications, more projects, mission, field notes/chat.
 - [x] Test that every project has a real destination, category, and localized description.
-- [x] Render Goshtoso as the dominant wide card and Manja, Pajé, and X-9 in an uneven grid.
+- [x] Render Goshtoso as the dominant wide card and Manja and X-9 in an uneven grid.
 - [x] Render App Shells, Charts, and Muamba with alternating filled/unfilled rows.
 - [x] Verify heading hierarchy and landmark names in all locales.
 

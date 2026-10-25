@@ -34,23 +34,15 @@ func ChartFragment(content Content) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-chart-fragment><template data-chart-target=\"#paje-chart-slot\"><div id=\"paje-chart-slot\" class=\"project-art project-art--graph\" data-paje-actual-chart>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div data-chart-fragment><template data-chart-target=\"#x9-chart-slot\"><div id=\"x9-chart-slot\" class=\"project-art project-art--monitor\" data-x9-live-availability>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = PajeWorkflowGraph(content.Projects[2], content.PajeLifecycle).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = X9AvailabilityChart(content.Projects[2]).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></template><template data-chart-target=\"#x9-chart-slot\"><div id=\"x9-chart-slot\" class=\"project-art project-art--monitor\" data-x9-live-availability>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = X9AvailabilityChart(content.Projects[3]).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></template><template data-chart-target=\"#goshtoso-heart-chart-slot\"><div id=\"goshtoso-heart-chart-slot\" class=\"more-art more-art--chart\" data-goshtoso-heart-chart>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</div></template><template data-chart-target=\"#goshtoso-heart-chart-slot\"><div id=\"goshtoso-heart-chart-slot\" class=\"more-art more-art--chart\" data-goshtoso-heart-chart>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -58,33 +50,33 @@ func ChartFragment(content Content) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div></template><script src=\"/assets/js/chart-loader.js?rev=1\" data-echarts-src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "</div></template><script src=\"/assets/js/chart-loader.js?rev=1\" data-echarts-src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var2 string
 		templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.ResolveAttributeValue(chartassets.RuntimeURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/chart_fragments.templ`, Line: 27, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/chart_fragments.templ`, Line: 22, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var2)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\" data-three-d-src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "\" data-three-d-src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var3 string
 		templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(chartassets.ThreeDRuntimeURL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/chart_fragments.templ`, Line: 28, Col: 50}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/chart_fragments.templ`, Line: 23, Col: 50}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "\"></script></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\"></script></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

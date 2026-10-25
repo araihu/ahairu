@@ -242,7 +242,7 @@ test("all canonical pages expose reciprocal absolute metadata and valid JSON-LD"
 });
 
 test("brand downloads are complete local responses in every locale", async () => {
-  const immutableReleasePrefix = "/assets/releases/v0.1.1/";
+  const immutableReleasePrefix = "/assets/releases/v0.2.5/";
   const mutableDownloadPrefixes = [
     "/assets/araihu/",
     "/assets/releases/current/",
@@ -293,7 +293,7 @@ test.skip("/es/ fits a 375px mobile viewport", () => {});
 
 test("representative pages satisfy the full responsive scheme matrix", async () => {
   const representatives = [
-    { path: "/en/", selector: ".project-title-mark", count: 3 },
+    { path: "/en/", selector: ".project-title-mark", count: 2 },
     { path: "/brand/", selector: ".variant-card", count: 4 },
     { path: "/license/", selector: ".terms-panel", count: 2 },
   ];

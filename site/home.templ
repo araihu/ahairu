@@ -31,8 +31,8 @@ templ HomeDocument(page Page, content Content) {
 			<script defer src="/assets/js/x9-availability.js?rev=1"></script>
 			<script src="/assets/campaign/v1.js" data-channel="/assets/releases/current" defer integrity="sha384-oPH7l1vK9vKP1Dn+18sO3yEXlz4ts6KzPEQl0SW4Y/+im05gOaamNNaQAf6bGH/n" crossorigin="anonymous"></script>
 			<script>
-				document.addEventListener("htmx:beforeRequest", (event) => {
-					const element = event.detail?.elt;
+				document.addEventListener("htmx:before:request", (event) => {
+					const element = event.detail?.ctx?.sourceElement;
 					if (!(element instanceof Element) || !element.matches("[data-chart-bundle-trigger]")) return;
 					if (document.documentElement.dataset.chartBundleRequested === "true") {
 						event.preventDefault();
@@ -40,9 +40,9 @@ templ HomeDocument(page Page, content Content) {
 					}
 					document.documentElement.dataset.chartBundleRequested = "true";
 				});
-				document.addEventListener("htmx:afterRequest", (event) => {
-					const element = event.detail?.elt;
-					if (element instanceof Element && element.matches("[data-chart-bundle-trigger]") && !event.detail.successful) {
+				document.addEventListener("htmx:finally:request", (event) => {
+					const element = event.detail?.ctx?.sourceElement;
+					if (element instanceof Element && element.matches("[data-chart-bundle-trigger]") && event.detail.ctx.status?.startsWith("error:")) {
 						delete document.documentElement.dataset.chartBundleRequested;
 					}
 				});
@@ -254,11 +254,6 @@ templ ProjectMedia(content Content, project Project) {
 					<div class="openapi-block">@OpenAPILines()</div>
 				</div>
 			</div>
-		</div>
-	} else if project.Name == "Pajé" {
-		<div id="paje-chart-slot" class="project-art project-art--graph chart-placeholder" data-chart-placeholder="paje" aria-busy="true">
-			@ChartBundleTrigger(content)
-			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
 		</div>
 	} else if project.Name == "X-9" {
 		<div id="x9-chart-slot" class="project-art project-art--monitor chart-placeholder" data-chart-placeholder="x9" aria-busy="true">

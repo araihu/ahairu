@@ -51,46 +51,12 @@ type Content struct {
 	FooterBuiltWith        string
 	FooterConjunction      string
 	HeartChartLabel        string
-	PajeLifecycle          PajeLifecycleLabels
 	Projects               []Project
 	MoreProjects           []Project
 }
 
 // HomeContent is the typed home-page model used by the public page registry.
 type HomeContent = Content
-
-// PajeLifecycleLabels owns the localized labels shown in Pajé's workflow DAG.
-type PajeLifecycleLabels struct {
-	Discovery             string
-	WebResearch           string
-	Specification         string
-	SpecificationApproval string
-	Implementation        string
-	UnitTests             string
-	IntegrationTests      string
-	Documentation         string
-	CI                    string
-	AdversarialReview     string
-	ReleaseApproval       string
-	Publish               string
-}
-
-func (labels PajeLifecycleLabels) ordered() []string {
-	return []string{
-		labels.Discovery,
-		labels.WebResearch,
-		labels.Specification,
-		labels.SpecificationApproval,
-		labels.Implementation,
-		labels.UnitTests,
-		labels.IntegrationTests,
-		labels.Documentation,
-		labels.CI,
-		labels.AdversarialReview,
-		labels.ReleaseApproval,
-		labels.Publish,
-	}
-}
 
 // Project is a maintained AraiHu project.
 type Project struct {
@@ -114,7 +80,7 @@ var contents = map[string]Content{
 		Intro:                  "Independent, open tools built to endure difficult work. In Guarani, arai hû means black or dark cloud.",
 		ProjectsLabel:          "Built by Arai Hû",
 		ProjectsKicker:         "Projects",
-		ProjectsIntro:          "One open ecosystem for server-rendered interfaces, API publishing, durable code workflows, and self-hosted monitoring.",
+		ProjectsIntro:          "One open ecosystem for server-rendered interfaces, API publishing, and self-hosted monitoring.",
 		ProjectAction:          "Explore project",
 		OpenSourceLabel:        "Open source",
 		NavHome:                "Home",
@@ -147,15 +113,9 @@ var contents = map[string]Content{
 		FooterBuiltWith:        "Built with",
 		FooterConjunction:      "and",
 		HeartChartLabel:        "Three-dimensional parametric heart line.",
-		PajeLifecycle: PajeLifecycleLabels{
-			Discovery: "Discovery", WebResearch: "Web\nresearch", Specification: "Specification",
-			SpecificationApproval: "Spec\napproval", Implementation: "Implementation",
-			UnitTests: "Unit\ntests", IntegrationTests: "Integration\ntests", Documentation: "Documentation",
-			CI: "CI", AdversarialReview: "Adversarial\nreview", ReleaseApproval: "Release\napproval", Publish: "Publish",
-		},
 		Projects: projects(
-			[]string{"Go UI", "API publishing", "Code workflows", "Monitoring"},
-			[]string{"A Go UI library for server-rendered applications.", "OpenAPI documentation and publishing workbench.", "Durable workflows for code changes.", "Self-hosted monitoring control plane."},
+			[]string{"Go UI", "API publishing", "Monitoring"},
+			[]string{"A Go UI library for server-rendered applications.", "OpenAPI documentation and publishing workbench.", "Self-hosted monitoring control plane."},
 		),
 		MoreProjects: moreProjects(
 			[]string{"UI foundations", "Data visualization", "Build tooling", "Markdown publishing"},
@@ -172,7 +132,7 @@ var contents = map[string]Content{
 		Intro:                  "Ferramentas independentes e abertas, feitas para resistir ao trabalho difícil. Em guarani, arai hû significa nuvem preta ou escura.",
 		ProjectsLabel:          "Criado pela Arai Hû",
 		ProjectsKicker:         "Projetos",
-		ProjectsIntro:          "Um ecossistema aberto para interfaces renderizadas no servidor, publicação de APIs, workflows duráveis de código e monitoramento auto-hospedado.",
+		ProjectsIntro:          "Um ecossistema aberto para interfaces renderizadas no servidor, publicação de APIs e monitoramento auto-hospedado.",
 		ProjectAction:          "Explorar projeto",
 		OpenSourceLabel:        "Código aberto",
 		NavHome:                "Início",
@@ -205,15 +165,9 @@ var contents = map[string]Content{
 		FooterBuiltWith:        "Criado com",
 		FooterConjunction:      "e",
 		HeartChartLabel:        "Linha paramétrica tridimensional em forma de coração.",
-		PajeLifecycle: PajeLifecycleLabels{
-			Discovery: "Descoberta", WebResearch: "Pesquisa\nweb", Specification: "Especificação",
-			SpecificationApproval: "Aprovação\nda spec", Implementation: "Implementação",
-			UnitTests: "Testes\nunitários", IntegrationTests: "Testes de\nintegração", Documentation: "Documentação",
-			CI: "CI", AdversarialReview: "Revisão\nadversarial", ReleaseApproval: "Aprovação\nfinal", Publish: "Publicação",
-		},
 		Projects: projects(
-			[]string{"UI em Go", "Publicação de APIs", "Workflows de código", "Monitoramento"},
-			[]string{"Biblioteca de UI Go para aplicações renderizadas no servidor.", "Documentação OpenAPI e ambiente de publicação.", "Workflows duráveis para mudanças de código.", "Plano de controle de monitoramento auto-hospedado."},
+			[]string{"UI em Go", "Publicação de APIs", "Monitoramento"},
+			[]string{"Biblioteca de UI Go para aplicações renderizadas no servidor.", "Documentação OpenAPI e ambiente de publicação.", "Plano de controle de monitoramento auto-hospedado."},
 		),
 		MoreProjects: moreProjects(
 			[]string{"Fundações de UI", "Visualização de dados", "Ferramentas de build", "Publicação em Markdown"},
@@ -230,7 +184,7 @@ var contents = map[string]Content{
 		Intro:                  "Herramientas independientes y abiertas, creadas para resistir el trabajo difícil. En guaraní, arai hû significa nube negra u oscura.",
 		ProjectsLabel:          "Creado por Arai Hû",
 		ProjectsKicker:         "Proyectos",
-		ProjectsIntro:          "Un ecosistema abierto para interfaces renderizadas en servidor, publicación de APIs, flujos de código durables y monitoreo autoalojado.",
+		ProjectsIntro:          "Un ecosistema abierto para interfaces renderizadas en servidor, publicación de APIs y monitoreo autoalojado.",
 		ProjectAction:          "Explorar proyecto",
 		OpenSourceLabel:        "Código abierto",
 		NavHome:                "Inicio",
@@ -263,15 +217,9 @@ var contents = map[string]Content{
 		FooterBuiltWith:        "Creado con",
 		FooterConjunction:      "y",
 		HeartChartLabel:        "Línea paramétrica tridimensional con forma de corazón.",
-		PajeLifecycle: PajeLifecycleLabels{
-			Discovery: "Descubrimiento", WebResearch: "Investigación\nweb", Specification: "Especificación",
-			SpecificationApproval: "Aprobación\nde spec", Implementation: "Implementación",
-			UnitTests: "Pruebas\nunitarias", IntegrationTests: "Pruebas de\nintegración", Documentation: "Documentación",
-			CI: "CI", AdversarialReview: "Revisión\nadversarial", ReleaseApproval: "Aprobación\nfinal", Publish: "Publicación",
-		},
 		Projects: projects(
-			[]string{"UI en Go", "Publicación de APIs", "Flujos de código", "Monitoreo"},
-			[]string{"Biblioteca de UI Go para aplicaciones renderizadas en servidor.", "Documentación OpenAPI y espacio de publicación.", "Flujos de trabajo durables para cambios de código.", "Plano de control de monitoreo autoalojado."},
+			[]string{"UI en Go", "Publicación de APIs", "Monitoreo"},
+			[]string{"Biblioteca de UI Go para aplicaciones renderizadas en servidor.", "Documentación OpenAPI y espacio de publicación.", "Plano de control de monitoreo autoalojado."},
 		),
 		MoreProjects: moreProjects(
 			[]string{"Fundamentos de UI", "Visualización de datos", "Herramientas de build", "Publicación en Markdown"},
@@ -284,8 +232,7 @@ func projects(categories, descriptions []string) []Project {
 	return []Project{
 		{Name: "Goshtoso", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-dark-plate-optical.svg", Status: "BETA"},
 		{Name: "Manja", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-dark-plate-optical.svg", Status: "WIP"},
-		{Name: "Pajé", Category: categories[2], Description: descriptions[2], URL: "https://paje.araihu.com", MarkURL: brandAssetBase + "paje-icon-dark-transparent-optical.svg", Status: "WIP"},
-		{Name: "X-9", Category: categories[3], Description: descriptions[3], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-dark-plate-optical.svg", Status: "WIP"},
+		{Name: "X-9", Category: categories[2], Description: descriptions[2], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-dark-plate-optical.svg", Status: "WIP"},
 	}
 }
 
