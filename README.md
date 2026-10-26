@@ -27,7 +27,7 @@ npm run test:visual
 ASSET_BUNDLE=/absolute/path/to/verified-assets npm run check
 ```
 
-The same CI entry points run locally through Dagger 0.21.8. Dagger owns the Go
+The same CI entry points run locally through Dagger 0.21.11. Dagger owns the Go
 1.27.3, Node 24, templ 0.3.1020, browser, and package-manager environments, so
 the host only needs a compatible Dagger CLI and container runner.
 
