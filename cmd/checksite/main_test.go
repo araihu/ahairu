@@ -350,7 +350,7 @@ func TestWorkflowsUseExactCLIWithoutDaggerForGithub(t *testing.T) {
 		`expected_version="v0.21.11"`,
 		`RUNNER_ENVIRONMENT:?RUNNER_ENVIRONMENT is required}" == "github-hosted"`,
 		`RUNNER_ENVIRONMENT" != "self-hosted"`,
-		"dagger_v0.21.8_linux_amd64.tar.gz",
+		"dagger_v0.21.11_linux_amd64.tar.gz",
 		"a2d3ef96e7305abc18663a3606d9c1c592278ba3c8f48e01d6be14eef72276ef",
 		"sha256sum --check --strict",
 		`resolved_version="$(dagger_version)"`,
@@ -361,10 +361,10 @@ func TestWorkflowsUseExactCLIWithoutDaggerForGithub(t *testing.T) {
 		}
 	}
 	download := strings.Index(contents, "curl --fail")
-	selfHosted := strings.Index(contents, `"self-hosted"`)
+	reuse := strings.Index(contents, `command -v dagger >/dev/null &&`)
 	versionGate := strings.Index(contents, `resolved_version="$(dagger_version)"`)
-	if download < 0 || selfHosted < download || versionGate < selfHosted {
-		t.Error("setup must download only on GitHub-hosted, accept self-hosted without install, then enforce exact version")
+	if reuse < 0 || download < reuse || versionGate < download {
+		t.Error("setup must reuse the exact embedded CLI or verify the downloaded version")
 	}
 }
 
