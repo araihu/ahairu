@@ -293,7 +293,7 @@ test.skip("/es/ fits a 375px mobile viewport", () => {});
 
 test("representative pages satisfy the full responsive scheme matrix", async () => {
   const representatives = [
-    { path: "/en/", selector: ".project-title-mark", count: 2 },
+    { path: "/en/", selector: ".project-title-mark", count: 3 },
     { path: "/brand/", selector: ".variant-card", count: 4 },
     { path: "/license/", selector: ".terms-panel", count: 2 },
   ];
@@ -303,6 +303,10 @@ test("representative pages satisfy the full responsive scheme matrix", async () 
         const label = `${expected.path} ${width}px ${scheme}`;
         const page = await openCheckedPage(expected.path, { width, height: 900, scheme });
         try {
+          for (const image of await page.$$('img[loading="lazy"]')) {
+            await image.scrollIntoView();
+            await image.evaluate((element) => element.decode());
+          }
           const layout = await page.evaluate(({ selector }) => {
             const main = document.querySelector("main");
             const heading = main?.querySelector("h1");

@@ -1221,62 +1221,67 @@ func ProjectMedia(content Content, project Project) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
+		} else if project.Name == "Balemoh" {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, "<div class=\"project-art project-art--balemoh\" aria-hidden=\"true\"><img src=\"/assets/visuals/balemoh-homepage-synthetic.jpg\" alt=\"\" width=\"984\" height=\"1109\" loading=\"lazy\" decoding=\"async\"></div>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 91, "<div class=\"project-art\" aria-hidden=\"true\"><span class=\"project-art-name\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "<div class=\"project-art\" aria-hidden=\"true\"><span class=\"project-art-name\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var74 string
 			templ_7745c5c3_Var74, templ_7745c5c3_Err = templ.JoinStringErrs(project.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 265, Col: 48}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 269, Col: 48}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var74))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 92, "</span> ")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "</span> ")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if project.MarkURL != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 93, "<img class=\"project-mark\" src=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "<img class=\"project-mark\" src=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var75 string
 				templ_7745c5c3_Var75, templ_7745c5c3_Err = templ.ResolveAttributeValue(project.MarkURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 267, Col: 51}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 271, Col: 51}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var75)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 94, "\" alt=\"\" width=\"160\" height=\"160\" decoding=\"async\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "\" alt=\"\" width=\"160\" height=\"160\" decoding=\"async\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 95, "<span class=\"project-mark project-mark--word\">")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, "<span class=\"project-mark project-mark--word\">")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var76 string
 				templ_7745c5c3_Var76, templ_7745c5c3_Err = templ.JoinStringErrs(project.MarkText)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 269, Col: 68}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 273, Col: 68}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var76))
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 96, "</span>")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "</span>")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 97, "</div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "</div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1311,7 +1316,7 @@ func FeaturedFamilyCard(content Content, project Project, kind string) templ.Com
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 98, "<a class=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "<a class=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1324,33 +1329,33 @@ func FeaturedFamilyCard(content Content, project Project, kind string) templ.Com
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 99, "\" href=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "\" href=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var80 templ.SafeURL
 		templ_7745c5c3_Var80, templ_7745c5c3_Err = templ.JoinURLErrs(project.URL)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 276, Col: 85}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 280, Col: 85}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var80))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 100, "\" aria-label=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "\" aria-label=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var81 string
 		templ_7745c5c3_Var81, templ_7745c5c3_Err = templ.ResolveAttributeValue(content.ProjectAction + ": " + project.Name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 276, Col: 144}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 280, Col: 144}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var81)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 101, "\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1367,7 +1372,7 @@ func FeaturedFamilyCard(content Content, project Project, kind string) templ.Com
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 102, "</a>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "</a>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1397,20 +1402,20 @@ func FeaturedFamilyMedia(content Content, project Project) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if project.Name == "Goshtoso" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 103, "<figure class=\"featured-demo\"><img class=\"featured-brand-mark\" src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, "<figure class=\"featured-demo\"><img class=\"featured-brand-mark\" src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var83 string
 			templ_7745c5c3_Var83, templ_7745c5c3_Err = templ.ResolveAttributeValue(project.MarkURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 293, Col: 57}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 297, Col: 57}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var83)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 104, "\" alt=\"\" width=\"56\" height=\"56\" decoding=\"async\"><video data-featured-montage loop muted playsinline preload=\"none\" poster=\"/assets/visuals/goshtoso-components-poster-v2.webp\"><source src=\"/assets/visuals/goshtoso-components-montage-v2-av1.mp4\" type='video/mp4; codecs=\"av01.0.05M.08\"'> <source src=\"/assets/visuals/goshtoso-components-montage-v2.mp4\" type=\"video/mp4\"></video><figcaption><span>Tabs · HTMX · Monitoring · Line 3D</span></figcaption></figure>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, "\" alt=\"\" width=\"56\" height=\"56\" decoding=\"async\"><video data-featured-montage loop muted playsinline preload=\"none\" poster=\"/assets/visuals/goshtoso-components-poster-v2.webp\"><source src=\"/assets/visuals/goshtoso-components-montage-v2-av1.mp4\" type='video/mp4; codecs=\"av01.0.05M.08\"'> <source src=\"/assets/visuals/goshtoso-components-montage-v2.mp4\" type=\"video/mp4\"></video><figcaption><span>Tabs · HTMX · Monitoring · Line 3D</span></figcaption></figure>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1445,7 +1450,7 @@ func FeaturedFamilyFooter(content Content, project Project) templ.Component {
 			templ_7745c5c3_Var84 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 105, "<span class=\"featured-family-badges\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "<span class=\"featured-family-badges\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1453,20 +1458,20 @@ func FeaturedFamilyFooter(content Content, project Project) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 106, "</span> <span class=\"featured-family-action\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, "</span> <span class=\"featured-family-action\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var85 string
 		templ_7745c5c3_Var85, templ_7745c5c3_Err = templ.JoinStringErrs(content.ProjectAction)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 307, Col: 61}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 311, Col: 61}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var85))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 107, " <span aria-hidden=\"true\">↗</span></span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, " <span aria-hidden=\"true\">↗</span></span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1496,46 +1501,46 @@ func OpenAPILines() templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		for _, line := range GitHubReleaseOpenAPILines() {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 108, "<span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "<span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var87 string
 			templ_7745c5c3_Var87, templ_7745c5c3_Err = templ.JoinStringErrs(line.Indent)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 312, Col: 21}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 316, Col: 21}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var87))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 109, "<b>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "<b>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var88 string
 			templ_7745c5c3_Var88, templ_7745c5c3_Err = templ.JoinStringErrs(line.Key)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 312, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 316, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var88))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 110, "</b>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "</b>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var89 string
 			templ_7745c5c3_Var89, templ_7745c5c3_Err = templ.JoinStringErrs(line.Value)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 312, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 316, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var89))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 111, "</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1566,7 +1571,7 @@ func MoreProjectArt(content Content, project Project) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if project.Name == "Goshtoso Charts" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 112, "<div id=\"goshtoso-heart-chart-slot\" class=\"more-art more-art--chart chart-placeholder\" data-chart-placeholder=\"goshtoso-heart\" aria-busy=\"true\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "<div id=\"goshtoso-heart-chart-slot\" class=\"more-art more-art--chart chart-placeholder\" data-chart-placeholder=\"goshtoso-heart\" aria-busy=\"true\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1574,58 +1579,58 @@ func MoreProjectArt(content Content, project Project) templ.Component {
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 113, "<span class=\"chart-placeholder-pulse\" aria-hidden=\"true\"></span></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, "<span class=\"chart-placeholder-pulse\" aria-hidden=\"true\"></span></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if project.Name == "Muamba" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 114, "<div class=\"more-art more-art--muamba\" aria-hidden=\"true\"><b class=\"muamba-name\">Muamba</b><div class=\"muamba-drops\"><img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "<div class=\"more-art more-art--muamba\" aria-hidden=\"true\"><b class=\"muamba-name\">Muamba</b><div class=\"muamba-drops\"><img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"> <img class=\"muamba-drop\" src=\"/assets/visuals/muamba-mark.svg\" alt=\"\" width=\"64\" height=\"64\" decoding=\"async\"></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if project.Name == "Goshtoso App Shells" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 115, "<div class=\"more-art more-art--shells\" data-shell-preview aria-hidden=\"true\"><div class=\"shell-preview shell-preview--desktop\"><div class=\"shell-preview-topbar\"><i></i><i></i><i></i></div><div class=\"shell-preview-body\"><aside><i></i><i></i><i></i></aside><main><b></b><span></span><span></span></main></div></div><div class=\"shell-preview shell-preview--mobile\"><div class=\"shell-preview-topbar\"><i></i><b></b></div><div class=\"shell-preview-body\"><aside><i></i><i></i><i></i></aside><main><span></span><span></span></main></div></div></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<div class=\"more-art more-art--shells\" data-shell-preview aria-hidden=\"true\"><div class=\"shell-preview shell-preview--desktop\"><div class=\"shell-preview-topbar\"><i></i><i></i><i></i></div><div class=\"shell-preview-body\"><aside><i></i><i></i><i></i></aside><main><b></b><span></span><span></span></main></div></div><div class=\"shell-preview shell-preview--mobile\"><div class=\"shell-preview-topbar\"><i></i><b></b></div><div class=\"shell-preview-body\"><aside><i></i><i></i><i></i></aside><main><span></span><span></span></main></div></div></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 116, "<div class=\"more-art\" aria-hidden=\"true\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<div class=\"more-art\" aria-hidden=\"true\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if project.MarkURL != "" {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 117, "<img class=\"more-project-mark\" src=\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "<img class=\"more-project-mark\" src=\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 				var templ_7745c5c3_Var91 string
 				templ_7745c5c3_Var91, templ_7745c5c3_Err = templ.ResolveAttributeValue(project.MarkURL)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 348, Col: 56}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 352, Col: 56}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var91)
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 118, "\" alt=\"\" width=\"128\" height=\"128\" decoding=\"async\"> ")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "\" alt=\"\" width=\"128\" height=\"128\" decoding=\"async\"> ")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 119, "<span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "<span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var92 string
 			templ_7745c5c3_Var92, templ_7745c5c3_Err = templ.JoinStringErrs(project.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 350, Col: 23}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 354, Col: 23}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var92))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 120, "</span></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "</span></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1655,20 +1660,20 @@ func ChartBundleTrigger(content Content) templ.Component {
 			templ_7745c5c3_Var93 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 121, "<span class=\"chart-bundle-trigger\" data-chart-bundle-trigger aria-hidden=\"true\" hx-get=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "<span class=\"chart-bundle-trigger\" data-chart-bundle-trigger aria-hidden=\"true\" hx-get=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var94 string
 		templ_7745c5c3_Var94, templ_7745c5c3_Err = templ.ResolveAttributeValue(ChartFragmentURL(content))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 360, Col: 36}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 364, Col: 36}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var94)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 122, "\" hx-trigger=\"revealed once\" hx-target=\"#chart-lazy-stage\" hx-swap=\"innerHTML\" hx-sync=\"#chart-lazy-stage:drop\"></span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "\" hx-trigger=\"revealed once\" hx-target=\"#chart-lazy-stage\" hx-swap=\"innerHTML\" hx-sync=\"#chart-lazy-stage:drop\"></span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1698,33 +1703,33 @@ func ProjectStatus(project Project) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if project.Status != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 123, "<span class=\"project-status\" data-status=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "<span class=\"project-status\" data-status=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var96 string
 			templ_7745c5c3_Var96, templ_7745c5c3_Err = templ.ResolveAttributeValue(project.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 371, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 375, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var96)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 124, "\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var97 string
 			templ_7745c5c3_Var97, templ_7745c5c3_Err = templ.JoinStringErrs(project.Status)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 371, Col: 78}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 375, Col: 78}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var97))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 125, "</span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "</span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1788,17 +1793,17 @@ func ProjectVersion(project Project) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if project.Name == "Goshtoso" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 126, "<span id=\"goshtoso-version-slot\" class=\"project-version\" aria-live=\"polite\" hx-get=\"/api/project-versions\" hx-trigger=\"load delay:750ms\" hx-swap=\"outerHTML\"></span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, "<span id=\"goshtoso-version-slot\" class=\"project-version\" aria-live=\"polite\" hx-get=\"/api/project-versions\" hx-trigger=\"load delay:750ms\" hx-swap=\"outerHTML\"></span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if project.Name == "Goshtoso App Shells" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 127, "<span id=\"goshtoso-app-shells-version-slot\" class=\"project-version\" aria-live=\"polite\"></span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "<span id=\"goshtoso-app-shells-version-slot\" class=\"project-version\" aria-live=\"polite\"></span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		} else if project.Name == "Goshtoso Charts" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 128, "<span id=\"goshtoso-charts-version-slot\" class=\"project-version\" aria-live=\"polite\"></span>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "<span id=\"goshtoso-charts-version-slot\" class=\"project-version\" aria-live=\"polite\"></span>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1829,20 +1834,20 @@ func ProjectFooter(content Content, project Project) templ.Component {
 		}
 		ctx = templ.ClearChildren(ctx)
 		if project.MarkURL != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 129, "<img class=\"project-title-mark\" src=\"")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "<img class=\"project-title-mark\" src=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var101 string
 			templ_7745c5c3_Var101, templ_7745c5c3_Err = templ.ResolveAttributeValue(project.MarkURL)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 399, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 403, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var101)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 130, "\" alt=\"\" width=\"44\" height=\"44\" decoding=\"async\">")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "\" alt=\"\" width=\"44\" height=\"44\" decoding=\"async\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
@@ -1851,20 +1856,20 @@ func ProjectFooter(content Content, project Project) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 131, "<span class=\"project-action\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, "<span class=\"project-action\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var102 string
 		templ_7745c5c3_Var102, templ_7745c5c3_Err = templ.JoinStringErrs(content.ProjectAction)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 402, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `site/home.templ`, Line: 406, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var102))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 132, " <span aria-hidden=\"true\">↗</span></span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 133, " <span aria-hidden=\"true\">↗</span></span>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

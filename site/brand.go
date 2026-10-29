@@ -141,6 +141,7 @@ func ProjectVisualAsset(name string) ([]byte, error) {
 // ProjectVisualAssetNames returns every generated showcase asset.
 func ProjectVisualAssetNames() []string {
 	return []string{
+		"balemoh-homepage-synthetic.jpg",
 		"goshtoso-components-montage-v2-av1.mp4",
 		"goshtoso-components-montage-v2.mp4",
 		"goshtoso-components-poster-v2.webp",

@@ -260,6 +260,10 @@ templ ProjectMedia(content Content, project Project) {
 			@ChartBundleTrigger(content)
 			<span class="chart-placeholder-pulse" aria-hidden="true"></span>
 		</div>
+	} else if project.Name == "Balemoh" {
+		<div class="project-art project-art--balemoh" aria-hidden="true">
+			<img src="/assets/visuals/balemoh-homepage-synthetic.jpg" alt="" width="984" height="1109" loading="lazy" decoding="async"/>
+		</div>
 	} else {
 		<div class="project-art" aria-hidden="true">
 			<span class="project-art-name">{ project.Name }</span>

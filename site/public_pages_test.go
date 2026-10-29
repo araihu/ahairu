@@ -108,6 +108,7 @@ func TestSharedChromeAndProjectMarksUseContextualAssets(t *testing.T) {
 		"Goshtoso": "goshtoso-icon-dark-plate-optical.svg",
 		"Manja":    "manja-icon-dark-plate-optical.svg",
 		"X-9":      "x9-icon-dark-plate-optical.svg",
+		"Balemoh":  "balemoh-icon-dark-plate-optical.svg",
 	}
 	for _, home := range Locales() {
 		for _, project := range home.Projects {
@@ -140,6 +141,7 @@ func TestSharedChromeAndProjectMarksUseContextualAssets(t *testing.T) {
 		"goshtoso-icon-dark-plate-optical.svg",
 		"manja-icon-dark-plate-optical.svg",
 		"x9-icon-dark-plate-optical.svg",
+		"balemoh-icon-dark-plate-optical.svg",
 	} {
 		if !strings.Contains(homeHTML, want) {
 			t.Errorf("home page misses contextual mark %q", want)

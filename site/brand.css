@@ -295,6 +295,7 @@ html { scroll-behavior: smooth; }
 .project-tile { grid-column: span 6; min-width: 0; }
 #apps .project-tile--2 { grid-column: span 5; }
 #apps .project-tile--3 { grid-column: span 7; }
+#apps .project-tile--4 { grid-column: span 12; }
 .project-card { color: var(--storm-night); display: block; text-decoration: none; }
 .project-card-surface { background: #e4e8eb; border-color: #a3b0bf; border-radius: 1.2rem; color: var(--storm-night); min-height: 32rem; max-width: none; padding: .85rem; }
 .project-media { display: flex; flex-direction: column; height: auto; min-height: 18rem; overflow: visible; }
@@ -354,6 +355,9 @@ html { scroll-behavior: smooth; }
 .project-tile--3 .project-card:hover .project-mark, .project-tile--3 .project-card[data-card-viewport-active] .project-mark { transform: rotate(4deg) scale(1.08); }
 .project-art--monitor { background: #07111f; display: block; padding: 0; }
 .project-art--monitor::before, .project-art--monitor::after { display: none; }
+.project-tile--4 .project-art--balemoh { display: block; min-height: 0; padding: 0; }
+.project-art--balemoh::before, .project-art--balemoh::after { display: none; }
+.project-art--balemoh img { display: block; height: auto; max-height: 30rem; object-fit: cover; object-position: top; width: 100%; }
 .project-art--monitor > .goshtoso-charts-control-wrapper { inset: 0; position: absolute; }
 .project-art--monitor > .goshtoso-charts-control-wrapper,
 .project-art--monitor .goshtoso-charts-control-content,
