@@ -5,6 +5,45 @@ import (
 	"testing"
 )
 
+func TestHomeStructuredDataIncludesBalemohInEveryLocale(t *testing.T) {
+	for _, page := range Pages() {
+		if page.Meta.Kind != PageHome {
+			continue
+		}
+		t.Run(page.Meta.Locale.Key, func(t *testing.T) {
+			var data struct {
+				Mentions []struct {
+					Type        string `json:"@type"`
+					Name        string `json:"name"`
+					URL         string `json:"url"`
+					Description string `json:"description"`
+				} `json:"mentions"`
+			}
+			if err := json.Unmarshal([]byte(scriptJSON(t, renderMetadata(t, page))), &data); err != nil {
+				t.Fatal(err)
+			}
+			count := 0
+			for _, application := range data.Mentions {
+				if application.Name != "Balemoh" {
+					continue
+				}
+				count++
+				if application.Type != "SoftwareApplication" || application.URL != "https://balemoh.araihu.com" {
+					t.Errorf("Balemoh schema identity = %#v", application)
+				}
+				for _, project := range page.Home.Projects {
+					if project.Name == "Balemoh" && application.Description != project.Description {
+						t.Errorf("Balemoh schema description = %q, want visible localized description %q", application.Description, project.Description)
+					}
+				}
+			}
+			if count != 1 {
+				t.Errorf("Balemoh schema entries = %d, want 1", count)
+			}
+		})
+	}
+}
+
 func TestStructuredDataUsesStableOrganizationAndBrandGraph(t *testing.T) {
 	brand := requirePage(t, Pages(), "/brand/", "en", PageBrand)
 	data, err := json.Marshal(StructuredData(brand))

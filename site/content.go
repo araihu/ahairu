@@ -80,7 +80,7 @@ var contents = map[string]Content{
 		Intro:                  "Independent, open tools built to endure difficult work. In Guarani, arai hû means black or dark cloud.",
 		ProjectsLabel:          "Built by Arai Hû",
 		ProjectsKicker:         "Projects",
-		ProjectsIntro:          "One open ecosystem for server-rendered interfaces, API publishing, and self-hosted monitoring.",
+		ProjectsIntro:          "One open ecosystem for server-rendered interfaces, API publishing, self-hosted monitoring, and service discovery.",
 		ProjectAction:          "Explore project",
 		OpenSourceLabel:        "Open source",
 		NavHome:                "Home",
@@ -114,8 +114,8 @@ var contents = map[string]Content{
 		FooterConjunction:      "and",
 		HeartChartLabel:        "Three-dimensional parametric heart line.",
 		Projects: projects(
-			[]string{"Go UI", "API publishing", "Monitoring"},
-			[]string{"A Go UI library for server-rendered applications.", "OpenAPI documentation and publishing workbench.", "Self-hosted monitoring control plane."},
+			[]string{"Go UI", "API publishing", "Monitoring", "Homelab dashboard"},
+			[]string{"A Go UI library for server-rendered applications.", "OpenAPI documentation and publishing workbench.", "Self-hosted monitoring control plane.", "A self-hosted homepage with Kubernetes, Docker, and Podman service discovery and basic host telemetry."},
 		),
 		MoreProjects: moreProjects(
 			[]string{"UI foundations", "Data visualization", "Build tooling", "Markdown publishing"},
@@ -132,7 +132,7 @@ var contents = map[string]Content{
 		Intro:                  "Ferramentas independentes e abertas, feitas para resistir ao trabalho difícil. Em guarani, arai hû significa nuvem preta ou escura.",
 		ProjectsLabel:          "Criado pela Arai Hû",
 		ProjectsKicker:         "Projetos",
-		ProjectsIntro:          "Um ecossistema aberto para interfaces renderizadas no servidor, publicação de APIs e monitoramento auto-hospedado.",
+		ProjectsIntro:          "Um ecossistema aberto para interfaces renderizadas no servidor, publicação de APIs, monitoramento auto-hospedado e descoberta de serviços.",
 		ProjectAction:          "Explorar projeto",
 		OpenSourceLabel:        "Código aberto",
 		NavHome:                "Início",
@@ -166,8 +166,8 @@ var contents = map[string]Content{
 		FooterConjunction:      "e",
 		HeartChartLabel:        "Linha paramétrica tridimensional em forma de coração.",
 		Projects: projects(
-			[]string{"UI em Go", "Publicação de APIs", "Monitoramento"},
-			[]string{"Biblioteca de UI Go para aplicações renderizadas no servidor.", "Documentação OpenAPI e ambiente de publicação.", "Plano de controle de monitoramento auto-hospedado."},
+			[]string{"UI em Go", "Publicação de APIs", "Monitoramento", "Painel de homelab"},
+			[]string{"Biblioteca de UI Go para aplicações renderizadas no servidor.", "Documentação OpenAPI e ambiente de publicação.", "Plano de controle de monitoramento auto-hospedado.", "Página inicial auto-hospedada com descoberta de serviços Kubernetes, Docker e Podman e telemetria básica dos hosts."},
 		),
 		MoreProjects: moreProjects(
 			[]string{"Fundações de UI", "Visualização de dados", "Ferramentas de build", "Publicação em Markdown"},
@@ -184,7 +184,7 @@ var contents = map[string]Content{
 		Intro:                  "Herramientas independientes y abiertas, creadas para resistir el trabajo difícil. En guaraní, arai hû significa nube negra u oscura.",
 		ProjectsLabel:          "Creado por Arai Hû",
 		ProjectsKicker:         "Proyectos",
-		ProjectsIntro:          "Un ecosistema abierto para interfaces renderizadas en servidor, publicación de APIs y monitoreo autoalojado.",
+		ProjectsIntro:          "Un ecosistema abierto para interfaces renderizadas en servidor, publicación de APIs, monitoreo autoalojado y descubrimiento de servicios.",
 		ProjectAction:          "Explorar proyecto",
 		OpenSourceLabel:        "Código abierto",
 		NavHome:                "Inicio",
@@ -218,8 +218,8 @@ var contents = map[string]Content{
 		FooterConjunction:      "y",
 		HeartChartLabel:        "Línea paramétrica tridimensional con forma de corazón.",
 		Projects: projects(
-			[]string{"UI en Go", "Publicación de APIs", "Monitoreo"},
-			[]string{"Biblioteca de UI Go para aplicaciones renderizadas en servidor.", "Documentación OpenAPI y espacio de publicación.", "Plano de control de monitoreo autoalojado."},
+			[]string{"UI en Go", "Publicación de APIs", "Monitoreo", "Panel de homelab"},
+			[]string{"Biblioteca de UI Go para aplicaciones renderizadas en servidor.", "Documentación OpenAPI y espacio de publicación.", "Plano de control de monitoreo autoalojado.", "Página de inicio autoalojada con descubrimiento de servicios Kubernetes, Docker y Podman y telemetría básica de los hosts."},
 		),
 		MoreProjects: moreProjects(
 			[]string{"Fundamentos de UI", "Visualización de datos", "Herramientas de build", "Publicación en Markdown"},
@@ -233,6 +233,7 @@ func projects(categories, descriptions []string) []Project {
 		{Name: "Goshtoso", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-dark-plate-optical.svg", Status: "BETA"},
 		{Name: "Manja", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-dark-plate-optical.svg", Status: "WIP"},
 		{Name: "X-9", Category: categories[2], Description: descriptions[2], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-dark-plate-optical.svg", Status: "WIP"},
+		{Name: "Balemoh", Category: categories[3], Description: descriptions[3], URL: "https://balemoh.araihu.com", MarkURL: brandAssetBase + "balemoh-icon-dark-plate-optical.svg"},
 	}
 }
 
