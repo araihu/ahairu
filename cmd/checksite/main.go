@@ -564,7 +564,7 @@ func checkJSONLD(document htmlDocument, page site.Page) error {
 		if organization == nil || organization["@type"] != "Organization" || organization["logo"] != faviconAbsoluteURL() {
 			return fmt.Errorf("JSON-LD organization is invalid")
 		}
-		if brand == nil || brand["@type"] != "Brand" || brand["url"] != page.Meta.CanonicalURL || brand["logo"] != organization["logo"] || jsonLDReference(brand["publisher"]) != organizationID {
+		if brand == nil || brand["@type"] != "Brand" || brand["url"] != page.Meta.CanonicalURL || brand["logo"] != organization["logo"] || jsonLDReference(organization["brand"]) != canonicalOrigin+"/#brand" {
 			return fmt.Errorf("JSON-LD brand relationship is invalid")
 		}
 		return nil

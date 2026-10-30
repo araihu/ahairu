@@ -147,7 +147,7 @@ templ HomeDocument(page Page, content Content) {
 									<article class="more-row">
 										<span class="more-index">{ fmt.Sprintf("%02d", index + 1) }</span>
 										@MoreProjectArt(content, project)
-										<div class="more-copy"><p>{ project.Category } @ProjectBadges(project)</p><h3><a class="more-project-link" href={ project.URL } aria-label={ project.Name + " — " + project.Description }>{ project.Name }</a></h3><p>{ project.Description }</p></div>
+										<div class="more-copy"><p>{ project.Category } · { project.OperatingSystem } @ProjectBadges(project)</p><h3><a class="more-project-link" href={ project.URL } aria-label={ project.Name + " — " + project.Description }>{ project.Name }</a></h3><p>{ project.Description }</p></div>
 										<span class="more-arrow" aria-hidden="true">↗</span>
 									</article>
 								</li>
@@ -233,7 +233,7 @@ templ ProjectTile(content Content, project Project, index int) {
 			@card.Card(card.Config{
 				Media:       ProjectMedia(content, project),
 				MediaClass:  "project-media",
-				Tag:         fmt.Sprintf("%02d — %s", index + 1, project.Category),
+				Tag:         fmt.Sprintf("%02d — %s · %s", index + 1, project.Category, project.OperatingSystem),
 				Title:       project.Name,
 				Description: project.Description,
 				Footer:      ProjectFooter(content, project),
@@ -281,7 +281,7 @@ templ FeaturedFamilyCard(content Content, project Project, kind string) {
 		@card.Card(card.Config{
 			Media:       FeaturedFamilyMedia(content, project),
 			MediaClass:  "featured-family-media",
-			Tag:         project.Category,
+			Tag:         project.Category + " · " + project.OperatingSystem,
 			Title:       project.Name,
 			Description: project.Description,
 			Footer:      FeaturedFamilyFooter(content, project),
