@@ -233,18 +233,18 @@ var contents = map[string]Content{
 func projects(categories, descriptions []string) []Project {
 	return []Project{
 		{Name: "Goshtoso", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux", Category: categories[0], Description: descriptions[0], URL: "https://goshtoso.araihu.com", MarkURL: brandAssetBase + "goshtoso-icon-dark-plate-optical.svg", Status: "BETA"},
-		{Name: "Manja", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-dark-plate-optical.svg", Status: "WIP"},
-		{Name: "X-9", ApplicationCategory: "UtilitiesApplication", OperatingSystem: "Linux", Category: categories[2], Description: descriptions[2], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-dark-plate-optical.svg", Status: "WIP"},
-		{Name: "Balemoh", ApplicationCategory: "UtilitiesApplication", OperatingSystem: "Linux", Category: categories[3], Description: descriptions[3], URL: "https://balemoh.araihu.com", MarkURL: brandAssetBase + "balemoh-icon-dark-plate-optical.svg"},
+		{Name: "Manja", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux", Category: categories[1], Description: descriptions[1], URL: "https://manja.araihu.com", MarkURL: brandAssetBase + "manja-icon-dark-plate-optical.svg", Status: "BETA"},
+		{Name: "X-9", ApplicationCategory: "UtilitiesApplication", OperatingSystem: "Linux", Category: categories[2], Description: descriptions[2], URL: "https://x9.araihu.com", MarkURL: brandAssetBase + "x9-icon-dark-plate-optical.svg", Status: "ALPHA"},
+		{Name: "Balemoh", ApplicationCategory: "UtilitiesApplication", OperatingSystem: "Linux", Category: categories[3], Description: descriptions[3], URL: "https://balemoh.araihu.com", MarkURL: brandAssetBase + "balemoh-icon-dark-plate-optical.svg", Status: "ALPHA"},
 	}
 }
 
 func moreProjects(categories, descriptions []string) []Project {
 	return []Project{
-		{Name: "Goshtoso App Shells", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux", Category: categories[0], Description: descriptions[0], URL: "https://github.com/araihu/goshtoso-app-shells", Status: "ALPHA"},
+		{Name: "Goshtoso App Shells", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux", Category: categories[0], Description: descriptions[0], URL: "https://github.com/araihu/goshtoso-app-shells", Status: "BETA"},
 		{Name: "Goshtoso Charts", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux", Category: categories[1], Description: descriptions[1], URL: "https://charts.goshtoso.araihu.com", Status: "ALPHA"},
-		{Name: "Muamba", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux, macOS, Windows", Category: categories[2], Description: descriptions[2], URL: "https://muamba.araihu.com"},
-		{Name: "Margo", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux, macOS, Windows", Category: categories[3], Description: descriptions[3], URL: "https://margo.araihu.com", MarkURL: "/assets/visuals/margo-icon.svg"},
+		{Name: "Muamba", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux, macOS, Windows", Category: categories[2], Description: descriptions[2], URL: "https://muamba.araihu.com", Status: "ALPHA"},
+		{Name: "Margo", ApplicationCategory: "DeveloperApplication", OperatingSystem: "Linux, macOS, Windows", Category: categories[3], Description: descriptions[3], URL: "https://margo.araihu.com", MarkURL: "/assets/visuals/margo-icon.svg", Status: "ALPHA"},
 	}
 }
 
