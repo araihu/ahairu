@@ -299,9 +299,9 @@ test("project maturity labels stay attached to the correct products", { timeout:
     }));
     assert.deepEqual(labels, {
       goshtoso: "BETA",
-      manja: "WIP",
-      x9: "WIP",
-      shells: "ALPHA",
+      manja: "BETA",
+      x9: "ALPHA",
+      shells: "BETA",
       charts: "ALPHA",
       goshtosoVersion: "v0.1.7",
       shellsVersion: "v0.1.3",
@@ -376,7 +376,7 @@ test("featured Goshtoso family montage plays whenever its visual is in view", { 
 	  status: member.querySelector("[data-status]")?.textContent.trim(),
 	}))), [
 	  { name: "Goshtoso", status: "BETA" },
-	  { name: "Goshtoso App Shells", status: "ALPHA" },
+	  { name: "Goshtoso App Shells", status: "BETA" },
 	  { name: "Goshtoso Charts", status: "ALPHA" },
 	]);
 	await page.$eval(".project-showcase", (element) => element.scrollIntoView({ block: "start" }));

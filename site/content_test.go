@@ -5,10 +5,13 @@ import "testing"
 func TestProjectLifecycleStatusesMatchPublicMaturity(t *testing.T) {
 	want := map[string]string{
 		"Goshtoso":            "BETA",
-		"Goshtoso App Shells": "ALPHA",
+		"Goshtoso App Shells": "BETA",
 		"Goshtoso Charts":     "ALPHA",
-		"Manja":               "WIP",
-		"X-9":                 "WIP",
+		"Manja":               "BETA",
+		"X-9":                 "ALPHA",
+		"Balemoh":             "ALPHA",
+		"Muamba":              "ALPHA",
+		"Margo":               "ALPHA",
 	}
 
 	for _, content := range Locales() {
@@ -35,7 +38,7 @@ func TestMargoAppearsInEveryLocale(t *testing.T) {
 		if margo.Name != "Margo" || margo.URL != "https://margo.araihu.com" || margo.MarkURL != "/assets/visuals/margo-icon.svg" {
 			t.Errorf("Margo project in %s = %#v", content.Language, margo)
 		}
-		if margo.Category == "" || margo.Description == "" || margo.Status != "" {
+		if margo.Category == "" || margo.Description == "" || margo.Status != "ALPHA" {
 			t.Errorf("Margo presentation in %s = %#v", content.Language, margo)
 		}
 	}
