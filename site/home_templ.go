@@ -1375,7 +1375,7 @@ func FeaturedFamilyCard(content Content, project Project, kind string) templ.Com
 		templ_7745c5c3_Err = card.Card(card.Config{
 			Media:       FeaturedFamilyMedia(content, project),
 			MediaClass:  "featured-family-media",
-			Tag:         project.Category + " · " + project.OperatingSystem,
+			Tag:         project.Category,
 			Title:       project.Name,
 			Description: project.Description,
 			Footer:      FeaturedFamilyFooter(content, project),

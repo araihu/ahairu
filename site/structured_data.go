@@ -44,17 +44,26 @@ func StructuredData(page Page) any {
 		projects := make([]any, 0, len(page.Home.Projects)+len(page.Home.MoreProjects))
 		for _, collection := range [][]Project{page.Home.Projects, page.Home.MoreProjects} {
 			for _, project := range collection {
-				projects = append(projects, map[string]any{
-					"@type":                  "SoftwareApplication",
-					"name":                   project.Name,
-					"url":                    project.URL,
-					"description":            project.Description,
-					"applicationCategory":    project.ApplicationCategory,
-					"applicationSubCategory": project.Category,
-					"operatingSystem":        project.OperatingSystem,
-					"softwareVersion":        project.Version,
-					"creativeWorkStatus":     strings.ToLower(project.Status),
-				})
+				projectNode := map[string]any{
+					"name":               project.Name,
+					"url":                project.URL,
+					"description":        project.Description,
+					"creativeWorkStatus": strings.ToLower(project.Status),
+				}
+				if project.LibraryRepository != "" {
+					projectNode["@type"] = "SoftwareSourceCode"
+					projectNode["codeRepository"] = project.LibraryRepository
+					projectNode["programmingLanguage"] = "Go"
+					projectNode["genre"] = project.Category
+					projectNode["version"] = project.Version
+				} else {
+					projectNode["@type"] = "SoftwareApplication"
+					projectNode["applicationCategory"] = project.ApplicationCategory
+					projectNode["applicationSubCategory"] = project.Category
+					projectNode["operatingSystem"] = project.OperatingSystem
+					projectNode["softwareVersion"] = project.Version
+				}
+				projects = append(projects, projectNode)
 			}
 		}
 		pageNode["mentions"] = projects

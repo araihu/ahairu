@@ -298,6 +298,7 @@ test("project maturity labels stay attached to the correct products", { timeout:
       margoMark: document.querySelector('.more-list a[href="https://margo.araihu.com"]')?.closest(".more-row")?.querySelector(".more-project-mark")?.getAttribute("src"),
       familyRole: document.querySelector(".featured-family-grid")?.getAttribute("role"),
       nestedVersionLinks: document.querySelectorAll(".featured-family-card .project-version a").length,
+      libraryClaimsLinux: [...document.querySelectorAll(".featured-family-card")].some((card) => /\bLinux\b/i.test(card.textContent)),
     }));
     assert.deepEqual(labels, {
       goshtoso: "BETA",
@@ -313,6 +314,7 @@ test("project maturity labels stay attached to the correct products", { timeout:
       margoMark: "/assets/visuals/margo-icon.svg",
       familyRole: "group",
       nestedVersionLinks: 0,
+      libraryClaimsLinux: false,
     });
     assert.equal(versionRequests, 1);
   } finally {
@@ -337,7 +339,7 @@ test("project version badges survive a failed GitHub lookup", { timeout: 30_000 
       return [...document.querySelectorAll(".featured-family-card,.project-card,.more-row")].map((card) => {
         const name = card.querySelector("h3").textContent.trim();
         const application = schema.mentions.find((item) => item.name === name);
-        return { name, version: card.querySelector(".project-version")?.textContent.trim(), schemaVersion: application.softwareVersion };
+        return { name, version: card.querySelector(".project-version")?.textContent.trim(), schemaVersion: application.softwareVersion || application.version };
       });
     });
     assert.equal(applications.length, 8);

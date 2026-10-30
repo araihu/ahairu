@@ -21,7 +21,10 @@ func TestHomeStructuredDataIncludesProjectVersionsAndBalemohInEveryLocale(t *tes
 					Description     string `json:"description"`
 					Category        string `json:"applicationCategory"`
 					OperatingSystem string `json:"operatingSystem"`
-					Version         string `json:"softwareVersion"`
+					SoftwareVersion string `json:"softwareVersion"`
+					Version         string `json:"version"`
+					Language        string `json:"programmingLanguage"`
+					Repository      string `json:"codeRepository"`
 					Status          string `json:"creativeWorkStatus"`
 				} `json:"mentions"`
 			}
@@ -29,29 +32,45 @@ func TestHomeStructuredDataIncludesProjectVersionsAndBalemohInEveryLocale(t *tes
 				t.Fatal(err)
 			}
 			if len(data.Mentions) != 8 {
-				t.Fatalf("software applications = %d, want 8", len(data.Mentions))
+				t.Fatalf("projects = %d, want 8", len(data.Mentions))
 			}
+			libraryRepositories := map[string]string{
+				"Goshtoso":            "https://github.com/araihu/goshtoso",
+				"Goshtoso App Shells": "https://github.com/araihu/goshtoso-app-shells",
+				"Goshtoso Charts":     "https://github.com/araihu/goshtoso-charts",
+			}
+			libraries := 0
 			count := 0
 			for _, application := range data.Mentions {
-				parts := regexp.MustCompile(`^v0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`).FindStringSubmatch(application.Version)
+				version := application.SoftwareVersion
+				if repository, library := libraryRepositories[application.Name]; library {
+					libraries++
+					version = application.Version
+					if application.Type != "SoftwareSourceCode" || application.Repository != repository || application.Language != "Go" {
+						t.Errorf("%s must describe its Go library source: %#v", application.Name, application)
+					}
+					if application.OperatingSystem != "" || application.Category != "" || application.SoftwareVersion != "" {
+						t.Errorf("%s library must not claim application-only properties: %#v", application.Name, application)
+					}
+				} else if application.Type != "SoftwareApplication" || application.OperatingSystem == "" || (application.Category != "DeveloperApplication" && application.Category != "UtilitiesApplication") {
+					t.Errorf("%s lacks application type, category or platform: %#v", application.Name, application)
+				}
+				parts := regexp.MustCompile(`^v0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`).FindStringSubmatch(version)
 				if parts == nil {
-					t.Fatalf("%s version = %q, want a root v0.x.x tag", application.Name, application.Version)
+					t.Fatalf("%s version = %q, want a root v0.x.x tag", application.Name, version)
 				}
 				wantStatus := "beta"
 				if parts[1] == "0" {
 					wantStatus = "alpha"
 				}
 				if application.Status != wantStatus {
-					t.Errorf("%s %s stage = %q, want %q", application.Name, application.Version, application.Status, wantStatus)
+					t.Errorf("%s %s stage = %q, want %q", application.Name, version, application.Status, wantStatus)
 				}
 				projects := append(append([]Project{}, page.Home.Projects...), page.Home.MoreProjects...)
 				for _, project := range projects {
-					if project.Name == application.Name && (project.Version != application.Version || strings.ToLower(project.Status) != application.Status || !strings.Contains(renderComponent(t, ProjectVersion(project)), application.Version)) {
+					if project.Name == application.Name && (project.Version != version || strings.ToLower(project.Status) != application.Status || !strings.Contains(renderComponent(t, ProjectVersion(project)), version)) {
 						t.Errorf("%s schema version/stage must match the server-rendered badge", application.Name)
 					}
-				}
-				if application.OperatingSystem == "" || (application.Category != "DeveloperApplication" && application.Category != "UtilitiesApplication") {
-					t.Errorf("%s lacks Google-supported category or verified operating system: %#v", application.Name, application)
 				}
 				if application.Name != "Balemoh" {
 					continue
@@ -68,6 +87,9 @@ func TestHomeStructuredDataIncludesProjectVersionsAndBalemohInEveryLocale(t *tes
 						t.Errorf("Balemoh schema description = %q, want visible localized description %q", application.Description, project.Description)
 					}
 				}
+			}
+			if libraries != 3 {
+				t.Errorf("library entries = %d, want 3", libraries)
 			}
 			if count != 1 {
 				t.Errorf("Balemoh schema entries = %d, want 1", count)
