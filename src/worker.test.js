@@ -287,7 +287,7 @@ test("extensionless chart fragment routes pass through to static assets", async 
   assert.equal(fetched[0].pathname, "/fragments/pt-br/charts");
 });
 
-test("project versions use latest releases, tag fallback, and a 24 hour edge cache", async () => {
+test("project versions use highest root tags, paginate, and retain a 24 hour edge cache", async () => {
   const githubRequests = [];
   const cacheEntries = new Map();
   const pending = [];
@@ -296,23 +296,16 @@ test("project versions use latest releases, tag fallback, and a 24 hour edge cac
     GITHUB_FETCH: async (request) => {
       const url = new URL(request.url || request);
       githubRequests.push(url.pathname);
-      if (url.pathname === "/repos/araihu/goshtoso/releases/latest") {
-        return Response.json({
-          tag_name: "v0.1.7",
-          html_url: "https://github.com/araihu/goshtoso/releases/tag/v0.1.7",
-        });
+      if (url.pathname === "/repos/araihu/goshtoso/tags") {
+        return Response.json(url.searchParams.get("page") === "1"
+          ? Array.from({ length: 100 }, (_, i) => ({ name: `plugin/v0.0.${i}` }))
+          : [{ name: "v0.4.5" }, { name: "v0.4.4" }]);
       }
-      if (url.pathname === "/repos/araihu/goshtoso-app-shells/releases/latest") {
-        return Response.json({
-          tag_name: "v0.1.3",
-          html_url: "https://github.com/araihu/goshtoso-app-shells/releases/tag/v0.1.3",
-        });
-      }
-      if (url.pathname === "/repos/araihu/goshtoso-charts/releases/latest") {
-        return new Response("missing", { status: 404 });
+      if (url.pathname === "/repos/araihu/goshtoso-app-shells/tags") {
+        return Response.json([{ name: "v0.1.4" }, { name: "v0.1.8" }]);
       }
       if (url.pathname === "/repos/araihu/goshtoso-charts/tags") {
-        return Response.json([{ name: "v0.0.1" }]);
+        return Response.json([{ name: "v0.0.4" }, { name: "v0.0.9-alpha.1" }]);
       }
       return new Response("unexpected", { status: 500 });
     },
@@ -331,19 +324,36 @@ test("project versions use latest releases, tag fallback, and a 24 hour edge cac
   const first = await worker.fetch(request, env, ctx);
   const html = await first.text();
   assert.equal(first.headers.get("cache-control"), "public, max-age=0, s-maxage=86400");
-  assert.match(html, /id="goshtoso-version-slot"[^>]*>.*v0\.1\.7/s);
-  assert.match(html, /id="goshtoso-app-shells-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.1\.3/s);
-  assert.match(html, /id="goshtoso-charts-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.0\.1/s);
+  assert.match(html, /id="goshtoso-version-slot"[^>]*>.*v0\.4\.5/s);
+  assert.match(html, /id="goshtoso-app-shells-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.1\.8/s);
+  assert.match(html, /id="goshtoso-charts-version-slot"[^>]*hx-swap-oob="outerHTML"[^>]*>.*v0\.0\.4/s);
   assert.doesNotMatch(html, /<a\b/);
   assert.deepEqual(githubRequests, [
-    "/repos/araihu/goshtoso/releases/latest",
-    "/repos/araihu/goshtoso-app-shells/releases/latest",
-    "/repos/araihu/goshtoso-charts/releases/latest",
+    "/repos/araihu/goshtoso/tags",
+    "/repos/araihu/goshtoso-app-shells/tags",
     "/repos/araihu/goshtoso-charts/tags",
+    "/repos/araihu/goshtoso/tags",
   ]);
   await Promise.all(pending);
 
   const second = await worker.fetch(request, env, ctx);
-  assert.match(await second.text(), /v0\.1\.7/);
+  assert.match(await second.text(), /v0\.4\.5/);
   assert.equal(githubRequests.length, 4, "cache hit must not call GitHub again");
+});
+
+
+test("failed version lookups preserve the server-rendered catalog badges", async () => {
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const response = await worker.fetch(new Request("https://araihu.com/api/project-versions"), {
+      GITHUB_FETCH: async () => new Response("rate limited", { status: 403 }),
+      VERSION_CACHE: { match: async () => null },
+    }, {});
+    const html = await response.text();
+    assert.equal((html.match(/hx-preserve="true"/g) || []).length, 3);
+    assert.equal((html.match(/hx-swap-oob="outerHTML"/g) || []).length, 2);
+  } finally {
+    console.warn = warn;
+  }
 });

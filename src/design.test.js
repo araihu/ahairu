@@ -27,7 +27,7 @@ async function servePublic() {
       const pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname);
       if (pathname === "/api/project-versions") {
         response.setHeader("content-type", "text/html; charset=utf-8");
-        response.end('<span id="goshtoso-version-slot" class="project-version">v0.1.7</span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.1.3</span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.0.1</span>');
+        response.end('<span id="goshtoso-version-slot" class="project-version">v0.4.5</span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.1.8</span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.0.4</span>');
         return;
       }
       const relativePath = pathname.endsWith("/") ? `${pathname.slice(1)}index.html` : pathname.slice(1);
@@ -279,7 +279,9 @@ test("project maturity labels stay attached to the correct products", { timeout:
       if (new URL(request.url()).pathname === "/api/project-versions") versionRequests += 1;
     });
     await page.setViewport({ width: 1280, height: 720 });
+    const versionResponse = page.waitForResponse((response) => new URL(response.url()).pathname === "/api/project-versions");
     await page.goto(`${server.origin}/en/`, { waitUntil: "domcontentloaded" });
+    await versionResponse;
     await page.waitForFunction(() => ["goshtoso-version-slot", "goshtoso-app-shells-version-slot", "goshtoso-charts-version-slot"]
       .every((id) => document.getElementById(id)?.textContent.trim()));
     const labels = await page.evaluate(() => ({
@@ -303,9 +305,9 @@ test("project maturity labels stay attached to the correct products", { timeout:
       x9: "ALPHA",
       shells: "BETA",
       charts: "ALPHA",
-      goshtosoVersion: "v0.1.7",
-      shellsVersion: "v0.1.3",
-      chartsVersion: "v0.0.1",
+      goshtosoVersion: "v0.4.5",
+      shellsVersion: "v0.1.8",
+      chartsVersion: "v0.0.4",
       chartsURL: "https://charts.goshtoso.araihu.com/",
       secondaryProjects: ["Muamba", "Margo"],
       margoMark: "/assets/visuals/margo-icon.svg",
@@ -313,6 +315,33 @@ test("project maturity labels stay attached to the correct products", { timeout:
       nestedVersionLinks: 0,
     });
     assert.equal(versionRequests, 1);
+  } finally {
+    await browser.close();
+    await server.close();
+  }
+});
+
+test("project version badges survive a failed GitHub lookup", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await launchBrowser({ headless: true });
+  try {
+    const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname !== "/api/project-versions") return request.continue();
+      return request.respond({ contentType: "text/html", body: '<span id="goshtoso-version-slot" class="project-version" hx-preserve="true"></span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-preserve="true" hx-swap-oob="outerHTML"></span><span id="goshtoso-charts-version-slot" class="project-version" hx-preserve="true" hx-swap-oob="outerHTML"></span>' });
+    });
+    await page.goto(`${server.origin}/en/`, { waitUntil: "networkidle0" });
+    const applications = await page.evaluate(() => {
+      const schema = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
+      return [...document.querySelectorAll(".featured-family-card,.project-card,.more-row")].map((card) => {
+        const name = card.querySelector("h3").textContent.trim();
+        const application = schema.mentions.find((item) => item.name === name);
+        return { name, version: card.querySelector(".project-version")?.textContent.trim(), schemaVersion: application.softwareVersion };
+      });
+    });
+    assert.equal(applications.length, 8);
+    for (const application of applications) assert.equal(application.version, application.schemaVersion, application.name);
   } finally {
     await browser.close();
     await server.close();

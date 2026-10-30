@@ -2,10 +2,12 @@ package site
 
 import (
 	"encoding/json"
+	"regexp"
+	"strings"
 	"testing"
 )
 
-func TestHomeStructuredDataIncludesBalemohInEveryLocale(t *testing.T) {
+func TestHomeStructuredDataIncludesProjectVersionsAndBalemohInEveryLocale(t *testing.T) {
 	for _, page := range Pages() {
 		if page.Meta.Kind != PageHome {
 			continue
@@ -19,13 +21,35 @@ func TestHomeStructuredDataIncludesBalemohInEveryLocale(t *testing.T) {
 					Description     string `json:"description"`
 					Category        string `json:"applicationCategory"`
 					OperatingSystem string `json:"operatingSystem"`
+					Version         string `json:"softwareVersion"`
+					Status          string `json:"creativeWorkStatus"`
 				} `json:"mentions"`
 			}
 			if err := json.Unmarshal([]byte(scriptJSON(t, renderMetadata(t, page))), &data); err != nil {
 				t.Fatal(err)
 			}
+			if len(data.Mentions) != 8 {
+				t.Fatalf("software applications = %d, want 8", len(data.Mentions))
+			}
 			count := 0
 			for _, application := range data.Mentions {
+				parts := regexp.MustCompile(`^v0\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`).FindStringSubmatch(application.Version)
+				if parts == nil {
+					t.Fatalf("%s version = %q, want a root v0.x.x tag", application.Name, application.Version)
+				}
+				wantStatus := "beta"
+				if parts[1] == "0" {
+					wantStatus = "alpha"
+				}
+				if application.Status != wantStatus {
+					t.Errorf("%s %s stage = %q, want %q", application.Name, application.Version, application.Status, wantStatus)
+				}
+				projects := append(append([]Project{}, page.Home.Projects...), page.Home.MoreProjects...)
+				for _, project := range projects {
+					if project.Name == application.Name && (project.Version != application.Version || strings.ToLower(project.Status) != application.Status || !strings.Contains(renderComponent(t, ProjectVersion(project)), application.Version)) {
+						t.Errorf("%s schema version/stage must match the server-rendered badge", application.Name)
+					}
+				}
 				if application.OperatingSystem == "" || (application.Category != "DeveloperApplication" && application.Category != "UtilitiesApplication") {
 					t.Errorf("%s lacks Google-supported category or verified operating system: %#v", application.Name, application)
 				}
