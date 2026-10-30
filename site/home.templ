@@ -390,11 +390,13 @@ templ ProjectVersion(project Project) {
 			hx-get="/api/project-versions"
 			hx-trigger="load delay:750ms"
 			hx-swap="outerHTML"
-		></span>
+		>{ project.Version }</span>
 	} else if project.Name == "Goshtoso App Shells" {
-		<span id="goshtoso-app-shells-version-slot" class="project-version" aria-live="polite"></span>
+		<span id="goshtoso-app-shells-version-slot" class="project-version" aria-live="polite">{ project.Version }</span>
 	} else if project.Name == "Goshtoso Charts" {
-		<span id="goshtoso-charts-version-slot" class="project-version" aria-live="polite"></span>
+		<span id="goshtoso-charts-version-slot" class="project-version" aria-live="polite">{ project.Version }</span>
+	} else if project.Version != "" {
+		<span class="project-version">{ project.Version }</span>
 	}
 }
 
@@ -402,6 +404,6 @@ templ ProjectFooter(content Content, project Project) {
 	if project.MarkURL != "" {
 		<img class="project-title-mark" src={ project.MarkURL } alt="" width="44" height="44" decoding="async"/>
 	}
-	@ProjectStatus(project)
+	<span class="project-badges">@ProjectBadges(project)</span>
 	<span class="project-action">{ content.ProjectAction } <span aria-hidden="true">↗</span></span>
 }

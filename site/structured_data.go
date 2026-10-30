@@ -1,5 +1,7 @@
 package site
 
+import "strings"
+
 const licenseEffectiveDate = "2026-07-29"
 const licenseVersion = "1.0"
 
@@ -50,6 +52,8 @@ func StructuredData(page Page) any {
 					"applicationCategory":    project.ApplicationCategory,
 					"applicationSubCategory": project.Category,
 					"operatingSystem":        project.OperatingSystem,
+					"softwareVersion":        project.Version,
+					"creativeWorkStatus":     strings.ToLower(project.Status),
 				})
 			}
 		}

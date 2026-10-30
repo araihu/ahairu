@@ -1,6 +1,6 @@
 const locales = new Set(["en", "pt-br", "es"]);
 const versionCacheSeconds = 24 * 60 * 60;
-const versionCacheRevision = "3";
+const versionCacheRevision = "4";
 const versionRepositories = [
   { repo: "goshtoso", slot: "goshtoso-version-slot", outOfBand: false },
   { repo: "goshtoso-app-shells", slot: "goshtoso-app-shells-version-slot", outOfBand: true },
@@ -108,18 +108,22 @@ function githubRequest(path) {
 }
 
 async function latestVersion(repo, fetchImpl) {
-  const release = await fetchImpl(githubRequest(`/repos/araihu/${repo}/releases/latest`));
-  if (release.ok) {
-    const data = await release.json();
-    if (data.tag_name && data.html_url) return { version: data.tag_name, url: data.html_url };
-  } else if (release.status !== 404) {
-    throw new Error(`GitHub release request failed with ${release.status}`);
+  const versions = [];
+  // Root tags include versions that have no GitHub Release, such as App Shells.
+  for (let page = 1; ; page += 1) {
+    const response = await fetchImpl(githubRequest(`/repos/araihu/${repo}/tags?per_page=100&page=${page}`));
+    if (!response.ok) throw new Error(`GitHub tag request failed with ${response.status}`);
+    const tags = await response.json();
+    versions.push(...tags.map((tag) => tag.name).filter((name) => /^v\d+\.\d+\.\d+$/.test(name)));
+    if (tags.length < 100) break;
   }
-  const tags = await fetchImpl(githubRequest(`/repos/araihu/${repo}/tags?per_page=1`));
-  if (!tags.ok) throw new Error(`GitHub tag request failed with ${tags.status}`);
-  const [latest] = await tags.json();
-  if (!latest?.name) throw new Error(`GitHub repository ${repo} has no release or tag`);
-  return { version: latest.name, url: `https://github.com/araihu/${repo}/tree/${encodeURIComponent(latest.name)}` };
+  versions.sort((a, b) => {
+    const left = a.slice(1).split(".").map(Number);
+    const right = b.slice(1).split(".").map(Number);
+    return right[0] - left[0] || right[1] - left[1] || right[2] - left[2];
+  });
+  if (!versions.length) throw new Error(`GitHub repository ${repo} has no root version tag`);
+  return { version: versions[0], url: `https://github.com/araihu/${repo}/tree/${encodeURIComponent(versions[0])}` };
 }
 
 function escapeHTML(value) {
@@ -128,7 +132,7 @@ function escapeHTML(value) {
 
 function versionBadge(project, result) {
   const outOfBand = project.outOfBand ? ' hx-swap-oob="outerHTML"' : "";
-  if (!result) return `<span id="${project.slot}" class="project-version"${outOfBand}></span>`;
+  if (!result) return `<span id="${project.slot}" class="project-version" hx-preserve="true"${outOfBand}></span>`;
   return `<span id="${project.slot}" class="project-version"${outOfBand}>${escapeHTML(result.version)}</span>`;
 }
 
