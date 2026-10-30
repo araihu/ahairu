@@ -13,10 +13,12 @@ func TestHomeStructuredDataIncludesBalemohInEveryLocale(t *testing.T) {
 		t.Run(page.Meta.Locale.Key, func(t *testing.T) {
 			var data struct {
 				Mentions []struct {
-					Type        string `json:"@type"`
-					Name        string `json:"name"`
-					URL         string `json:"url"`
-					Description string `json:"description"`
+					Type            string `json:"@type"`
+					Name            string `json:"name"`
+					URL             string `json:"url"`
+					Description     string `json:"description"`
+					Category        string `json:"applicationCategory"`
+					OperatingSystem string `json:"operatingSystem"`
 				} `json:"mentions"`
 			}
 			if err := json.Unmarshal([]byte(scriptJSON(t, renderMetadata(t, page))), &data); err != nil {
@@ -24,10 +26,16 @@ func TestHomeStructuredDataIncludesBalemohInEveryLocale(t *testing.T) {
 			}
 			count := 0
 			for _, application := range data.Mentions {
+				if application.OperatingSystem == "" || (application.Category != "DeveloperApplication" && application.Category != "UtilitiesApplication") {
+					t.Errorf("%s lacks Google-supported category or verified operating system: %#v", application.Name, application)
+				}
 				if application.Name != "Balemoh" {
 					continue
 				}
 				count++
+				if application.OperatingSystem != "Linux" || application.Category != "UtilitiesApplication" {
+					t.Errorf("Balemoh platform/category = %#v", application)
+				}
 				if application.Type != "SoftwareApplication" || application.URL != "https://balemoh.araihu.com" {
 					t.Errorf("Balemoh schema identity = %#v", application)
 				}
@@ -63,6 +71,18 @@ func TestStructuredDataUsesStableOrganizationAndBrandGraph(t *testing.T) {
 	}
 	requireJSONLDID(t, nodes, CanonicalSiteURL+"/#organization")
 	requireJSONLDID(t, nodes, CanonicalSiteURL+"/#brand")
+	for _, raw := range nodes {
+		node := raw.(map[string]any)
+		if node["@type"] == "Brand" && node["publisher"] != nil {
+			t.Error("Brand must not use unsupported publisher property")
+		}
+		if node["@type"] == "Organization" {
+			brand, ok := node["brand"].(map[string]any)
+			if !ok || brand["@id"] != CanonicalSiteURL+"/#brand" {
+				t.Errorf("organization brand = %#v", node["brand"])
+			}
+		}
+	}
 }
 
 func TestLicenseStructuredDataDescribesCanonicalLocalizedTerms(t *testing.T) {

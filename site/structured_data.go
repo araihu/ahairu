@@ -13,17 +13,17 @@ func StructuredData(page Page) any {
 		"logo":  CanonicalSiteURL + BrandAssetsPublicPrefix + "platform/web/araihu/favicon.svg",
 	}
 	if page.Meta.Kind == PageBrand {
+		organization["brand"] = map[string]any{"@id": CanonicalSiteURL + "/#brand"}
 		return map[string]any{
 			"@context": "https://schema.org",
 			"@graph": []any{
 				organization,
 				map[string]any{
-					"@type":     "Brand",
-					"@id":       CanonicalSiteURL + "/#brand",
-					"name":      "Arai Hû",
-					"url":       page.Meta.CanonicalURL,
-					"logo":      organization["logo"],
-					"publisher": map[string]any{"@id": organization["@id"]},
+					"@type": "Brand",
+					"@id":   CanonicalSiteURL + "/#brand",
+					"name":  "Arai Hû",
+					"url":   page.Meta.CanonicalURL,
+					"logo":  organization["logo"],
 				},
 			},
 		}
@@ -43,11 +43,13 @@ func StructuredData(page Page) any {
 		for _, collection := range [][]Project{page.Home.Projects, page.Home.MoreProjects} {
 			for _, project := range collection {
 				projects = append(projects, map[string]any{
-					"@type":               "SoftwareApplication",
-					"name":                project.Name,
-					"url":                 project.URL,
-					"description":         project.Description,
-					"applicationCategory": project.Category,
+					"@type":                  "SoftwareApplication",
+					"name":                   project.Name,
+					"url":                    project.URL,
+					"description":            project.Description,
+					"applicationCategory":    project.ApplicationCategory,
+					"applicationSubCategory": project.Category,
+					"operatingSystem":        project.OperatingSystem,
 				})
 			}
 		}
