@@ -512,6 +512,15 @@ test("language dropdown preserves page family across locales and restores keyboa
           assert.equal(await page.$eval("html", node => node.lang), language);
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
         }
+        await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+        const reachable = await page.$eval(trigger, node => {
+          const bounds = node.getBoundingClientRect();
+          return bounds.top >= 0 && bounds.bottom <= innerHeight;
+        });
+        assert.equal(reachable, true, "language control must remain reachable after scrolling");
+        await page.click(trigger);
+        await page.waitForSelector('#araihu-language-menu [role="menu"]', { visible: true });
+        await page.keyboard.press("Escape");
       } finally { await page.close(); }
     }
   }

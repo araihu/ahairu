@@ -192,12 +192,12 @@
 	--storm-signal: #c7ff4a;
 	color-scheme: dark;
 }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; scroll-padding-top: 10rem; }
 
 .ahairu-archive { background: var(--storm-night); color: var(--storm-paper); overflow-x: hidden; }
 .ahairu-archive::after { background-image: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, .5) 0 .045rem, transparent .055rem), radial-gradient(circle at 70% 80%, rgba(7, 17, 31, .8) 0 .04rem, transparent .05rem); background-size: 4px 4px, 5px 5px; content: ""; inset: 0; mix-blend-mode: soft-light; opacity: .11; pointer-events: none; position: fixed; z-index: 20; }
 .ahairu-shell { max-width: 82rem; }
-.ahairu-header { background: linear-gradient(180deg, rgba(7, 17, 31, .76), transparent); left: 0; position: absolute; right: 0; top: 0; z-index: 10; }
+.ahairu-header { background: rgba(7, 17, 31, .94); left: 0; position: fixed; right: 0; top: 0; z-index: 10; }
 .ahairu-nav { align-items: center; display: grid; gap: 1.5rem; grid-template-columns: minmax(13rem, 1fr) auto minmax(13rem, 1fr); padding-inline: clamp(1.5rem, 4vw, 4rem); }
 .ahairu-brand, .ahairu-primary-links a, .ahairu-github { color: inherit; }
 .skip-link { background: var(--storm-signal); color: var(--storm-night); font-weight: 800; left: 1rem; padding: .7rem 1rem; position: fixed; top: 1rem; transform: translateY(calc(-100% - 2rem)); z-index: 30; }
@@ -557,6 +557,6 @@ html { scroll-behavior: smooth; }
 .ahairu-language-fallback a { align-items: center; justify-content: center; display: inline-flex; min-width: 44px; min-height: 44px; }
 .ahairu-language-flag { width: 24px; height: 18px; object-fit: contain; }
 
-.ahairu-guidance .ahairu-header { position: relative; }
+.ahairu-guidance .ahairu-header { position: sticky; }
 .ahairu-guidance .ahairu-nav { grid-template-columns: minmax(0, 1fr) auto; }
 .ahairu-guidance .ahairu-nav-groups { align-items: center; flex-direction: row; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }
