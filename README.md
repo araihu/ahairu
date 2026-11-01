@@ -148,3 +148,24 @@ This remains a static-first site. Goshtoso App Shells `v0.1.0` is deliberately
 not a dependency while pages need no persistent application shell, client state,
 or duplicate preference store. Re-evaluate only if an application surface is
 introduced; campaign preference stays owned by the released Assets runtime.
+
+## Language navigation and structured data
+
+All nine canonical pages use the Goshtoso dropdown with an icon-only country
+flag trigger. English, Portuguese, and Spanish map explicitly to the US,
+Brazil, and Spain. Switching languages preserves the current page family.
+The header keeps the control visible on mobile; the existing mobile menu owns
+project navigation. Native links remain available when JavaScript is disabled.
+Brand and license pages now load the same local Goshtoso runtime for this control.
+Flag assets retain the flag-icons MIT license and checksum provenance under
+`site/visuals/flag-icons-provenance.json`.
+
+Every page publishes a connected JSON-LD graph with one stable organization,
+the domain-level WebSite, the localized WebPage, and the three localized Blog
+WebSites. Blog IDs match the published Margo WebSite IDs. `publisher` identifies
+the organization; `hasPart` and `isPartOf` connect the main site and blog.
+Brand pages add their Brand node. No ratings, legal identity, or contact details
+are inferred. SoftwareApplication entries describe the public projects. Google's Rich Results
+Test currently accepts them with non-critical warnings for missing `offers` and
+`aggregateRating`. Those properties stay omitted without verified published
+offers or ratings.

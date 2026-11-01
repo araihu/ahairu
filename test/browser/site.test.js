@@ -477,3 +477,59 @@ test("Worker redirects and 404s are observable over HTTP", async () => {
   }
   assert.equal((await fetch(`${origin}/not-a-page`)).status, 404);
 });
+
+
+test("language dropdown preserves page family across locales and restores keyboard focus", async () => {
+  for (const scheme of ["light", "dark"]) {
+    for (const kind of ["home", "brand", "license"]) {
+      const routes = alternatePaths(kind);
+      const page = await openCheckedPage(routes["pt-BR"], { scheme, width: 390 });
+      try {
+        await page.waitForFunction(() => Boolean(window.goshtosoDependencies?.ready));
+        await page.evaluate(() => window.goshtosoDependencies.ready);
+        const trigger = "#araihu-language-menu button";
+        assert.equal(await page.$eval(trigger, node => node.getAttribute("aria-label")), "Idioma: Português");
+        const size = await page.$eval(trigger, node => ({ width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height }));
+        assert.ok(size.width >= 44 && size.height >= 44, "language trigger must remain touch accessible");
+        if (kind !== "home") {
+          const clearHeading = await page.evaluate(() => document.querySelector('h1').getBoundingClientRect().top >= document.querySelector('.ahairu-header').getBoundingClientRect().bottom);
+          assert.equal(clearHeading, true, "the visible mobile header must not cover the page title");
+        }
+        await page.focus(trigger);
+        await page.keyboard.press("ArrowDown");
+        await page.waitForSelector('#araihu-language-menu [role="menu"]', { visible: true });
+        assert.equal(await page.evaluate(() => document.activeElement.textContent.trim()), "English");
+        await page.keyboard.press("Escape");
+        await page.waitForFunction(selector => document.activeElement.matches(selector), {}, trigger);
+        assert.equal(await page.$eval(trigger, node => node.getAttribute("aria-expanded")), "false");
+        for (const language of ["en", "es"]) {
+          await page.click(trigger);
+          await Promise.all([
+            page.waitForNavigation({ waitUntil: "networkidle0" }),
+            page.click(`#araihu-language-menu a[href="${routes[language]}"]`),
+          ]);
+          assert.equal(new URL(page.url()).pathname, routes[language]);
+          assert.equal(await page.$eval("html", node => node.lang), language);
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+        }
+      } finally { await page.close(); }
+    }
+  }
+});
+
+test("language navigation remains available without JavaScript", async () => {
+  for (const kind of ["home", "brand", "license"]) {
+    const routes = alternatePaths(kind);
+    const page = await browser.newPage();
+    try {
+      await page.setJavaScriptEnabled(false);
+      await page.setViewport({ width: 390, height: 844 });
+      await page.goto(origin + routes["pt-BR"], { waitUntil: "networkidle0" });
+      const links = await page.$$eval('.ahairu-language-fallback a', nodes => nodes.map(node => node.getAttribute("href")));
+      assert.deepEqual(links, [routes.en, routes["pt-BR"], routes.es]);
+      assert.equal(await page.$eval('.ahairu-language-control', node => getComputedStyle(node).display), "none");
+      await Promise.all([page.waitForNavigation(), page.click(`.ahairu-language-fallback a[href="${routes.es}"]`)]);
+      assert.equal(new URL(page.url()).pathname, routes.es);
+    } finally { await page.close(); }
+  }
+});

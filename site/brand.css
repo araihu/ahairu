@@ -3,7 +3,7 @@
 .ahairu-archive { background: #07111f; color: #f3f2e9; }
 .ahairu-shell { max-width: 82rem; }
 .ahairu-header { border-bottom: 1px solid rgba(243, 242, 233, .22); }
-.ahairu-nav a { color: inherit; }
+.ahairu-brand, .ahairu-primary-links a, .ahairu-github { color: inherit; }
 .ahairu-nav-groups { align-items: flex-end; display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
 .ahairu-primary-links { display: flex; flex-wrap: wrap; gap: .55rem 1.2rem; justify-content: flex-end; }
 .ahairu-primary-links a { color: #d5ddeb; font-size: .9rem; font-weight: 750; text-decoration: none; text-underline-offset: .35em; }
@@ -199,7 +199,7 @@ html { scroll-behavior: smooth; }
 .ahairu-shell { max-width: 82rem; }
 .ahairu-header { background: linear-gradient(180deg, rgba(7, 17, 31, .76), transparent); left: 0; position: absolute; right: 0; top: 0; z-index: 10; }
 .ahairu-nav { align-items: center; display: grid; gap: 1.5rem; grid-template-columns: minmax(13rem, 1fr) auto minmax(13rem, 1fr); padding-inline: clamp(1.5rem, 4vw, 4rem); }
-.ahairu-nav a { color: inherit; }
+.ahairu-brand, .ahairu-primary-links a, .ahairu-github { color: inherit; }
 .skip-link { background: var(--storm-signal); color: var(--storm-night); font-weight: 800; left: 1rem; padding: .7rem 1rem; position: fixed; top: 1rem; transform: translateY(calc(-100% - 2rem)); z-index: 30; }
 .skip-link:focus-visible { outline: 3px solid #f3f2e9; outline-offset: 3px; transform: translateY(0); }
 .ahairu-brand { align-items: center; display: inline-flex; gap: .8rem; letter-spacing: -.025em; text-decoration: none; }
@@ -532,7 +532,9 @@ html { scroll-behavior: smooth; }
 }
 
 @media (max-width: 640px) {
-	.ahairu-header { display: none; }
+	.ahairu-header { display: block; }
+	.ahairu-nav { grid-template-columns: minmax(0, 1fr) auto; }
+	.ahairu-primary-links { display: none; }
 	.storm-hero { padding-top: 7rem; }
 }
 
@@ -546,3 +548,15 @@ html { scroll-behavior: smooth; }
 	.storm-mobile-trigger, .featured-family-card-surface, .project-art::before, .project-art::after, .project-art-name, .project-mark, .project-title-mark, .more-art { transform: none !important; }
 	.shell-preview { transition: none; transform: none !important; }
 }
+
+.ahairu-language-control { color: var(--storm-paper); }
+.ahairu-language-control[x-cloak] { display: none; }
+.ahairu-language-trigger { min-width: 44px; min-height: 44px; }
+.ahairu-language-trigger:focus-visible { outline: 3px solid var(--storm-signal); outline-offset: 4px; }
+.ahairu-language-fallback { display: flex; flex-wrap: wrap; gap: .5rem; }
+.ahairu-language-fallback a { align-items: center; justify-content: center; display: inline-flex; min-width: 44px; min-height: 44px; }
+.ahairu-language-flag { width: 24px; height: 18px; object-fit: contain; }
+
+.ahairu-guidance .ahairu-header { position: relative; }
+.ahairu-guidance .ahairu-nav { grid-template-columns: minmax(0, 1fr) auto; }
+.ahairu-guidance .ahairu-nav-groups { align-items: center; flex-direction: row; flex-wrap: wrap; gap: 1rem; justify-content: flex-end; }

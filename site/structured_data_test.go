@@ -28,7 +28,7 @@ func TestHomeStructuredDataIncludesProjectVersionsAndBalemohInEveryLocale(t *tes
 					Status          string `json:"creativeWorkStatus"`
 				} `json:"mentions"`
 			}
-			if err := json.Unmarshal([]byte(scriptJSON(t, renderMetadata(t, page))), &data); err != nil {
+			if err := json.Unmarshal(renderedJSONLDNode(t, page, page.Meta.CanonicalURL+"#webpage"), &data); err != nil {
 				t.Fatal(err)
 			}
 			if len(data.Mentions) != 8 {
@@ -112,8 +112,8 @@ func TestStructuredDataUsesStableOrganizationAndBrandGraph(t *testing.T) {
 		t.Errorf("context = %#v", graph["@context"])
 	}
 	nodes, ok := graph["@graph"].([]any)
-	if !ok || len(nodes) != 2 {
-		t.Fatalf("graph nodes = %#v, want organization and brand", graph["@graph"])
+	if !ok || len(nodes) != 7 {
+		t.Fatalf("graph nodes = %#v, want organization, website, webpage, blog translations and brand", graph["@graph"])
 	}
 	requireJSONLDID(t, nodes, CanonicalSiteURL+"/#organization")
 	requireJSONLDID(t, nodes, CanonicalSiteURL+"/#brand")
@@ -133,10 +133,7 @@ func TestStructuredDataUsesStableOrganizationAndBrandGraph(t *testing.T) {
 
 func TestLicenseStructuredDataDescribesCanonicalLocalizedTerms(t *testing.T) {
 	license := requirePage(t, Pages(), "/pt-br/license/", "pt-BR", PageLicense)
-	data, err := json.Marshal(StructuredData(license))
-	if err != nil {
-		t.Fatal(err)
-	}
+	data := renderedJSONLDNode(t, license, license.Meta.CanonicalURL+"#webpage")
 	var node map[string]any
 	if err := json.Unmarshal(data, &node); err != nil {
 		t.Fatal(err)
@@ -166,4 +163,75 @@ func requireJSONLDID(t *testing.T, nodes []any, id string) {
 		}
 	}
 	t.Errorf("JSON-LD graph lacks %q", id)
+}
+
+func renderedJSONLDNode(t *testing.T, page Page, id string) []byte {
+	t.Helper()
+	var graph struct {
+		Nodes []map[string]any `json:"@graph"`
+	}
+	if err := json.Unmarshal([]byte(scriptJSON(t, renderMetadata(t, page))), &graph); err != nil {
+		t.Fatal(err)
+	}
+	for _, node := range graph.Nodes {
+		if node["@id"] == id {
+			data, err := json.Marshal(node)
+			if err != nil {
+				t.Fatal(err)
+			}
+			return data
+		}
+	}
+	t.Fatalf("missing JSON-LD node %s", id)
+	return nil
+}
+
+func TestEveryRenderedPageConnectsOrganizationWebsiteAndBlogTranslations(t *testing.T) {
+	for _, page := range Pages() {
+		t.Run(page.Meta.Path, func(t *testing.T) {
+			var website struct {
+				ID        string              `json:"@id"`
+				URL       string              `json:"url"`
+				Publisher map[string]string   `json:"publisher"`
+				HasPart   []map[string]string `json:"hasPart"`
+			}
+			if err := json.Unmarshal(renderedJSONLDNode(t, page, CanonicalSiteURL+"/#website"), &website); err != nil {
+				t.Fatal(err)
+			}
+			if website.URL != CanonicalSiteURL+"/" || website.Publisher["@id"] != CanonicalSiteURL+"/#organization" || len(website.HasPart) != 3 {
+				t.Fatalf("incomplete website identity: %#v", website)
+			}
+			for i, locale := range siteLocales {
+				url := homeContent(locale.Key).BlogURL
+				if website.HasPart[i]["@id"] != url+"#website" {
+					t.Errorf("website does not reference %s", url)
+				}
+				var blog struct {
+					Types     []string          `json:"@type"`
+					URL       string            `json:"url"`
+					Language  string            `json:"inLanguage"`
+					Publisher map[string]string `json:"publisher"`
+					IsPartOf  map[string]string `json:"isPartOf"`
+				}
+				if err := json.Unmarshal(renderedJSONLDNode(t, page, url+"#website"), &blog); err != nil {
+					t.Fatal(err)
+				}
+				if strings.Join(blog.Types, ",") != "WebSite,Blog" || blog.URL != url || blog.Language != locale.Language || blog.Publisher["@id"] != website.Publisher["@id"] || blog.IsPartOf["@id"] != website.ID {
+					t.Errorf("inconsistent blog relationship: %#v", blog)
+				}
+			}
+			var organization map[string]any
+			if err := json.Unmarshal(renderedJSONLDNode(t, page, CanonicalSiteURL+"/#organization"), &organization); err != nil {
+				t.Fatal(err)
+			}
+			if organization["url"] != CanonicalSiteURL+"/" || organization["name"] != "Arai Hû" || !strings.HasSuffix(organization["logo"].(string), "apple-touch-icon-180.png") {
+				t.Errorf("inconsistent organization identity: %#v", organization)
+			}
+			for _, invented := range []string{"foundingDate", "address", "telephone", "legalName", "aggregateRating", "review"} {
+				if organization[invented] != nil {
+					t.Errorf("unexpected unverified property %s", invented)
+				}
+			}
+		})
+	}
 }

@@ -82,7 +82,7 @@ func TestBuildWritesStandaloneSite(t *testing.T) {
 		`<meta name="theme-color" content="#07111f">`,
 		`width="64" height="64"> <span class="ahairu-brand-copy"><strong>Arai Hû</strong>`,
 		`<main id="main-content" tabindex="-1">`,
-		`href="/en/" aria-current="page"`,
+		`aria-label="Language: English"`,
 		`aria-label="Primary navigation"`,
 		`aria-label="Explore project: X-9"`,
 		`<link rel="canonical" href="https://araihu.com/en/">`,

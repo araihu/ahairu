@@ -338,7 +338,7 @@ test("project version badges survive a failed GitHub lookup", { timeout: 30_000 
       const schema = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
       return [...document.querySelectorAll(".featured-family-card,.project-card,.more-row")].map((card) => {
         const name = card.querySelector("h3").textContent.trim();
-        const application = schema.mentions.find((item) => item.name === name);
+        const application = schema["@graph"].find((node) => node["@type"] === "WebPage").mentions.find((item) => item.name === name);
         return { name, version: card.querySelector(".project-version")?.textContent.trim(), schemaVersion: application.softwareVersion || application.version };
       });
     });
@@ -348,6 +348,26 @@ test("project version badges survive a failed GitHub lookup", { timeout: 30_000 
     await browser.close();
     await server.close();
   }
+});
+
+test("refreshed library versions stay consistent with the JSON-LD graph", { timeout: 30_000 }, async () => {
+  const server = await servePublic();
+  const browser = await launchBrowser({ headless: true });
+  try {
+    const page = await browser.newPage();
+    const versions = { "Goshtoso": "v0.4.6", "Goshtoso App Shells": "v0.1.9", "Goshtoso Charts": "v0.0.5" };
+    await page.setRequestInterception(true);
+    page.on("request", request => {
+      if (new URL(request.url()).pathname !== "/api/project-versions") return request.continue();
+      return request.respond({ contentType: "text/html", body: '<span id="goshtoso-version-slot" class="project-version">v0.4.6</span><span id="goshtoso-app-shells-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.1.9</span><span id="goshtoso-charts-version-slot" class="project-version" hx-swap-oob="outerHTML">v0.0.5</span>' });
+    });
+    await page.goto(`${server.origin}/en/`, { waitUntil: "networkidle0" });
+    await page.waitForFunction(expected => {
+      const projects = JSON.parse(document.getElementById("structured-data").textContent)["@graph"].find(node => node["@type"] === "WebPage").mentions;
+      return Object.entries(expected).every(([name, version]) => projects.find(project => project.name === name)?.version === version);
+    }, {}, versions);
+    assert.deepEqual(await page.$$eval('.featured-family-card .project-version', nodes => nodes.map(node => node.textContent.trim())), Object.values(versions));
+  } finally { await browser.close(); await server.close(); }
 });
 
 test("application marks sit beside their project names instead of inside the media", { timeout: 30_000 }, async () => {

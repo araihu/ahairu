@@ -1,0 +1,17 @@
+{
+  "repository": "https://github.com/lipis/flag-icons",
+  "release": "v7.6.0",
+  "revision": "0d8909b00aa8418802a5abf2afa82356b129a7ef",
+  "license": "MIT",
+  "files": {
+    "flag-icons-LICENSE.txt": "8f1195d55a2fd315a07d812328470ca9ba2abb78c8d317ff19619d5125e00cea",
+    "flag-us.svg": "e7be4240cf57987926673708f09233be1ab6bdf35acc7b86bd32a263f197a2a7",
+    "flag-br.svg": "b0a912826c3ffd7287435ebed66e18fe058e992309c00dc10b430dd41a29ba91",
+    "flag-es.svg": "f9cfaff858e95f830733ade9591037b5322dfb5827a53b70956a3d190bb49b9a"
+  },
+  "locales": {
+    "en": "us",
+    "pt-BR": "br",
+    "es": "es"
+  }
+}

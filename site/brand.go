@@ -141,6 +141,8 @@ func ProjectVisualAsset(name string) ([]byte, error) {
 // ProjectVisualAssetNames returns every generated showcase asset.
 func ProjectVisualAssetNames() []string {
 	return []string{
+		"flag-us.svg", "flag-br.svg", "flag-es.svg",
+		"flag-icons-LICENSE.txt", "flag-icons-provenance.json",
 		"balemoh-homepage-synthetic.jpg",
 		"goshtoso-components-montage-v2-av1.mp4",
 		"goshtoso-components-montage-v2.mp4",
