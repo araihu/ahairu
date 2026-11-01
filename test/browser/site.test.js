@@ -485,9 +485,8 @@ test("language dropdown preserves page family across locales and restores keyboa
       const routes = alternatePaths(kind);
       const page = await openCheckedPage(routes["pt-BR"], { scheme, width: 390 });
       try {
-        await page.waitForFunction(() => Boolean(window.goshtosoDependencies?.ready));
-        await page.evaluate(() => window.goshtosoDependencies.ready);
         const trigger = "#araihu-language-menu button";
+        await page.waitForSelector(`${trigger}[aria-expanded="false"]`, { visible: true });
         assert.equal(await page.$eval(trigger, node => node.getAttribute("aria-label")), "Idioma: Português");
         const size = await page.$eval(trigger, node => ({ width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height }));
         assert.ok(size.width >= 44 && size.height >= 44, "language trigger must remain touch accessible");
@@ -498,6 +497,7 @@ test("language dropdown preserves page family across locales and restores keyboa
         await page.focus(trigger);
         await page.keyboard.press("ArrowDown");
         await page.waitForSelector('#araihu-language-menu [role="menu"]', { visible: true });
+        await page.waitForFunction(() => document.activeElement.textContent.trim() === "English");
         assert.equal(await page.evaluate(() => document.activeElement.textContent.trim()), "English");
         await page.keyboard.press("Escape");
         await page.waitForFunction(selector => document.activeElement.matches(selector), {}, trigger);
@@ -512,6 +512,15 @@ test("language dropdown preserves page family across locales and restores keyboa
           assert.equal(await page.$eval("html", node => node.lang), language);
           assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
         }
+        await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: "instant" }));
+        const reachable = await page.$eval(trigger, node => {
+          const bounds = node.getBoundingClientRect();
+          return bounds.top >= 0 && bounds.bottom <= innerHeight;
+        });
+        assert.equal(reachable, true, "language control must remain reachable after scrolling");
+        await page.click(trigger);
+        await page.waitForSelector('#araihu-language-menu [role="menu"]', { visible: true });
+        await page.keyboard.press("Escape");
       } finally { await page.close(); }
     }
   }
