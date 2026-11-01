@@ -485,9 +485,8 @@ test("language dropdown preserves page family across locales and restores keyboa
       const routes = alternatePaths(kind);
       const page = await openCheckedPage(routes["pt-BR"], { scheme, width: 390 });
       try {
-        await page.waitForFunction(() => Boolean(window.goshtosoDependencies?.ready));
-        await page.evaluate(() => window.goshtosoDependencies.ready);
         const trigger = "#araihu-language-menu button";
+        await page.waitForSelector(`${trigger}[aria-expanded="false"]`, { visible: true });
         assert.equal(await page.$eval(trigger, node => node.getAttribute("aria-label")), "Idioma: Português");
         const size = await page.$eval(trigger, node => ({ width: node.getBoundingClientRect().width, height: node.getBoundingClientRect().height }));
         assert.ok(size.width >= 44 && size.height >= 44, "language trigger must remain touch accessible");
