@@ -25,8 +25,8 @@ type Content struct {
 	NavApps                string
 	NavLibs                string
 	NavBlog                string
+	BlogURL                string
 	MenuLabel              string
-	WorkInProgress         string
 	FeaturedLabel          string
 	FeaturedTitle          string
 	FeaturedDescription    string
@@ -38,10 +38,9 @@ type Content struct {
 	MoreIntro              string
 	MissionTitle           string
 	MissionCopy            string
-	MailingTitle           string
-	MailingCopy            string
-	MailingPlaceholder     string
-	MailingAction          string
+	BlogTitle              string
+	BlogCopy               string
+	BlogAction             string
 	ChatTitle              string
 	ChatCopy               string
 	ChatAction             string
@@ -91,8 +90,8 @@ var contents = map[string]Content{
 		NavApps:                "Apps",
 		NavLibs:                "Libs",
 		NavBlog:                "Blog",
+		BlogURL:                "https://blog.araihu.com/",
 		MenuLabel:              "Menu",
-		WorkInProgress:         "WIP",
 		FeaturedLabel:          "Featured family",
 		FeaturedTitle:          "The server-rendered UI family.",
 		FeaturedDescription:    "Goshtoso provides accessible primitives, App Shells composes them into layouts, and Charts brings data visualization to Go and templ.",
@@ -104,10 +103,9 @@ var contents = map[string]Content{
 		MoreIntro:              "Smaller building blocks, focused tools, and shared infrastructure from the same organization.",
 		MissionTitle:           "Open software, maintained in the open.",
 		MissionCopy:            "Arai Hû builds practical Go software in public. Projects stay independently useful and work better together.",
-		MailingTitle:           "Field notes, soon.",
-		MailingCopy:            "A mailing list for releases, experiments, and project notes is in progress.",
-		MailingPlaceholder:     "you@example.com",
-		MailingAction:          "Coming soon",
+		BlogTitle:              "Field notes.",
+		BlogCopy:               "The tools we build, the choices behind them, and what we learn along the way.",
+		BlogAction:             "Read the blog",
 		ChatTitle:              "Let’s build together.",
 		ChatCopy:               "Questions, ideas, or a bug to report? Find the relevant project and start the conversation on GitHub.",
 		ChatAction:             "Visit Arai Hû on GitHub",
@@ -143,8 +141,8 @@ var contents = map[string]Content{
 		NavApps:                "Apps",
 		NavLibs:                "Bibliotecas",
 		NavBlog:                "Blog",
+		BlogURL:                "https://blog.araihu.com/pt-br/",
 		MenuLabel:              "Menu",
-		WorkInProgress:         "Em breve",
 		FeaturedLabel:          "Família em destaque",
 		FeaturedTitle:          "A família de UI renderizada no servidor.",
 		FeaturedDescription:    "Goshtoso fornece primitivas acessíveis, App Shells as compõe em layouts e Charts leva visualização de dados a Go e templ.",
@@ -156,10 +154,9 @@ var contents = map[string]Content{
 		MoreIntro:              "Blocos menores, ferramentas focadas e infraestrutura compartilhada pela mesma organização.",
 		MissionTitle:           "Software aberto, mantido em público.",
 		MissionCopy:            "Arai Hû cria software Go prático de forma aberta. Cada projeto é útil sozinho e funciona melhor em conjunto.",
-		MailingTitle:           "Notas de campo, em breve.",
-		MailingCopy:            "Uma lista de e-mails para lançamentos, experimentos e notas dos projetos está em desenvolvimento.",
-		MailingPlaceholder:     "voce@exemplo.com",
-		MailingAction:          "Em breve",
+		BlogTitle:              "Notas de campo.",
+		BlogCopy:               "As ferramentas que criamos, as escolhas por trás delas e o que aprendemos no caminho.",
+		BlogAction:             "Ler o blog",
 		ChatTitle:              "Vamos construir juntos.",
 		ChatCopy:               "Tem uma pergunta, ideia ou bug? Encontre o projeto certo e comece a conversa no GitHub.",
 		ChatAction:             "Visitar Arai Hû no GitHub",
@@ -195,8 +192,8 @@ var contents = map[string]Content{
 		NavApps:                "Apps",
 		NavLibs:                "Bibliotecas",
 		NavBlog:                "Blog",
+		BlogURL:                "https://blog.araihu.com/es/",
 		MenuLabel:              "Menú",
-		WorkInProgress:         "En progreso",
 		FeaturedLabel:          "Familia destacada",
 		FeaturedTitle:          "La familia de UI renderizada en servidor.",
 		FeaturedDescription:    "Goshtoso aporta primitivas accesibles, App Shells las compone en layouts y Charts lleva visualización de datos a Go y templ.",
@@ -208,10 +205,9 @@ var contents = map[string]Content{
 		MoreIntro:              "Bloques más pequeños, herramientas enfocadas e infraestructura compartida por la misma organización.",
 		MissionTitle:           "Software abierto, mantenido en público.",
 		MissionCopy:            "Arai Hû crea software Go práctico de forma abierta. Cada proyecto es útil por sí solo y funciona mejor en conjunto.",
-		MailingTitle:           "Notas de campo, próximamente.",
-		MailingCopy:            "Una lista de correo para lanzamientos, experimentos y notas de proyectos está en desarrollo.",
-		MailingPlaceholder:     "tu@ejemplo.com",
-		MailingAction:          "Próximamente",
+		BlogTitle:              "Notas de campo.",
+		BlogCopy:               "Las herramientas que creamos, las decisiones detrás de ellas y lo que aprendemos en el camino.",
+		BlogAction:             "Leer el blog",
 		ChatTitle:              "Construyamos juntos.",
 		ChatCopy:               "¿Tienes una pregunta, idea o error para reportar? Encuentra el proyecto y empieza la conversación en GitHub.",
 		ChatAction:             "Visitar Arai Hû en GitHub",

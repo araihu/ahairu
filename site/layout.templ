@@ -46,6 +46,7 @@ templ SiteHeader(page Page) {
 					} else {
 						<a href={ templ.SafeURL(pathFor(PageLicense, page.Meta.Locale.Language)) }>{ sharedContent(page.Meta.Locale.Key).LicenseLabel }</a>
 					}
+					<a href={ homeContent(page.Meta.Locale.Key).BlogURL }>{ homeContent(page.Meta.Locale.Key).NavBlog }</a>
 				</div>
 				<div class="ahairu-locale flex gap-3 text-sm font-semibold" aria-label={ sharedContent(page.Meta.Locale.Key).LanguageLabel }>
 					for _, link := range page.Navigation.Locales {
