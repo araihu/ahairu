@@ -497,6 +497,7 @@ test("language dropdown preserves page family across locales and restores keyboa
         await page.focus(trigger);
         await page.keyboard.press("ArrowDown");
         await page.waitForSelector('#araihu-language-menu [role="menu"]', { visible: true });
+        await page.waitForFunction(() => document.activeElement.textContent.trim() === "English");
         assert.equal(await page.evaluate(() => document.activeElement.textContent.trim()), "English");
         await page.keyboard.press("Escape");
         await page.waitForFunction(selector => document.activeElement.matches(selector), {}, trigger);
