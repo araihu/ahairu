@@ -550,6 +550,7 @@ html { scroll-behavior: smooth; }
 }
 
 .ahairu-language-control { color: var(--storm-paper); }
+.ahairu-language-control[x-cloak] { display: none; }
 .ahairu-language-trigger { min-width: 44px; min-height: 44px; }
 .ahairu-language-trigger:focus-visible { outline: 3px solid var(--storm-signal); outline-offset: 4px; }
 .ahairu-language-fallback { display: flex; flex-wrap: wrap; gap: .5rem; }
