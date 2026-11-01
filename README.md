@@ -165,6 +165,7 @@ the domain-level WebSite, the localized WebPage, and the three localized Blog
 WebSites. Blog IDs match the published Margo WebSite IDs. `publisher` identifies
 the organization; `hasPart` and `isPartOf` connect the main site and blog.
 Brand pages add their Brand node. No ratings, legal identity, or contact details
-are inferred. SoftwareApplication entries describe the public projects; they
-are not eligible for Google's app rich results without genuine rating/review
-and offer data.
+are inferred. SoftwareApplication entries describe the public projects. Google's Rich Results
+Test currently accepts them with non-critical warnings for missing `offers` and
+`aggregateRating`. Those properties stay omitted without verified published
+offers or ratings.
