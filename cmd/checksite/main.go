@@ -554,30 +554,84 @@ func checkJSONLD(document htmlDocument, page site.Page) error {
 		return fmt.Errorf("JSON-LD context is invalid")
 	}
 	organizationID := canonicalOrigin + "/#organization"
-	if page.Meta.Kind == site.PageBrand {
-		graph, ok := value["@graph"].([]any)
-		if !ok || len(graph) != 2 {
-			return fmt.Errorf("JSON-LD brand graph is invalid")
-		}
-		organization := findJSONLDNode(graph, organizationID)
-		brand := findJSONLDNode(graph, canonicalOrigin+"/#brand")
-		if organization == nil || organization["@type"] != "Organization" || organization["logo"] != faviconAbsoluteURL() {
-			return fmt.Errorf("JSON-LD organization is invalid")
-		}
-		if brand == nil || brand["@type"] != "Brand" || brand["url"] != page.Meta.CanonicalURL || brand["logo"] != organization["logo"] || jsonLDReference(organization["brand"]) != canonicalOrigin+"/#brand" {
-			return fmt.Errorf("JSON-LD brand relationship is invalid")
-		}
-		return nil
+	websiteID := canonicalOrigin + "/#website"
+	graph, ok := value["@graph"].([]any)
+	if !ok {
+		return fmt.Errorf("JSON-LD graph is missing")
 	}
-	if value["@type"] != "WebPage" || value["@id"] != page.Meta.CanonicalURL+"#webpage" || value["url"] != page.Meta.CanonicalURL || value["inLanguage"] != page.Meta.Locale.Language || jsonLDReference(value["publisher"]) != organizationID {
+	seen := make(map[string]bool, len(graph))
+	for _, raw := range graph {
+		node, ok := raw.(map[string]any)
+		if !ok {
+			return fmt.Errorf("JSON-LD graph node is invalid")
+		}
+		id, _ := node["@id"].(string)
+		if id == "" || seen[id] {
+			return fmt.Errorf("JSON-LD node ID is missing or duplicated: %q", id)
+		}
+		seen[id] = true
+	}
+	organization := findJSONLDNode(graph, organizationID)
+	logo := canonicalOrigin + site.BrandAssetsPublicPrefix + "platform/web/araihu/apple-touch-icon-180.png"
+	if organization == nil || organization["@type"] != "Organization" || organization["name"] != "Arai Hû" || organization["url"] != canonicalOrigin+"/" || organization["logo"] != logo {
+		return fmt.Errorf("JSON-LD organization is invalid")
+	}
+	website := findJSONLDNode(graph, websiteID)
+	if website == nil || website["@type"] != "WebSite" || website["name"] != "Arai Hû" || website["url"] != canonicalOrigin+"/" || jsonLDReference(website["publisher"]) != organizationID {
+		return fmt.Errorf("JSON-LD website identity is invalid")
+	}
+	parts, ok := website["hasPart"].([]any)
+	if !ok || len(parts) != len(page.Navigation.Locales) {
+		return fmt.Errorf("JSON-LD website blog translations are incomplete")
+	}
+	blogReferences := make(map[string]bool, len(parts))
+	for _, part := range parts {
+		blogReferences[jsonLDReference(part)] = true
+	}
+	for _, link := range page.Navigation.Locales {
+		url := "https://blog.araihu.com/"
+		if link.Locale.Key != "en" {
+			url += link.Locale.Key + "/"
+		}
+		id := url + "#website"
+		blog := findJSONLDNode(graph, id)
+		if !blogReferences[id] || blog == nil || !hasJSONLDType(blog, "WebSite") || !hasJSONLDType(blog, "Blog") || blog["url"] != url || blog["inLanguage"] != link.Locale.Language || jsonLDReference(blog["publisher"]) != organizationID || jsonLDReference(blog["isPartOf"]) != websiteID {
+			return fmt.Errorf("JSON-LD blog relationship is invalid for %s", link.Locale.Language)
+		}
+	}
+	webpage := findJSONLDNode(graph, page.Meta.CanonicalURL+"#webpage")
+	if webpage == nil || webpage["@type"] != "WebPage" || webpage["url"] != page.Meta.CanonicalURL || webpage["name"] != page.Meta.Title || webpage["description"] != page.Meta.Description || webpage["inLanguage"] != page.Meta.Locale.Language || jsonLDReference(webpage["publisher"]) != organizationID || jsonLDReference(webpage["isPartOf"]) != websiteID {
 		return fmt.Errorf("JSON-LD webpage relationship is invalid")
 	}
+	if page.Meta.Kind == site.PageHome && jsonLDReference(webpage["mainEntity"]) != organizationID {
+		return fmt.Errorf("JSON-LD home organization relationship is invalid")
+	}
+	if page.Meta.Kind == site.PageBrand {
+		brand := findJSONLDNode(graph, canonicalOrigin+"/#brand")
+		if brand == nil || brand["@type"] != "Brand" || brand["url"] != page.Meta.CanonicalURL || brand["logo"] != organization["logo"] || jsonLDReference(organization["brand"]) != canonicalOrigin+"/#brand" || jsonLDReference(webpage["mainEntity"]) != canonicalOrigin+"/#brand" {
+			return fmt.Errorf("JSON-LD brand relationship is invalid")
+		}
+	}
 	if page.Meta.Kind == site.PageLicense {
-		if value["version"] != page.License.Version || value["dateModified"] != page.License.EffectiveDate {
+		if webpage["version"] != page.License.Version || webpage["dateModified"] != page.License.EffectiveDate {
 			return fmt.Errorf("JSON-LD license version or effective date is invalid")
 		}
 	}
 	return nil
+}
+
+func hasJSONLDType(node map[string]any, want string) bool {
+	if node["@type"] == want {
+		return true
+	}
+	if types, ok := node["@type"].([]any); ok {
+		for _, value := range types {
+			if value == want {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func findJSONLDNode(graph []any, id string) map[string]any {

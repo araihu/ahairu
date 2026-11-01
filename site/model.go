@@ -5,6 +5,7 @@ const CanonicalSiteURL = "https://araihu.com"
 // Locale identifies one language version of a public page.
 type Locale struct {
 	Key, Language, OGLocale, Label string
+	Name, FlagURL                  string
 }
 
 // PageKind identifies a public page family.

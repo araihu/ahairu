@@ -1,0 +1,54 @@
+package site
+
+import (
+	"github.com/araihu/goshtoso/components/button"
+	"github.com/araihu/goshtoso/components/dropdown"
+)
+
+templ LanguageFlag(locale Locale) {
+	<img class="ahairu-language-flag" src={ locale.FlagURL } width="24" height="18" alt="" aria-hidden="true"/>
+}
+
+templ LanguageTrigger(locale Locale) {
+	@button.Button(
+		button.WithAppearance(button.AppearancePlain),
+		button.WithType("button"),
+		button.WithRootClass("ahairu-language-trigger"),
+		button.WithAttrs(templ.Attributes{"aria-label": sharedContent(locale.Key).LanguageLabel + ": " + locale.Name, "title": sharedContent(locale.Key).LanguageLabel + ": " + locale.Name}),
+	) {
+		@LanguageFlag(locale)
+	}
+}
+
+templ LanguageSelector(page Page) {
+	<div class="dark ahairu-language-control" x-data x-cloak>
+		@dropdown.Dropdown(languageMenu(page))
+	</div>
+	<noscript>
+		<nav class="ahairu-language-fallback" aria-label={ sharedContent(page.Meta.Locale.Key).LanguageLabel }>
+			for _, link := range page.Navigation.Locales {
+				<a href={ templ.SafeURL(link.URL) } lang={ link.Locale.Language } hreflang={ link.Locale.Language } 
+					if link.Locale.Key == page.Meta.Locale.Key {
+						aria-current="page"
+					}>
+					@LanguageFlag(link.Locale)
+					<span class="sr-only">{ link.Locale.Name }</span>
+				</a>
+			}
+		</nav>
+	</noscript>
+}
+
+func languageMenu(page Page) dropdown.Config {
+	items := make([]dropdown.Item, 0, len(page.Navigation.Locales))
+	for _, link := range page.Navigation.Locales {
+		items = append(items, dropdown.Item{Label: link.Locale.Name, Href: link.URL, Icon: LanguageFlag(link.Locale)})
+	}
+	return dropdown.Config{
+		ID: "araihu-language-menu",
+		Label: sharedContent(page.Meta.Locale.Key).LanguageLabel,
+		Trigger: LanguageTrigger(page.Meta.Locale),
+		MenuAlign: dropdown.AlignEnd,
+		Sections: []dropdown.Section{{Items: items}},
+	}
+}

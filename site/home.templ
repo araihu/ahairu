@@ -47,6 +47,23 @@ templ HomeDocument(page Page, content Content) {
 						delete document.documentElement.dataset.chartBundleRequested;
 					}
 				});
+				document.addEventListener("htmx:after:swap", () => {
+					const element = document.getElementById("structured-data");
+					if (!element) return;
+					const data = JSON.parse(element.textContent);
+					const projects = data["@graph"].find(node => node["@type"] === "WebPage")?.mentions;
+					if (!projects) return;
+					const slots = { "Goshtoso": "goshtoso-version-slot", "Goshtoso App Shells": "goshtoso-app-shells-version-slot", "Goshtoso Charts": "goshtoso-charts-version-slot" };
+					let changed = false;
+					for (const project of projects) {
+						const version = document.getElementById(slots[project.name])?.textContent.trim();
+						if (version && /^v\d+\.\d+\.\d+$/.test(version) && project.version !== version) {
+							project.version = version;
+							changed = true;
+						}
+					}
+					if (changed) element.textContent = JSON.stringify(data);
+				});
 			</script>
 		</head>
 		<body class="ahairu-archive min-h-screen selection:bg-primary selection:text-on-primary">
@@ -65,9 +82,7 @@ templ HomeDocument(page Page, content Content) {
 					</ul>
 					<div class="ahairu-nav-tools">
 						<a class="ahairu-github" href="https://github.com/araihu">GitHub ↗</a>
-						<div class="ahairu-locale flex gap-3 text-sm font-semibold">
-							@LocaleLinks(content)
-						</div>
+						@LanguageSelector(page)
 						<button class="ahairu-campaign-toggle" type="button" hidden data-campaign-toggle aria-pressed="false">
 							<span data-campaign-toggle-icon aria-hidden="true"></span>
 							<span class="sr-only">Use the standard Arai Hû appearance</span>
@@ -194,24 +209,6 @@ templ HomeDocument(page Page, content Content) {
 	</html>
 }
 
-templ LocaleLinks(content Content) {
-	if content.Path == "/pt-br/" {
-		<a href="/pt-br/" aria-current="page">PT</a>
-	} else {
-		<a href="/pt-br/">PT</a>
-	}
-	if content.Path == "/en/" {
-		<a href="/en/" aria-current="page">EN</a>
-	} else {
-		<a href="/en/">EN</a>
-	}
-	if content.Path == "/es/" {
-		<a href="/es/" aria-current="page">ES</a>
-	} else {
-		<a href="/es/">ES</a>
-	}
-}
-
 templ MobileMenuContent(content Content) {
 	<a class="mobile-menu-brand" href={ content.Path }><strong>{ content.Name }</strong><small>{ content.Tagline }</small></a>
 	<ul class="mobile-menu-list">
@@ -222,7 +219,6 @@ templ MobileMenuContent(content Content) {
 	</ul>
 	<div class="mobile-menu-tools">
 		<a href="https://github.com/araihu">GitHub ↗</a>
-		@LocaleLinks(content)
 	</div>
 }
 

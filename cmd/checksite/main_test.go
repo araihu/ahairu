@@ -21,6 +21,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/araihu/ahairu/site"
+	"github.com/araihu/goshtoso/assets"
 )
 
 func TestWorkflowsPinToolchainsAndActions(t *testing.T) {
@@ -1039,6 +1040,15 @@ func TestCheckRejectsAdversarialDiscoveryDocuments(t *testing.T) {
 			want: "JSON-LD",
 		},
 		{
+			name: "wrong blog translation publisher",
+			mutate: func(t *testing.T, root string) {
+				mutatePage(t, root, "/pt-br/", func(html string) string {
+					return strings.ReplaceAll(html, "https://blog.araihu.com/pt-br/#website", "https://blog.araihu.com/es/#website")
+				})
+			},
+			want: "JSON-LD",
+		},
+		{
 			name: "inexact robots directives",
 			mutate: func(t *testing.T, root string) {
 				path := filepath.Join(root, "robots.txt")
@@ -1196,6 +1206,22 @@ func writeValidPublic(t *testing.T) string {
 	writeFile(t, filepath.Join(root, "site.webmanifest"), site.SiteManifest())
 	for _, name := range []string{"styles.css", "ahairu.css", "araihu-theme.css"} {
 		writeFile(t, filepath.Join(root, "assets", name), []byte("fixture"))
+	}
+	for _, dependency := range assets.DefaultRuntimeManifest().Dependencies {
+		if dependency.Enabled {
+			writeFile(t, filepath.Join(root, strings.TrimPrefix(dependency.LocalURL, "/")), []byte("fixture"))
+		}
+	}
+	writeFile(t, filepath.Join(root, strings.TrimPrefix(assets.DependencyLoaderURL, "/")), []byte("fixture"))
+	for _, name := range site.ProjectVisualAssetNames() {
+		if !strings.HasPrefix(name, "flag-") {
+			continue
+		}
+		data, err := site.ProjectVisualAsset(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, filepath.Join(root, "assets", "visuals", name), data)
 	}
 	writePNG(t, filepath.Join(root, "social", "brand.png"), 1200, 630)
 	writePNG(t, filepath.Join(root, "social", "license.png"), 1200, 630)

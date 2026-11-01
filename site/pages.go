@@ -3,9 +3,9 @@ package site
 import "fmt"
 
 var siteLocales = []Locale{
-	{Key: "en", Language: "en", OGLocale: "en_US", Label: "EN"},
-	{Key: "pt-br", Language: "pt-BR", OGLocale: "pt_BR", Label: "PT"},
-	{Key: "es", Language: "es", OGLocale: "es_ES", Label: "ES"},
+	{Key: "en", Language: "en", OGLocale: "en_US", Label: "EN", Name: "English", FlagURL: "/assets/visuals/flag-us.svg"},
+	{Key: "pt-br", Language: "pt-BR", OGLocale: "pt_BR", Label: "PT", Name: "Português", FlagURL: "/assets/visuals/flag-br.svg"},
+	{Key: "es", Language: "es", OGLocale: "es_ES", Label: "ES", Name: "Español", FlagURL: "/assets/visuals/flag-es.svg"},
 }
 
 // Pages returns every canonical localized public page.
