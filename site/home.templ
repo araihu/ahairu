@@ -7,6 +7,7 @@ import (
 	shellassets "github.com/araihu/goshtoso-app-shells/landingshell/assets"
 	"github.com/araihu/goshtoso/components/card"
 	"github.com/araihu/goshtoso/components/head"
+	"github.com/araihu/goshtoso/components/link"
 )
 
 templ HomePage(page Page) {
@@ -60,7 +61,7 @@ templ HomeDocument(page Page, content Content) {
 						<li><a href="#home">{ content.NavHome }</a></li>
 						<li><a href="#libs">{ content.NavLibs }</a></li>
 						<li><a href="#apps">{ content.NavApps }</a></li>
-						<li><a href="#field-notes">{ content.NavBlog } <span>{ content.WorkInProgress }</span></a></li>
+						<li><a href={ content.BlogURL }>{ content.NavBlog }</a></li>
 					</ul>
 					<div class="ahairu-nav-tools">
 						<a class="ahairu-github" href="https://github.com/araihu">GitHub ↗</a>
@@ -164,15 +165,13 @@ templ HomeDocument(page Page, content Content) {
 				</section>
 				<section class="keep-up" aria-label={ content.NavBlog }>
 					<div class="ahairu-shell keep-up-grid mx-auto px-6 md:px-10">
-						<div id="field-notes" class="mailing-panel">
-							<p class="panel-status">{ content.NavBlog } · { content.WorkInProgress }</p>
-							<h2>{ content.MailingTitle }</h2>
-							<p>{ content.MailingCopy }</p>
-							<form class="mailing-preview" aria-label={ content.MailingTitle }>
-								<label class="sr-only" for="mailing-email">Email</label>
-								<input id="mailing-email" type="email" placeholder={ content.MailingPlaceholder } disabled/>
-								<button type="button" disabled>{ content.MailingAction }</button>
-							</form>
+						<div id="field-notes" class="blog-panel">
+							<p class="panel-status">{ content.NavBlog }</p>
+							<h2>{ content.BlogTitle }</h2>
+							<p>{ content.BlogCopy }</p>
+							@link.Link(content.BlogURL) {
+								{ content.BlogAction } <span aria-hidden="true">↗</span>
+							}
 						</div>
 						<div class="chat-panel">
 							<p class="panel-status">GitHub · { content.OpenSourceLabel }</p>
@@ -219,7 +218,7 @@ templ MobileMenuContent(content Content) {
 		<li><a href="#home">{ content.NavHome }</a></li>
 		<li><a href="#libs">{ content.NavLibs }</a></li>
 		<li><a href="#apps">{ content.NavApps }</a></li>
-		<li><a href="#field-notes">{ content.NavBlog } <span>{ content.WorkInProgress }</span></a></li>
+		<li><a href={ content.BlogURL }>{ content.NavBlog }</a></li>
 	</ul>
 	<div class="mobile-menu-tools">
 		<a href="https://github.com/araihu">GitHub ↗</a>
