@@ -279,7 +279,7 @@ echo "accepted Assets state updated on \${STATE_REF}"`.replaceAll("\\${", "${")
     const templ = dag.container().from(GO_IMAGE)
       .withMountedCache("/go/pkg/mod", templModuleCache)
       .withMountedCache("/root/.cache/go-build", templBuildCache)
-      .withExec(["go", "install", "github.com/a-h/templ/cmd/templ@v0.3.1020"])
+      .withExec(["go", "install", "github.com/a-h/templ/cmd/templ@v0.3.1100"])
       .file("/go/bin/templ")
 
     let project = dag

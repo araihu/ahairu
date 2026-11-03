@@ -3,11 +3,11 @@ module github.com/araihu/ahairu
 go 1.27.3
 
 require (
-	github.com/a-h/templ v0.3.1070
-	github.com/araihu/goshtoso v0.4.0
-	github.com/araihu/goshtoso-app-shells v0.1.8
-	github.com/araihu/goshtoso-charts v0.0.4
-	golang.org/x/net v0.61.0
+	github.com/a-h/templ v0.3.1100
+	github.com/araihu/goshtoso v0.4.7
+	github.com/araihu/goshtoso-app-shells v0.1.9
+	github.com/araihu/goshtoso-charts v0.0.5
+	golang.org/x/net v0.62.0
 )
 
 require (
