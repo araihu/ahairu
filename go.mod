@@ -4,10 +4,10 @@ go 1.27.3
 
 require (
 	github.com/a-h/templ v0.3.1118
-	github.com/araihu/goshtoso v0.6.1
+	github.com/araihu/goshtoso v0.6.4
 	github.com/araihu/goshtoso-app-shells v0.1.9
 	github.com/araihu/goshtoso-charts v0.0.5
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 )
 
 require (
