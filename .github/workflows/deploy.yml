@@ -36,7 +36,7 @@ jobs:
           path: ${{ runner.temp }}/accepted-assets
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ github.token }}
-      - uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+      - uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         id: assets-token
         with:
           app-id: ${{ secrets.ASSETS_APP_ID }}
@@ -64,7 +64,7 @@ jobs:
           printf 'Deployed Worker version: %s\n' "$(tr -d '\n' < '${{ runner.temp }}/deployed-version.txt')" >> "$GITHUB_STEP_SUMMARY"
       - name: Mint post-promotion state token scoped to Ahairu
         id: state-token
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           app-id: ${{ secrets.AHAIRU_APP_ID }}
           private-key: ${{ secrets.AHAIRU_APP_PRIVATE_KEY }}
